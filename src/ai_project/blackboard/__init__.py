@@ -3,6 +3,7 @@ from ai_project.blackboard.exceptions import (
     InvalidMessageError,
     BlackboardNotInitializedError,
     InvalidStatusTransitionError,
+    SnapshotError,
 )
 from ai_project.blackboard.models import (
     BlackboardStatus,
@@ -18,6 +19,7 @@ __all__ = [
     "InvalidMessageError",
     "BlackboardNotInitializedError",
     "InvalidStatusTransitionError",
+    "SnapshotError",
     "BlackboardStatus",
     "BlackboardState",
     "HistoryEvent",

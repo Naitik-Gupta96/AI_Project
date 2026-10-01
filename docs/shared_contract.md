@@ -6,7 +6,148 @@ The public API below is the contract.
 
 ---
 
-## For Person 2: PEX Agents + LLM Integration
+## For Person 2: PEX Agents + LLM Integration (Implemented)
+
+### Agent Layer API
+
+The agent layer provides ready-to-use agents and building blocks.
+
+```python
+from ai_project.agents import (
+    AnalystAgent, CriticAgent, SpecialistAgent,
+    BaseAgent, AgentDecision, AgentContext,
+    AgentError
+)
+from ai_project.llm import (
+    MockLLMProvider, AgentDecisionParser,
+    LLMProvider, ParseError
+)
+from ai_project.blackboard import Blackboard
+```
+
+### Using Built-in Agents
+
+```python
+# Create agents with mock provider (for demo/testing)
+provider = MockLLMProvider()
+analyst = AnalystAgent(agent_id="analyst_1", llm_provider=provider)
+critic = CriticAgent(agent_id="critic_1", llm_provider=provider)
+specialist = SpecialistAgent(agent_id="specialist_1", llm_provider=provider)
+
+# Agents act on Blackboard (scheduler controls WHEN)
+msg1 = analyst.act(board)
+board.publish_message(msg1)
+
+msg2 = critic.act(board)
+board.publish_message(msg2)
+
+msg3 = specialist.act(board)
+board.publish_message(msg3)
+```
+
+### Building Custom Agents
+
+```python
+from ai_project.agents import BaseAgent
+from ai_project.agents.models import AgentContext, AgentDecision
+from ai_project.protocol import PXPTag
+
+class CustomAgent(BaseAgent):
+    def reason(self, context: AgentContext) -> AgentDecision:
+        # Access structured context
+        task = context.task
+        history = context.recent_history
+        current = context.current_prediction
+        
+        # Your reasoning logic
+        return AgentDecision(
+            tag=PXPTag.RATIFY,
+            prediction="Your decision",
+            explanation="Your reasoning",
+            confidence=0.85
+        )
+
+agent = CustomAgent(agent_id="custom_1", role="Custom", llm_provider=provider)
+message = agent.act(board)
+```
+
+### Agent Context
+
+Agents receive structured `AgentContext`:
+
+```python
+context = AgentContext(
+    task="Task description",
+    current_prediction="Option A",
+    current_explanation="Previous reasoning",
+    status="RUNNING",
+    iteration=2,
+    recent_history=[HistoryEvent, ...],
+    agent_id="critic_1",
+    agent_role="Critic"
+)
+
+# For prompt templating
+prompt_data = context.to_prompt_context()
+```
+
+### LLM Provider Abstraction
+
+```python
+# Mock provider (deterministic, no external deps)
+provider = MockLLMProvider(seed=42)
+
+# Custom provider
+class MyProvider(LLMProvider):
+    def generate(self, prompt: str, **kwargs) -> str:
+        # Call your LLM
+        return llm_response
+
+    def is_available(self) -> bool:
+        return True
+
+provider = MyProvider()
+```
+
+### Structured Output Parsing
+
+```python
+from ai_project.llm import AgentDecisionParser, ParseError
+
+parser = AgentDecisionParser()
+
+# Valid JSON with all required fields
+json_str = '{"tag": "RATIFY", "prediction": "A", "explanation": "Reason", "confidence": 0.8}'
+decision = parser.parse(json_str)
+
+# Handles markdown fences automatically
+json_str = '```json\n{"tag": "RATIFY", ...}\n```'
+decision = parser.parse(json_str)
+
+# Validation errors
+try:
+    parser.parse('invalid')
+except ParseError as e:
+    print(f"Parse failed: {e}")
+```
+
+### Required Fields in AgentDecision / PXPMessage
+
+| Field | Required | Description |
+|-------|----------|-------------|
+| `agent_id` | Yes | Non-empty string, unique per agent |
+| `tag` | Yes | `PXPTag.RATIFY`, `REVISE`, `REFUTE`, `REJECT` |
+| `prediction` | Yes | Non-empty string |
+| `explanation` | Yes | Non-empty string |
+| `confidence` | Yes | Float 0.0-1.0 |
+| `iteration` | Auto | Auto-corrected by Blackboard |
+| `message_id` | Auto | Auto-generated if not provided |
+| `timestamp` | Auto | Auto-generated |
+| `metadata` | No | Dict for extra data |
+
+---
+
+## For Person 2: PEX Agents + LLM Integration (Legacy Pattern)
 
 ### Input
 - Task description (from `board.get_state().task`)

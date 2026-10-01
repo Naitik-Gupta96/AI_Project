@@ -24,31 +24,50 @@
 ---
 
 ## Person 2: PEX Agents + LLM Integration
-**Status**: 🔄 FUTURE
+**Status**: ✅ COMPLETE (this branch)
 
 **Responsibilities**:
-- Implement agent classes that produce PXPMessage outputs
-- LLM prompt engineering for structured prediction + explanation
-- Agent orchestration (when to speak, what context to use)
-- Integration with Blackboard via `publish_message()`
+- Agent abstraction (BaseAgent, AgentDecision, AgentContext)
+- Concrete agents: Analyst, Critic, Specialist
+- LLM provider abstraction (MockLLMProvider, extensible interface)
+- Structured output parsing and validation
+- Prompt templates for each agent role
+- Integration with Blackboard via `agent.act(board)` → `board.publish_message()`
+- Deterministic mock provider for demos/testing
+- Unit tests and integration tests
+- Agent demo
+
+**Deliverables**:
+- `src/ai_project/agents/` - Agent implementations
+- `src/ai_project/llm/` - LLM provider abstraction, mock, parser
+- `prompts/` - Prompt templates
+- `examples/agents_demo.py` - Working demonstration
+- `tests/agents/`, `tests/llm/` - Test coverage
+- `docs/agents_api.md` - API documentation
 
 **Integration Point**:
 ```python
-from ai_project.protocol import PXPMessage, PXPTag
+from ai_project.agents import AnalystAgent, CriticAgent, SpecialistAgent
+from ai_project.llm import MockLLMProvider
 from ai_project.blackboard import Blackboard
 
 board = Blackboard()
-# ... get context from board.get_state(), board.get_history()
-message = PXPMessage(
-    message_id="msg_001",
-    agent_id="agent_A",
-    tag=PXPTag.RATIFY,
-    prediction="Option B",
-    explanation="Option B satisfies constraints.",
-    confidence=0.82,
-    iteration=board.get_iteration() + 1,
-)
-board.publish_message(message)
+board.initialize_task("Your task")
+
+provider = MockLLMProvider()
+analyst = AnalystAgent("analyst_1", provider)
+critic = CriticAgent("critic_1", provider)
+specialist = SpecialistAgent("specialist_1", provider)
+
+# Scheduler controls WHEN
+msg1 = analyst.act(board)
+board.publish_message(msg1)
+
+msg2 = critic.act(board)
+board.publish_message(msg2)
+
+msg3 = specialist.act(board)
+board.publish_message(msg3)
 ```
 
 ---

@@ -156,45 +156,48 @@
 - [x] No React/D3
 - [x] No benchmark ingestion
 
-## Phase 22: Definition of Done
-- [x] Clean repository structure
-- [x] pyproject.toml exists
-- [x] .gitignore exists
-- [x] README exists
-- [x] Project documentation exists
-- [x] PXPMessage exists
-- [x] PXPTag exists
-- [x] All 4 tags work
-- [x] Validation exists
-- [x] Invalid messages rejected
-- [x] Task initialization
-- [x] State reading
-- [x] Message publishing
-- [x] Latest message available
-- [x] Prediction/explanation stored
-- [x] Status available
-- [x] Iteration available
-- [x] History available
-- [x] History ordering preserved
-- [x] Thread-safe updates
-- [x] Snapshot support
-- [x] Serialization support
-- [x] Unit tests written
-- [x] Concurrency tested
-- [x] Serialization tested
-- [x] Snapshot isolation tested
-- [x] Invalid-input behavior tested
-- [x] Full test suite passes
-- [x] Demo script exists
-- [x] Demo executed successfully
-- [x] Blackboard API documented
-- [x] PXP contract documented
-- [x] Team integration contract documented
-- [x] Architecture documented
-- [x] Design decisions documented
-- [ ] Work committed
-- [ ] Branch identified
-- [ ] Repository usable for teammates
+## Phase 22: Person 2 - Agents / PEX Layer
+- [x] Agent abstraction (BaseAgent, AgentDecision, AgentContext)
+- [x] AnalystAgent implementation
+- [x] CriticAgent implementation
+- [x] SpecialistAgent implementation
+- [x] LLM provider abstraction (LLMProvider base class)
+- [x] MockLLMProvider (deterministic, for demos/testing)
+- [x] AgentDecisionParser with validation
+- [x] Prompt templates (analyst.md, critic.md, specialist.md, structured_output.md)
+- [x] Agent-to-Blackboard integration (agent.act(board) → PXPMessage)
+- [x] Person 2 unit tests (models, base, analyst, critic, specialist, integration)
+- [x] Person 2 LLM tests (mock provider, parser)
+- [x] All existing Person 1 tests still pass
+- [x] End-to-end agent demo (examples/agents_demo.py)
+- [x] Documentation (agents_api.md, updated shared_contract.md, integration_guide.md)
+- [x] Updated TEAM.md and TASKS.md
+
+## Phase 23: Definition of Done (Updated)
+- [x] Person 1 foundation is integrated
+- [x] Existing baseline tests pass
+- [x] BaseAgent exists
+- [x] Analyst exists
+- [x] Critic exists
+- [x] Specialist exists
+- [x] AgentDecision exists
+- [x] Agents use the existing PXPTag/PXPMessage
+- [x] Agent context is structured
+- [x] History can be consumed
+- [x] LLM provider abstraction exists
+- [x] Deterministic mock provider exists
+- [x] Structured output parser exists
+- [x] Invalid output is rejected safely
+- [x] Agent-to-Blackboard integration works
+- [x] End-to-end agent test passes
+- [x] All previous tests still pass
+- [x] Agent demo works
+- [x] Documentation is complete
+- [x] Person 3 has a clear invocation API
+- [x] Person 4 has structured outputs to consume
+- [ ] Code committed
+- [ ] Branch is pushed
+- [ ] PR is ready
 
 ## Phase 23: Final Self-Review
 - [ ] Person 2 can build agent without modifying internals

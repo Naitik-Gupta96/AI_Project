@@ -97,6 +97,7 @@ python -m venv .venv
 .venv\Scripts\activate  # Windows
 pip install -e .
 pip install -e ".[dev]"
+pip install -e ".[ui]"   # Streamlit frontend
 ```
 
 ## Running Tests
@@ -109,6 +110,13 @@ pytest tests/ -v
 python examples/blackboard_demo.py
 python examples/scheduler_demo.py    # scheduler -> deadlock -> counterfactual -> consensus
 ```
+
+## Running the UI
+```bash
+streamlit run frontend/app.py        # or: python examples/run_demo.py
+```
+The Flash Talk Demo tab runs the real Scheduler and counterfactual engine through
+`ai_project.ui` (see [docs/ui_api.md](docs/ui_api.md)).
 
 ## Person 1 Responsibilities (This Branch)
 - Blackboard core implementation

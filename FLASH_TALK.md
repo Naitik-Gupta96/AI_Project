@@ -60,6 +60,20 @@ Snapshot modified (simulated counterfactual branch).
 Live Blackboard unchanged ✓
 ```
 
+## UI Demo (Person 4)
+```bash
+python examples/run_demo.py      # or: streamlit run frontend/app.py
+```
+
+### Presenter Guide
+1. Run the demo script. The UI opens on the "Flash Talk Demo" tab.
+2. Keep "Deadlock -> counterfactual consensus (Scenario C)" selected and click **Run Demo**.
+3. Original path: analyst RATIFY Option A, critic REFUTE Option A, specialist REFUTE Option A -> `DEADLOCK` after 3 steps.
+4. Counterfactual path: only step 2 is changed (the critic's refutation also names Option B). The UI shows "Diverged at Step 2"; the specialist then REVISEs to Option B and the critic and analyst RATIFY it -> `CONSENSUS` on Option B after 5 steps.
+5. Expand individual steps to show each agent's confidence and explanation.
+
+These runs use deterministic mock agents: they prove the mechanism, not an empirical result.
+
 ## Key Talking Points
 1. **Structured Communication**: No free-form strings - every message has prediction + explanation + tag
 2. **Validation First**: Invalid messages rejected before touching state

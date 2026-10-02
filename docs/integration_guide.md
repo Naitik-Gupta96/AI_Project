@@ -6,60 +6,69 @@ This guide explains how each team member should integrate their components with 
 
 ## HOW PERSON 2 SHOULD ADD AGENTS
 
-### Step 1: Understand the Agent Interface
-Each agent is a function/class that:
-- Takes context (task, history, current state)
-- Returns a `PXPMessage`
+### Using Built-in Agents (Ready to Use)
 
 ```python
-# agents/my_agent.py
-from ai_project.protocol import PXPMessage, PXPTag
+from ai_project.agents import AnalystAgent, CriticAgent, SpecialistAgent
+from ai_project.llm import MockLLMProvider
 from ai_project.blackboard import Blackboard
 
-class MyAgent:
-    def __init__(self, agent_id: str, model_config: dict):
-        self.agent_id = agent_id
-        self.model_config = model_config
+# Create Blackboard
+board = Blackboard()
+board.initialize_task("Your task here")
 
-    def reason(self, board: Blackboard) -> PXPMessage:
-        # 1. Get context
-        state = board.get_state()
-        history = board.get_history()
-        
-        # 2. Build prompt with context
-        prompt = self._build_prompt(state.task, history)
-        
-        # 3. Call LLM (your implementation)
-        prediction, explanation, confidence = self._call_llm(prompt)
-        
-        # 4. Determine tag based on reasoning
-        tag = self._decide_tag(prediction, history)
-        
-        # 5. Create and return PXPMessage
-        return PXPMessage.create(
-            agent_id=self.agent_id,
-            tag=tag,
-            prediction=prediction,
-            explanation=explanation,
-            confidence=confidence,
-            iteration=board.get_iteration() + 1,
-        )
+# Create agents with mock provider (deterministic, no external deps)
+provider = MockLLMProvider()
+analyst = AnalystAgent(agent_id="analyst_1", llm_provider=provider)
+critic = CriticAgent(agent_id="critic_1", llm_provider=provider)
+specialist = SpecialistAgent(agent_id="specialist_1", llm_provider=provider)
+
+# Scheduler controls WHEN agents act
+msg1 = analyst.act(board)
+board.publish_message(msg1)
+
+msg2 = critic.act(board)
+board.publish_message(msg2)
+
+msg3 = specialist.act(board)
+board.publish_message(msg3)
 ```
 
-### Step 2: Register Agent with Scheduler (Person 3's job)
+### Building Custom Agents
+
 ```python
-# Person 2 provides:
-AGENTS = [
-    MyAgent("agent_A", {"model": "gpt-4"}),
-    MyAgent("agent_B", {"model": "claude-3"}),
-]
+from ai_project.agents import BaseAgent
+from ai_project.agents.models import AgentContext, AgentDecision
+from ai_project.protocol import PXPTag
+from ai_project.llm import MockLLMProvider
+
+class MyCustomAgent(BaseAgent):
+    def reason(self, context: AgentContext) -> AgentDecision:
+        # Access structured context
+        task = context.task
+        history = context.recent_history
+        current = context.current_prediction
+        
+        # Your reasoning logic here
+        return AgentDecision(
+            tag=PXPTag.RATIFY,
+            prediction="Your decision",
+            explanation="Your reasoning trace",
+            confidence=0.85,
+            metadata={"custom": "data"}
+        )
+
+agent = MyCustomAgent(agent_id="custom_1", role="Custom Role", llm_provider=MockLLMProvider())
+message = agent.act(board)
+board.publish_message(message)
 ```
 
-### Step 3: Agent Output Requirements
+### Agent Output Requirements
+
 - **Prediction**: Concrete decision/answer (string)
 - **Explanation**: Reasoning trace (string)
 - **Tag**: One of RATIFY, REVISE, REFUTE, REJECT
-- **Confidence**: Optional float 0-1
+- **Confidence**: Float 0-1
 
 ---
 

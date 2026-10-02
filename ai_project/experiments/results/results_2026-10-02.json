@@ -1,0 +1,4916 @@
+[
+  {
+    "cf_fraction": 0.0,
+    "trial": 0,
+    "original_summary": {
+      "status": "CONSENSUS",
+      "prediction": "Option B",
+      "iterations": 3,
+      "deadlocked": false
+    },
+    "original_events": [
+      {
+        "step": 1,
+        "agent_id": "Analyst",
+        "tag": "RATIFY",
+        "prediction": "Option A",
+        "explanation": "Evidence A",
+        "confidence": 0.82
+      },
+      {
+        "step": 2,
+        "agent_id": "Critic",
+        "tag": "REFUTE",
+        "prediction": "Option A",
+        "explanation": "Evidence conflicts",
+        "confidence": 0.77
+      },
+      {
+        "step": 3,
+        "agent_id": "Specialist",
+        "tag": "REVISE",
+        "prediction": "Option B",
+        "explanation": "New evidence B",
+        "confidence": 0.71
+      }
+    ],
+    "counterfactual_summary": null,
+    "counterfactual_events": null,
+    "divergence_step": null
+  },
+  {
+    "cf_fraction": 0.0,
+    "trial": 1,
+    "original_summary": {
+      "status": "DEADLOCK",
+      "prediction": "Option A",
+      "iterations": 4,
+      "deadlocked": true
+    },
+    "original_events": [
+      {
+        "step": 1,
+        "agent_id": "Analyst",
+        "tag": "RATIFY",
+        "prediction": "Option A",
+        "explanation": "Evidence A",
+        "confidence": 0.82
+      },
+      {
+        "step": 2,
+        "agent_id": "Critic",
+        "tag": "REFUTE",
+        "prediction": "Option A",
+        "explanation": "Evidence conflicts",
+        "confidence": 0.77
+      },
+      {
+        "step": 3,
+        "agent_id": "Specialist",
+        "tag": "REVISE",
+        "prediction": "Option B",
+        "explanation": "New evidence B",
+        "confidence": 0.71
+      },
+      {
+        "step": 4,
+        "agent_id": "Analyst",
+        "tag": "REFUTE",
+        "prediction": "Option B",
+        "explanation": "Conflicts with A",
+        "confidence": 0.6
+      }
+    ],
+    "counterfactual_summary": {
+      "status": "DEADLOCK",
+      "prediction": "Option A",
+      "iterations": 4,
+      "deadlocked": true
+    },
+    "counterfactual_events": [
+      {
+        "step": 1,
+        "agent_id": "Analyst",
+        "tag": "RATIFY",
+        "prediction": "Option A",
+        "explanation": "Evidence A",
+        "confidence": 0.82
+      },
+      {
+        "step": 2,
+        "agent_id": "Critic",
+        "tag": "REFUTE",
+        "prediction": "Option A",
+        "explanation": "Evidence conflicts",
+        "confidence": 0.77
+      },
+      {
+        "step": 3,
+        "agent_id": "Specialist",
+        "tag": "REVISE",
+        "prediction": "Option B",
+        "explanation": "New evidence B",
+        "confidence": 0.71
+      },
+      {
+        "step": 4,
+        "agent_id": "Analyst",
+        "tag": "REFUTE",
+        "prediction": "Option B",
+        "explanation": "Conflicts with A",
+        "confidence": 0.6
+      }
+    ],
+    "divergence_step": null
+  },
+  {
+    "cf_fraction": 0.0,
+    "trial": 2,
+    "original_summary": {
+      "status": "DEADLOCK",
+      "prediction": "Option A",
+      "iterations": 4,
+      "deadlocked": true
+    },
+    "original_events": [
+      {
+        "step": 1,
+        "agent_id": "Analyst",
+        "tag": "RATIFY",
+        "prediction": "Option A",
+        "explanation": "Evidence A",
+        "confidence": 0.82
+      },
+      {
+        "step": 2,
+        "agent_id": "Critic",
+        "tag": "REFUTE",
+        "prediction": "Option A",
+        "explanation": "Evidence conflicts",
+        "confidence": 0.77
+      },
+      {
+        "step": 3,
+        "agent_id": "Specialist",
+        "tag": "REVISE",
+        "prediction": "Option B",
+        "explanation": "New evidence B",
+        "confidence": 0.71
+      },
+      {
+        "step": 4,
+        "agent_id": "Analyst",
+        "tag": "REFUTE",
+        "prediction": "Option B",
+        "explanation": "Conflicts with A",
+        "confidence": 0.6
+      }
+    ],
+    "counterfactual_summary": {
+      "status": "DEADLOCK",
+      "prediction": "Option A",
+      "iterations": 4,
+      "deadlocked": true
+    },
+    "counterfactual_events": [
+      {
+        "step": 1,
+        "agent_id": "Analyst",
+        "tag": "RATIFY",
+        "prediction": "Option A",
+        "explanation": "Evidence A",
+        "confidence": 0.82
+      },
+      {
+        "step": 2,
+        "agent_id": "Critic",
+        "tag": "REFUTE",
+        "prediction": "Option A",
+        "explanation": "Evidence conflicts",
+        "confidence": 0.77
+      },
+      {
+        "step": 3,
+        "agent_id": "Specialist",
+        "tag": "REVISE",
+        "prediction": "Option B",
+        "explanation": "New evidence B",
+        "confidence": 0.71
+      },
+      {
+        "step": 4,
+        "agent_id": "Analyst",
+        "tag": "REFUTE",
+        "prediction": "Option B",
+        "explanation": "Conflicts with A",
+        "confidence": 0.6
+      }
+    ],
+    "divergence_step": null
+  },
+  {
+    "cf_fraction": 0.0,
+    "trial": 3,
+    "original_summary": {
+      "status": "CONSENSUS",
+      "prediction": "Option B",
+      "iterations": 3,
+      "deadlocked": false
+    },
+    "original_events": [
+      {
+        "step": 1,
+        "agent_id": "Analyst",
+        "tag": "RATIFY",
+        "prediction": "Option A",
+        "explanation": "Evidence A",
+        "confidence": 0.82
+      },
+      {
+        "step": 2,
+        "agent_id": "Critic",
+        "tag": "REFUTE",
+        "prediction": "Option A",
+        "explanation": "Evidence conflicts",
+        "confidence": 0.77
+      },
+      {
+        "step": 3,
+        "agent_id": "Specialist",
+        "tag": "REVISE",
+        "prediction": "Option B",
+        "explanation": "New evidence B",
+        "confidence": 0.71
+      }
+    ],
+    "counterfactual_summary": null,
+    "counterfactual_events": null,
+    "divergence_step": null
+  },
+  {
+    "cf_fraction": 0.0,
+    "trial": 4,
+    "original_summary": {
+      "status": "CONSENSUS",
+      "prediction": "Option B",
+      "iterations": 3,
+      "deadlocked": false
+    },
+    "original_events": [
+      {
+        "step": 1,
+        "agent_id": "Analyst",
+        "tag": "RATIFY",
+        "prediction": "Option A",
+        "explanation": "Evidence A",
+        "confidence": 0.82
+      },
+      {
+        "step": 2,
+        "agent_id": "Critic",
+        "tag": "REFUTE",
+        "prediction": "Option A",
+        "explanation": "Evidence conflicts",
+        "confidence": 0.77
+      },
+      {
+        "step": 3,
+        "agent_id": "Specialist",
+        "tag": "REVISE",
+        "prediction": "Option B",
+        "explanation": "New evidence B",
+        "confidence": 0.71
+      }
+    ],
+    "counterfactual_summary": null,
+    "counterfactual_events": null,
+    "divergence_step": null
+  },
+  {
+    "cf_fraction": 0.0,
+    "trial": 5,
+    "original_summary": {
+      "status": "DEADLOCK",
+      "prediction": "Option A",
+      "iterations": 4,
+      "deadlocked": true
+    },
+    "original_events": [
+      {
+        "step": 1,
+        "agent_id": "Analyst",
+        "tag": "RATIFY",
+        "prediction": "Option A",
+        "explanation": "Evidence A",
+        "confidence": 0.82
+      },
+      {
+        "step": 2,
+        "agent_id": "Critic",
+        "tag": "REFUTE",
+        "prediction": "Option A",
+        "explanation": "Evidence conflicts",
+        "confidence": 0.77
+      },
+      {
+        "step": 3,
+        "agent_id": "Specialist",
+        "tag": "REVISE",
+        "prediction": "Option B",
+        "explanation": "New evidence B",
+        "confidence": 0.71
+      },
+      {
+        "step": 4,
+        "agent_id": "Analyst",
+        "tag": "REFUTE",
+        "prediction": "Option B",
+        "explanation": "Conflicts with A",
+        "confidence": 0.6
+      }
+    ],
+    "counterfactual_summary": {
+      "status": "DEADLOCK",
+      "prediction": "Option A",
+      "iterations": 4,
+      "deadlocked": true
+    },
+    "counterfactual_events": [
+      {
+        "step": 1,
+        "agent_id": "Analyst",
+        "tag": "RATIFY",
+        "prediction": "Option A",
+        "explanation": "Evidence A",
+        "confidence": 0.82
+      },
+      {
+        "step": 2,
+        "agent_id": "Critic",
+        "tag": "REFUTE",
+        "prediction": "Option A",
+        "explanation": "Evidence conflicts",
+        "confidence": 0.77
+      },
+      {
+        "step": 3,
+        "agent_id": "Specialist",
+        "tag": "REVISE",
+        "prediction": "Option B",
+        "explanation": "New evidence B",
+        "confidence": 0.71
+      },
+      {
+        "step": 4,
+        "agent_id": "Analyst",
+        "tag": "REFUTE",
+        "prediction": "Option B",
+        "explanation": "Conflicts with A",
+        "confidence": 0.6
+      }
+    ],
+    "divergence_step": null
+  },
+  {
+    "cf_fraction": 0.0,
+    "trial": 6,
+    "original_summary": {
+      "status": "DEADLOCK",
+      "prediction": "Option A",
+      "iterations": 4,
+      "deadlocked": true
+    },
+    "original_events": [
+      {
+        "step": 1,
+        "agent_id": "Analyst",
+        "tag": "RATIFY",
+        "prediction": "Option A",
+        "explanation": "Evidence A",
+        "confidence": 0.82
+      },
+      {
+        "step": 2,
+        "agent_id": "Critic",
+        "tag": "REFUTE",
+        "prediction": "Option A",
+        "explanation": "Evidence conflicts",
+        "confidence": 0.77
+      },
+      {
+        "step": 3,
+        "agent_id": "Specialist",
+        "tag": "REVISE",
+        "prediction": "Option B",
+        "explanation": "New evidence B",
+        "confidence": 0.71
+      },
+      {
+        "step": 4,
+        "agent_id": "Analyst",
+        "tag": "REFUTE",
+        "prediction": "Option B",
+        "explanation": "Conflicts with A",
+        "confidence": 0.6
+      }
+    ],
+    "counterfactual_summary": {
+      "status": "DEADLOCK",
+      "prediction": "Option A",
+      "iterations": 4,
+      "deadlocked": true
+    },
+    "counterfactual_events": [
+      {
+        "step": 1,
+        "agent_id": "Analyst",
+        "tag": "RATIFY",
+        "prediction": "Option A",
+        "explanation": "Evidence A",
+        "confidence": 0.82
+      },
+      {
+        "step": 2,
+        "agent_id": "Critic",
+        "tag": "REFUTE",
+        "prediction": "Option A",
+        "explanation": "Evidence conflicts",
+        "confidence": 0.77
+      },
+      {
+        "step": 3,
+        "agent_id": "Specialist",
+        "tag": "REVISE",
+        "prediction": "Option B",
+        "explanation": "New evidence B",
+        "confidence": 0.71
+      },
+      {
+        "step": 4,
+        "agent_id": "Analyst",
+        "tag": "REFUTE",
+        "prediction": "Option B",
+        "explanation": "Conflicts with A",
+        "confidence": 0.6
+      }
+    ],
+    "divergence_step": null
+  },
+  {
+    "cf_fraction": 0.0,
+    "trial": 7,
+    "original_summary": {
+      "status": "CONSENSUS",
+      "prediction": "Option B",
+      "iterations": 3,
+      "deadlocked": false
+    },
+    "original_events": [
+      {
+        "step": 1,
+        "agent_id": "Analyst",
+        "tag": "RATIFY",
+        "prediction": "Option A",
+        "explanation": "Evidence A",
+        "confidence": 0.82
+      },
+      {
+        "step": 2,
+        "agent_id": "Critic",
+        "tag": "REFUTE",
+        "prediction": "Option A",
+        "explanation": "Evidence conflicts",
+        "confidence": 0.77
+      },
+      {
+        "step": 3,
+        "agent_id": "Specialist",
+        "tag": "REVISE",
+        "prediction": "Option B",
+        "explanation": "New evidence B",
+        "confidence": 0.71
+      }
+    ],
+    "counterfactual_summary": null,
+    "counterfactual_events": null,
+    "divergence_step": null
+  },
+  {
+    "cf_fraction": 0.0,
+    "trial": 8,
+    "original_summary": {
+      "status": "DEADLOCK",
+      "prediction": "Option A",
+      "iterations": 4,
+      "deadlocked": true
+    },
+    "original_events": [
+      {
+        "step": 1,
+        "agent_id": "Analyst",
+        "tag": "RATIFY",
+        "prediction": "Option A",
+        "explanation": "Evidence A",
+        "confidence": 0.82
+      },
+      {
+        "step": 2,
+        "agent_id": "Critic",
+        "tag": "REFUTE",
+        "prediction": "Option A",
+        "explanation": "Evidence conflicts",
+        "confidence": 0.77
+      },
+      {
+        "step": 3,
+        "agent_id": "Specialist",
+        "tag": "REVISE",
+        "prediction": "Option B",
+        "explanation": "New evidence B",
+        "confidence": 0.71
+      },
+      {
+        "step": 4,
+        "agent_id": "Analyst",
+        "tag": "REFUTE",
+        "prediction": "Option B",
+        "explanation": "Conflicts with A",
+        "confidence": 0.6
+      }
+    ],
+    "counterfactual_summary": {
+      "status": "DEADLOCK",
+      "prediction": "Option A",
+      "iterations": 4,
+      "deadlocked": true
+    },
+    "counterfactual_events": [
+      {
+        "step": 1,
+        "agent_id": "Analyst",
+        "tag": "RATIFY",
+        "prediction": "Option A",
+        "explanation": "Evidence A",
+        "confidence": 0.82
+      },
+      {
+        "step": 2,
+        "agent_id": "Critic",
+        "tag": "REFUTE",
+        "prediction": "Option A",
+        "explanation": "Evidence conflicts",
+        "confidence": 0.77
+      },
+      {
+        "step": 3,
+        "agent_id": "Specialist",
+        "tag": "REVISE",
+        "prediction": "Option B",
+        "explanation": "New evidence B",
+        "confidence": 0.71
+      },
+      {
+        "step": 4,
+        "agent_id": "Analyst",
+        "tag": "REFUTE",
+        "prediction": "Option B",
+        "explanation": "Conflicts with A",
+        "confidence": 0.6
+      }
+    ],
+    "divergence_step": null
+  },
+  {
+    "cf_fraction": 0.0,
+    "trial": 9,
+    "original_summary": {
+      "status": "CONSENSUS",
+      "prediction": "Option B",
+      "iterations": 3,
+      "deadlocked": false
+    },
+    "original_events": [
+      {
+        "step": 1,
+        "agent_id": "Analyst",
+        "tag": "RATIFY",
+        "prediction": "Option A",
+        "explanation": "Evidence A",
+        "confidence": 0.82
+      },
+      {
+        "step": 2,
+        "agent_id": "Critic",
+        "tag": "REFUTE",
+        "prediction": "Option A",
+        "explanation": "Evidence conflicts",
+        "confidence": 0.77
+      },
+      {
+        "step": 3,
+        "agent_id": "Specialist",
+        "tag": "REVISE",
+        "prediction": "Option B",
+        "explanation": "New evidence B",
+        "confidence": 0.71
+      }
+    ],
+    "counterfactual_summary": null,
+    "counterfactual_events": null,
+    "divergence_step": null
+  },
+  {
+    "cf_fraction": 0.0,
+    "trial": 10,
+    "original_summary": {
+      "status": "CONSENSUS",
+      "prediction": "Option B",
+      "iterations": 3,
+      "deadlocked": false
+    },
+    "original_events": [
+      {
+        "step": 1,
+        "agent_id": "Analyst",
+        "tag": "RATIFY",
+        "prediction": "Option A",
+        "explanation": "Evidence A",
+        "confidence": 0.82
+      },
+      {
+        "step": 2,
+        "agent_id": "Critic",
+        "tag": "REFUTE",
+        "prediction": "Option A",
+        "explanation": "Evidence conflicts",
+        "confidence": 0.77
+      },
+      {
+        "step": 3,
+        "agent_id": "Specialist",
+        "tag": "REVISE",
+        "prediction": "Option B",
+        "explanation": "New evidence B",
+        "confidence": 0.71
+      }
+    ],
+    "counterfactual_summary": null,
+    "counterfactual_events": null,
+    "divergence_step": null
+  },
+  {
+    "cf_fraction": 0.0,
+    "trial": 11,
+    "original_summary": {
+      "status": "DEADLOCK",
+      "prediction": "Option A",
+      "iterations": 4,
+      "deadlocked": true
+    },
+    "original_events": [
+      {
+        "step": 1,
+        "agent_id": "Analyst",
+        "tag": "RATIFY",
+        "prediction": "Option A",
+        "explanation": "Evidence A",
+        "confidence": 0.82
+      },
+      {
+        "step": 2,
+        "agent_id": "Critic",
+        "tag": "REFUTE",
+        "prediction": "Option A",
+        "explanation": "Evidence conflicts",
+        "confidence": 0.77
+      },
+      {
+        "step": 3,
+        "agent_id": "Specialist",
+        "tag": "REVISE",
+        "prediction": "Option B",
+        "explanation": "New evidence B",
+        "confidence": 0.71
+      },
+      {
+        "step": 4,
+        "agent_id": "Analyst",
+        "tag": "REFUTE",
+        "prediction": "Option B",
+        "explanation": "Conflicts with A",
+        "confidence": 0.6
+      }
+    ],
+    "counterfactual_summary": {
+      "status": "DEADLOCK",
+      "prediction": "Option A",
+      "iterations": 4,
+      "deadlocked": true
+    },
+    "counterfactual_events": [
+      {
+        "step": 1,
+        "agent_id": "Analyst",
+        "tag": "RATIFY",
+        "prediction": "Option A",
+        "explanation": "Evidence A",
+        "confidence": 0.82
+      },
+      {
+        "step": 2,
+        "agent_id": "Critic",
+        "tag": "REFUTE",
+        "prediction": "Option A",
+        "explanation": "Evidence conflicts",
+        "confidence": 0.77
+      },
+      {
+        "step": 3,
+        "agent_id": "Specialist",
+        "tag": "REVISE",
+        "prediction": "Option B",
+        "explanation": "New evidence B",
+        "confidence": 0.71
+      },
+      {
+        "step": 4,
+        "agent_id": "Analyst",
+        "tag": "REFUTE",
+        "prediction": "Option B",
+        "explanation": "Conflicts with A",
+        "confidence": 0.6
+      }
+    ],
+    "divergence_step": null
+  },
+  {
+    "cf_fraction": 0.0,
+    "trial": 12,
+    "original_summary": {
+      "status": "CONSENSUS",
+      "prediction": "Option B",
+      "iterations": 3,
+      "deadlocked": false
+    },
+    "original_events": [
+      {
+        "step": 1,
+        "agent_id": "Analyst",
+        "tag": "RATIFY",
+        "prediction": "Option A",
+        "explanation": "Evidence A",
+        "confidence": 0.82
+      },
+      {
+        "step": 2,
+        "agent_id": "Critic",
+        "tag": "REFUTE",
+        "prediction": "Option A",
+        "explanation": "Evidence conflicts",
+        "confidence": 0.77
+      },
+      {
+        "step": 3,
+        "agent_id": "Specialist",
+        "tag": "REVISE",
+        "prediction": "Option B",
+        "explanation": "New evidence B",
+        "confidence": 0.71
+      }
+    ],
+    "counterfactual_summary": null,
+    "counterfactual_events": null,
+    "divergence_step": null
+  },
+  {
+    "cf_fraction": 0.0,
+    "trial": 13,
+    "original_summary": {
+      "status": "DEADLOCK",
+      "prediction": "Option A",
+      "iterations": 4,
+      "deadlocked": true
+    },
+    "original_events": [
+      {
+        "step": 1,
+        "agent_id": "Analyst",
+        "tag": "RATIFY",
+        "prediction": "Option A",
+        "explanation": "Evidence A",
+        "confidence": 0.82
+      },
+      {
+        "step": 2,
+        "agent_id": "Critic",
+        "tag": "REFUTE",
+        "prediction": "Option A",
+        "explanation": "Evidence conflicts",
+        "confidence": 0.77
+      },
+      {
+        "step": 3,
+        "agent_id": "Specialist",
+        "tag": "REVISE",
+        "prediction": "Option B",
+        "explanation": "New evidence B",
+        "confidence": 0.71
+      },
+      {
+        "step": 4,
+        "agent_id": "Analyst",
+        "tag": "REFUTE",
+        "prediction": "Option B",
+        "explanation": "Conflicts with A",
+        "confidence": 0.6
+      }
+    ],
+    "counterfactual_summary": {
+      "status": "DEADLOCK",
+      "prediction": "Option A",
+      "iterations": 4,
+      "deadlocked": true
+    },
+    "counterfactual_events": [
+      {
+        "step": 1,
+        "agent_id": "Analyst",
+        "tag": "RATIFY",
+        "prediction": "Option A",
+        "explanation": "Evidence A",
+        "confidence": 0.82
+      },
+      {
+        "step": 2,
+        "agent_id": "Critic",
+        "tag": "REFUTE",
+        "prediction": "Option A",
+        "explanation": "Evidence conflicts",
+        "confidence": 0.77
+      },
+      {
+        "step": 3,
+        "agent_id": "Specialist",
+        "tag": "REVISE",
+        "prediction": "Option B",
+        "explanation": "New evidence B",
+        "confidence": 0.71
+      },
+      {
+        "step": 4,
+        "agent_id": "Analyst",
+        "tag": "REFUTE",
+        "prediction": "Option B",
+        "explanation": "Conflicts with A",
+        "confidence": 0.6
+      }
+    ],
+    "divergence_step": null
+  },
+  {
+    "cf_fraction": 0.0,
+    "trial": 14,
+    "original_summary": {
+      "status": "CONSENSUS",
+      "prediction": "Option B",
+      "iterations": 3,
+      "deadlocked": false
+    },
+    "original_events": [
+      {
+        "step": 1,
+        "agent_id": "Analyst",
+        "tag": "RATIFY",
+        "prediction": "Option A",
+        "explanation": "Evidence A",
+        "confidence": 0.82
+      },
+      {
+        "step": 2,
+        "agent_id": "Critic",
+        "tag": "REFUTE",
+        "prediction": "Option A",
+        "explanation": "Evidence conflicts",
+        "confidence": 0.77
+      },
+      {
+        "step": 3,
+        "agent_id": "Specialist",
+        "tag": "REVISE",
+        "prediction": "Option B",
+        "explanation": "New evidence B",
+        "confidence": 0.71
+      }
+    ],
+    "counterfactual_summary": null,
+    "counterfactual_events": null,
+    "divergence_step": null
+  },
+  {
+    "cf_fraction": 0.0,
+    "trial": 15,
+    "original_summary": {
+      "status": "DEADLOCK",
+      "prediction": "Option A",
+      "iterations": 4,
+      "deadlocked": true
+    },
+    "original_events": [
+      {
+        "step": 1,
+        "agent_id": "Analyst",
+        "tag": "RATIFY",
+        "prediction": "Option A",
+        "explanation": "Evidence A",
+        "confidence": 0.82
+      },
+      {
+        "step": 2,
+        "agent_id": "Critic",
+        "tag": "REFUTE",
+        "prediction": "Option A",
+        "explanation": "Evidence conflicts",
+        "confidence": 0.77
+      },
+      {
+        "step": 3,
+        "agent_id": "Specialist",
+        "tag": "REVISE",
+        "prediction": "Option B",
+        "explanation": "New evidence B",
+        "confidence": 0.71
+      },
+      {
+        "step": 4,
+        "agent_id": "Analyst",
+        "tag": "REFUTE",
+        "prediction": "Option B",
+        "explanation": "Conflicts with A",
+        "confidence": 0.6
+      }
+    ],
+    "counterfactual_summary": {
+      "status": "DEADLOCK",
+      "prediction": "Option A",
+      "iterations": 4,
+      "deadlocked": true
+    },
+    "counterfactual_events": [
+      {
+        "step": 1,
+        "agent_id": "Analyst",
+        "tag": "RATIFY",
+        "prediction": "Option A",
+        "explanation": "Evidence A",
+        "confidence": 0.82
+      },
+      {
+        "step": 2,
+        "agent_id": "Critic",
+        "tag": "REFUTE",
+        "prediction": "Option A",
+        "explanation": "Evidence conflicts",
+        "confidence": 0.77
+      },
+      {
+        "step": 3,
+        "agent_id": "Specialist",
+        "tag": "REVISE",
+        "prediction": "Option B",
+        "explanation": "New evidence B",
+        "confidence": 0.71
+      },
+      {
+        "step": 4,
+        "agent_id": "Analyst",
+        "tag": "REFUTE",
+        "prediction": "Option B",
+        "explanation": "Conflicts with A",
+        "confidence": 0.6
+      }
+    ],
+    "divergence_step": null
+  },
+  {
+    "cf_fraction": 0.0,
+    "trial": 16,
+    "original_summary": {
+      "status": "CONSENSUS",
+      "prediction": "Option B",
+      "iterations": 3,
+      "deadlocked": false
+    },
+    "original_events": [
+      {
+        "step": 1,
+        "agent_id": "Analyst",
+        "tag": "RATIFY",
+        "prediction": "Option A",
+        "explanation": "Evidence A",
+        "confidence": 0.82
+      },
+      {
+        "step": 2,
+        "agent_id": "Critic",
+        "tag": "REFUTE",
+        "prediction": "Option A",
+        "explanation": "Evidence conflicts",
+        "confidence": 0.77
+      },
+      {
+        "step": 3,
+        "agent_id": "Specialist",
+        "tag": "REVISE",
+        "prediction": "Option B",
+        "explanation": "New evidence B",
+        "confidence": 0.71
+      }
+    ],
+    "counterfactual_summary": null,
+    "counterfactual_events": null,
+    "divergence_step": null
+  },
+  {
+    "cf_fraction": 0.0,
+    "trial": 17,
+    "original_summary": {
+      "status": "DEADLOCK",
+      "prediction": "Option A",
+      "iterations": 4,
+      "deadlocked": true
+    },
+    "original_events": [
+      {
+        "step": 1,
+        "agent_id": "Analyst",
+        "tag": "RATIFY",
+        "prediction": "Option A",
+        "explanation": "Evidence A",
+        "confidence": 0.82
+      },
+      {
+        "step": 2,
+        "agent_id": "Critic",
+        "tag": "REFUTE",
+        "prediction": "Option A",
+        "explanation": "Evidence conflicts",
+        "confidence": 0.77
+      },
+      {
+        "step": 3,
+        "agent_id": "Specialist",
+        "tag": "REVISE",
+        "prediction": "Option B",
+        "explanation": "New evidence B",
+        "confidence": 0.71
+      },
+      {
+        "step": 4,
+        "agent_id": "Analyst",
+        "tag": "REFUTE",
+        "prediction": "Option B",
+        "explanation": "Conflicts with A",
+        "confidence": 0.6
+      }
+    ],
+    "counterfactual_summary": {
+      "status": "DEADLOCK",
+      "prediction": "Option A",
+      "iterations": 4,
+      "deadlocked": true
+    },
+    "counterfactual_events": [
+      {
+        "step": 1,
+        "agent_id": "Analyst",
+        "tag": "RATIFY",
+        "prediction": "Option A",
+        "explanation": "Evidence A",
+        "confidence": 0.82
+      },
+      {
+        "step": 2,
+        "agent_id": "Critic",
+        "tag": "REFUTE",
+        "prediction": "Option A",
+        "explanation": "Evidence conflicts",
+        "confidence": 0.77
+      },
+      {
+        "step": 3,
+        "agent_id": "Specialist",
+        "tag": "REVISE",
+        "prediction": "Option B",
+        "explanation": "New evidence B",
+        "confidence": 0.71
+      },
+      {
+        "step": 4,
+        "agent_id": "Analyst",
+        "tag": "REFUTE",
+        "prediction": "Option B",
+        "explanation": "Conflicts with A",
+        "confidence": 0.6
+      }
+    ],
+    "divergence_step": null
+  },
+  {
+    "cf_fraction": 0.0,
+    "trial": 18,
+    "original_summary": {
+      "status": "DEADLOCK",
+      "prediction": "Option A",
+      "iterations": 4,
+      "deadlocked": true
+    },
+    "original_events": [
+      {
+        "step": 1,
+        "agent_id": "Analyst",
+        "tag": "RATIFY",
+        "prediction": "Option A",
+        "explanation": "Evidence A",
+        "confidence": 0.82
+      },
+      {
+        "step": 2,
+        "agent_id": "Critic",
+        "tag": "REFUTE",
+        "prediction": "Option A",
+        "explanation": "Evidence conflicts",
+        "confidence": 0.77
+      },
+      {
+        "step": 3,
+        "agent_id": "Specialist",
+        "tag": "REVISE",
+        "prediction": "Option B",
+        "explanation": "New evidence B",
+        "confidence": 0.71
+      },
+      {
+        "step": 4,
+        "agent_id": "Analyst",
+        "tag": "REFUTE",
+        "prediction": "Option B",
+        "explanation": "Conflicts with A",
+        "confidence": 0.6
+      }
+    ],
+    "counterfactual_summary": {
+      "status": "DEADLOCK",
+      "prediction": "Option A",
+      "iterations": 4,
+      "deadlocked": true
+    },
+    "counterfactual_events": [
+      {
+        "step": 1,
+        "agent_id": "Analyst",
+        "tag": "RATIFY",
+        "prediction": "Option A",
+        "explanation": "Evidence A",
+        "confidence": 0.82
+      },
+      {
+        "step": 2,
+        "agent_id": "Critic",
+        "tag": "REFUTE",
+        "prediction": "Option A",
+        "explanation": "Evidence conflicts",
+        "confidence": 0.77
+      },
+      {
+        "step": 3,
+        "agent_id": "Specialist",
+        "tag": "REVISE",
+        "prediction": "Option B",
+        "explanation": "New evidence B",
+        "confidence": 0.71
+      },
+      {
+        "step": 4,
+        "agent_id": "Analyst",
+        "tag": "REFUTE",
+        "prediction": "Option B",
+        "explanation": "Conflicts with A",
+        "confidence": 0.6
+      }
+    ],
+    "divergence_step": null
+  },
+  {
+    "cf_fraction": 0.0,
+    "trial": 19,
+    "original_summary": {
+      "status": "CONSENSUS",
+      "prediction": "Option B",
+      "iterations": 3,
+      "deadlocked": false
+    },
+    "original_events": [
+      {
+        "step": 1,
+        "agent_id": "Analyst",
+        "tag": "RATIFY",
+        "prediction": "Option A",
+        "explanation": "Evidence A",
+        "confidence": 0.82
+      },
+      {
+        "step": 2,
+        "agent_id": "Critic",
+        "tag": "REFUTE",
+        "prediction": "Option A",
+        "explanation": "Evidence conflicts",
+        "confidence": 0.77
+      },
+      {
+        "step": 3,
+        "agent_id": "Specialist",
+        "tag": "REVISE",
+        "prediction": "Option B",
+        "explanation": "New evidence B",
+        "confidence": 0.71
+      }
+    ],
+    "counterfactual_summary": null,
+    "counterfactual_events": null,
+    "divergence_step": null
+  },
+  {
+    "cf_fraction": 0.33,
+    "trial": 0,
+    "original_summary": {
+      "status": "CONSENSUS",
+      "prediction": "Option B",
+      "iterations": 3,
+      "deadlocked": false
+    },
+    "original_events": [
+      {
+        "step": 1,
+        "agent_id": "Analyst",
+        "tag": "RATIFY",
+        "prediction": "Option A",
+        "explanation": "Evidence A",
+        "confidence": 0.82
+      },
+      {
+        "step": 2,
+        "agent_id": "Critic",
+        "tag": "REFUTE",
+        "prediction": "Option A",
+        "explanation": "Evidence conflicts",
+        "confidence": 0.77
+      },
+      {
+        "step": 3,
+        "agent_id": "Specialist",
+        "tag": "REVISE",
+        "prediction": "Option B",
+        "explanation": "New evidence B",
+        "confidence": 0.71
+      }
+    ],
+    "counterfactual_summary": null,
+    "counterfactual_events": null,
+    "divergence_step": null
+  },
+  {
+    "cf_fraction": 0.33,
+    "trial": 1,
+    "original_summary": {
+      "status": "CONSENSUS",
+      "prediction": "Option B",
+      "iterations": 3,
+      "deadlocked": false
+    },
+    "original_events": [
+      {
+        "step": 1,
+        "agent_id": "Analyst",
+        "tag": "RATIFY",
+        "prediction": "Option A",
+        "explanation": "Evidence A",
+        "confidence": 0.82
+      },
+      {
+        "step": 2,
+        "agent_id": "Critic",
+        "tag": "REFUTE",
+        "prediction": "Option A",
+        "explanation": "Evidence conflicts",
+        "confidence": 0.77
+      },
+      {
+        "step": 3,
+        "agent_id": "Specialist",
+        "tag": "REVISE",
+        "prediction": "Option B",
+        "explanation": "New evidence B",
+        "confidence": 0.71
+      }
+    ],
+    "counterfactual_summary": null,
+    "counterfactual_events": null,
+    "divergence_step": null
+  },
+  {
+    "cf_fraction": 0.33,
+    "trial": 2,
+    "original_summary": {
+      "status": "CONSENSUS",
+      "prediction": "Option B",
+      "iterations": 3,
+      "deadlocked": false
+    },
+    "original_events": [
+      {
+        "step": 1,
+        "agent_id": "Analyst",
+        "tag": "RATIFY",
+        "prediction": "Option A",
+        "explanation": "Evidence A",
+        "confidence": 0.82
+      },
+      {
+        "step": 2,
+        "agent_id": "Critic",
+        "tag": "REFUTE",
+        "prediction": "Option A",
+        "explanation": "Evidence conflicts",
+        "confidence": 0.77
+      },
+      {
+        "step": 3,
+        "agent_id": "Specialist",
+        "tag": "REVISE",
+        "prediction": "Option B",
+        "explanation": "New evidence B",
+        "confidence": 0.71
+      }
+    ],
+    "counterfactual_summary": null,
+    "counterfactual_events": null,
+    "divergence_step": null
+  },
+  {
+    "cf_fraction": 0.33,
+    "trial": 3,
+    "original_summary": {
+      "status": "CONSENSUS",
+      "prediction": "Option B",
+      "iterations": 3,
+      "deadlocked": false
+    },
+    "original_events": [
+      {
+        "step": 1,
+        "agent_id": "Analyst",
+        "tag": "RATIFY",
+        "prediction": "Option A",
+        "explanation": "Evidence A",
+        "confidence": 0.82
+      },
+      {
+        "step": 2,
+        "agent_id": "Critic",
+        "tag": "REFUTE",
+        "prediction": "Option A",
+        "explanation": "Evidence conflicts",
+        "confidence": 0.77
+      },
+      {
+        "step": 3,
+        "agent_id": "Specialist",
+        "tag": "REVISE",
+        "prediction": "Option B",
+        "explanation": "New evidence B",
+        "confidence": 0.71
+      }
+    ],
+    "counterfactual_summary": null,
+    "counterfactual_events": null,
+    "divergence_step": null
+  },
+  {
+    "cf_fraction": 0.33,
+    "trial": 4,
+    "original_summary": {
+      "status": "DEADLOCK",
+      "prediction": "Option A",
+      "iterations": 4,
+      "deadlocked": true
+    },
+    "original_events": [
+      {
+        "step": 1,
+        "agent_id": "Analyst",
+        "tag": "RATIFY",
+        "prediction": "Option A",
+        "explanation": "Evidence A",
+        "confidence": 0.82
+      },
+      {
+        "step": 2,
+        "agent_id": "Critic",
+        "tag": "REFUTE",
+        "prediction": "Option A",
+        "explanation": "Evidence conflicts",
+        "confidence": 0.77
+      },
+      {
+        "step": 3,
+        "agent_id": "Specialist",
+        "tag": "REVISE",
+        "prediction": "Option B",
+        "explanation": "New evidence B",
+        "confidence": 0.71
+      },
+      {
+        "step": 4,
+        "agent_id": "Analyst",
+        "tag": "REFUTE",
+        "prediction": "Option B",
+        "explanation": "Conflicts with A",
+        "confidence": 0.6
+      }
+    ],
+    "counterfactual_summary": {
+      "status": "DEADLOCK",
+      "prediction": "Option A",
+      "iterations": 4,
+      "deadlocked": true
+    },
+    "counterfactual_events": [
+      {
+        "step": 1,
+        "agent_id": "Analyst",
+        "tag": "RATIFY",
+        "prediction": "Option A",
+        "explanation": "Evidence A",
+        "confidence": 0.82
+      },
+      {
+        "step": 2,
+        "agent_id": "Critic",
+        "tag": "REFUTE",
+        "prediction": "Option A",
+        "explanation": "Evidence conflicts",
+        "confidence": 0.77
+      },
+      {
+        "step": 3,
+        "agent_id": "Specialist",
+        "tag": "REVISE",
+        "prediction": "Option B",
+        "explanation": "New evidence B",
+        "confidence": 0.71
+      },
+      {
+        "step": 4,
+        "agent_id": "Analyst",
+        "tag": "REFUTE",
+        "prediction": "Option B",
+        "explanation": "Conflicts with A",
+        "confidence": 0.6
+      }
+    ],
+    "divergence_step": null
+  },
+  {
+    "cf_fraction": 0.33,
+    "trial": 5,
+    "original_summary": {
+      "status": "CONSENSUS",
+      "prediction": "Option B",
+      "iterations": 3,
+      "deadlocked": false
+    },
+    "original_events": [
+      {
+        "step": 1,
+        "agent_id": "Analyst",
+        "tag": "RATIFY",
+        "prediction": "Option A",
+        "explanation": "Evidence A",
+        "confidence": 0.82
+      },
+      {
+        "step": 2,
+        "agent_id": "Critic",
+        "tag": "REFUTE",
+        "prediction": "Option A",
+        "explanation": "Evidence conflicts",
+        "confidence": 0.77
+      },
+      {
+        "step": 3,
+        "agent_id": "Specialist",
+        "tag": "REVISE",
+        "prediction": "Option B",
+        "explanation": "New evidence B",
+        "confidence": 0.71
+      }
+    ],
+    "counterfactual_summary": null,
+    "counterfactual_events": null,
+    "divergence_step": null
+  },
+  {
+    "cf_fraction": 0.33,
+    "trial": 6,
+    "original_summary": {
+      "status": "CONSENSUS",
+      "prediction": "Option B",
+      "iterations": 3,
+      "deadlocked": false
+    },
+    "original_events": [
+      {
+        "step": 1,
+        "agent_id": "Analyst",
+        "tag": "RATIFY",
+        "prediction": "Option A",
+        "explanation": "Evidence A",
+        "confidence": 0.82
+      },
+      {
+        "step": 2,
+        "agent_id": "Critic",
+        "tag": "REFUTE",
+        "prediction": "Option A",
+        "explanation": "Evidence conflicts",
+        "confidence": 0.77
+      },
+      {
+        "step": 3,
+        "agent_id": "Specialist",
+        "tag": "REVISE",
+        "prediction": "Option B",
+        "explanation": "New evidence B",
+        "confidence": 0.71
+      }
+    ],
+    "counterfactual_summary": null,
+    "counterfactual_events": null,
+    "divergence_step": null
+  },
+  {
+    "cf_fraction": 0.33,
+    "trial": 7,
+    "original_summary": {
+      "status": "CONSENSUS",
+      "prediction": "Option B",
+      "iterations": 3,
+      "deadlocked": false
+    },
+    "original_events": [
+      {
+        "step": 1,
+        "agent_id": "Analyst",
+        "tag": "RATIFY",
+        "prediction": "Option A",
+        "explanation": "Evidence A",
+        "confidence": 0.82
+      },
+      {
+        "step": 2,
+        "agent_id": "Critic",
+        "tag": "REFUTE",
+        "prediction": "Option A",
+        "explanation": "Evidence conflicts",
+        "confidence": 0.77
+      },
+      {
+        "step": 3,
+        "agent_id": "Specialist",
+        "tag": "REVISE",
+        "prediction": "Option B",
+        "explanation": "New evidence B",
+        "confidence": 0.71
+      }
+    ],
+    "counterfactual_summary": null,
+    "counterfactual_events": null,
+    "divergence_step": null
+  },
+  {
+    "cf_fraction": 0.33,
+    "trial": 8,
+    "original_summary": {
+      "status": "CONSENSUS",
+      "prediction": "Option B",
+      "iterations": 3,
+      "deadlocked": false
+    },
+    "original_events": [
+      {
+        "step": 1,
+        "agent_id": "Analyst",
+        "tag": "RATIFY",
+        "prediction": "Option A",
+        "explanation": "Evidence A",
+        "confidence": 0.82
+      },
+      {
+        "step": 2,
+        "agent_id": "Critic",
+        "tag": "REFUTE",
+        "prediction": "Option A",
+        "explanation": "Evidence conflicts",
+        "confidence": 0.77
+      },
+      {
+        "step": 3,
+        "agent_id": "Specialist",
+        "tag": "REVISE",
+        "prediction": "Option B",
+        "explanation": "New evidence B",
+        "confidence": 0.71
+      }
+    ],
+    "counterfactual_summary": null,
+    "counterfactual_events": null,
+    "divergence_step": null
+  },
+  {
+    "cf_fraction": 0.33,
+    "trial": 9,
+    "original_summary": {
+      "status": "CONSENSUS",
+      "prediction": "Option B",
+      "iterations": 3,
+      "deadlocked": false
+    },
+    "original_events": [
+      {
+        "step": 1,
+        "agent_id": "Analyst",
+        "tag": "RATIFY",
+        "prediction": "Option A",
+        "explanation": "Evidence A",
+        "confidence": 0.82
+      },
+      {
+        "step": 2,
+        "agent_id": "Critic",
+        "tag": "REFUTE",
+        "prediction": "Option A",
+        "explanation": "Evidence conflicts",
+        "confidence": 0.77
+      },
+      {
+        "step": 3,
+        "agent_id": "Specialist",
+        "tag": "REVISE",
+        "prediction": "Option B",
+        "explanation": "New evidence B",
+        "confidence": 0.71
+      }
+    ],
+    "counterfactual_summary": null,
+    "counterfactual_events": null,
+    "divergence_step": null
+  },
+  {
+    "cf_fraction": 0.33,
+    "trial": 10,
+    "original_summary": {
+      "status": "DEADLOCK",
+      "prediction": "Option A",
+      "iterations": 4,
+      "deadlocked": true
+    },
+    "original_events": [
+      {
+        "step": 1,
+        "agent_id": "Analyst",
+        "tag": "RATIFY",
+        "prediction": "Option A",
+        "explanation": "Evidence A",
+        "confidence": 0.82
+      },
+      {
+        "step": 2,
+        "agent_id": "Critic",
+        "tag": "REFUTE",
+        "prediction": "Option A",
+        "explanation": "Evidence conflicts",
+        "confidence": 0.77
+      },
+      {
+        "step": 3,
+        "agent_id": "Specialist",
+        "tag": "REVISE",
+        "prediction": "Option B",
+        "explanation": "New evidence B",
+        "confidence": 0.71
+      },
+      {
+        "step": 4,
+        "agent_id": "Analyst",
+        "tag": "REFUTE",
+        "prediction": "Option B",
+        "explanation": "Conflicts with A",
+        "confidence": 0.6
+      }
+    ],
+    "counterfactual_summary": {
+      "status": "CONSENSUS",
+      "prediction": "Option A",
+      "iterations": 3,
+      "deadlocked": false
+    },
+    "counterfactual_events": [
+      {
+        "step": 1,
+        "agent_id": "Analyst",
+        "tag": "RATIFY",
+        "prediction": "Option A",
+        "explanation": "Evidence A",
+        "confidence": 0.82
+      },
+      {
+        "step": 2,
+        "agent_id": "Critic",
+        "tag": "REFUTE",
+        "prediction": "Option A",
+        "explanation": "Evidence conflicts",
+        "confidence": 0.77
+      },
+      {
+        "step": 2,
+        "agent_id": "Critic",
+        "tag": "REVISE",
+        "prediction": "Option A",
+        "explanation": "Minor adjustment",
+        "confidence": 0.75
+      },
+      {
+        "step": 3,
+        "agent_id": "Specialist",
+        "tag": "RATIFY",
+        "prediction": "Option A",
+        "explanation": "Agreed with revised evidence",
+        "confidence": 0.8
+      }
+    ],
+    "divergence_step": 2
+  },
+  {
+    "cf_fraction": 0.33,
+    "trial": 11,
+    "original_summary": {
+      "status": "DEADLOCK",
+      "prediction": "Option A",
+      "iterations": 4,
+      "deadlocked": true
+    },
+    "original_events": [
+      {
+        "step": 1,
+        "agent_id": "Analyst",
+        "tag": "RATIFY",
+        "prediction": "Option A",
+        "explanation": "Evidence A",
+        "confidence": 0.82
+      },
+      {
+        "step": 2,
+        "agent_id": "Critic",
+        "tag": "REFUTE",
+        "prediction": "Option A",
+        "explanation": "Evidence conflicts",
+        "confidence": 0.77
+      },
+      {
+        "step": 3,
+        "agent_id": "Specialist",
+        "tag": "REVISE",
+        "prediction": "Option B",
+        "explanation": "New evidence B",
+        "confidence": 0.71
+      },
+      {
+        "step": 4,
+        "agent_id": "Analyst",
+        "tag": "REFUTE",
+        "prediction": "Option B",
+        "explanation": "Conflicts with A",
+        "confidence": 0.6
+      }
+    ],
+    "counterfactual_summary": {
+      "status": "CONSENSUS",
+      "prediction": "Option A",
+      "iterations": 3,
+      "deadlocked": false
+    },
+    "counterfactual_events": [
+      {
+        "step": 1,
+        "agent_id": "Analyst",
+        "tag": "RATIFY",
+        "prediction": "Option A",
+        "explanation": "Evidence A",
+        "confidence": 0.82
+      },
+      {
+        "step": 2,
+        "agent_id": "Critic",
+        "tag": "REFUTE",
+        "prediction": "Option A",
+        "explanation": "Evidence conflicts",
+        "confidence": 0.77
+      },
+      {
+        "step": 2,
+        "agent_id": "Critic",
+        "tag": "REVISE",
+        "prediction": "Option A",
+        "explanation": "Minor adjustment",
+        "confidence": 0.75
+      },
+      {
+        "step": 3,
+        "agent_id": "Specialist",
+        "tag": "RATIFY",
+        "prediction": "Option A",
+        "explanation": "Agreed with revised evidence",
+        "confidence": 0.8
+      }
+    ],
+    "divergence_step": 2
+  },
+  {
+    "cf_fraction": 0.33,
+    "trial": 12,
+    "original_summary": {
+      "status": "DEADLOCK",
+      "prediction": "Option A",
+      "iterations": 4,
+      "deadlocked": true
+    },
+    "original_events": [
+      {
+        "step": 1,
+        "agent_id": "Analyst",
+        "tag": "RATIFY",
+        "prediction": "Option A",
+        "explanation": "Evidence A",
+        "confidence": 0.82
+      },
+      {
+        "step": 2,
+        "agent_id": "Critic",
+        "tag": "REFUTE",
+        "prediction": "Option A",
+        "explanation": "Evidence conflicts",
+        "confidence": 0.77
+      },
+      {
+        "step": 3,
+        "agent_id": "Specialist",
+        "tag": "REVISE",
+        "prediction": "Option B",
+        "explanation": "New evidence B",
+        "confidence": 0.71
+      },
+      {
+        "step": 4,
+        "agent_id": "Analyst",
+        "tag": "REFUTE",
+        "prediction": "Option B",
+        "explanation": "Conflicts with A",
+        "confidence": 0.6
+      }
+    ],
+    "counterfactual_summary": {
+      "status": "CONSENSUS",
+      "prediction": "Option A",
+      "iterations": 3,
+      "deadlocked": false
+    },
+    "counterfactual_events": [
+      {
+        "step": 1,
+        "agent_id": "Analyst",
+        "tag": "RATIFY",
+        "prediction": "Option A",
+        "explanation": "Evidence A",
+        "confidence": 0.82
+      },
+      {
+        "step": 2,
+        "agent_id": "Critic",
+        "tag": "REFUTE",
+        "prediction": "Option A",
+        "explanation": "Evidence conflicts",
+        "confidence": 0.77
+      },
+      {
+        "step": 2,
+        "agent_id": "Critic",
+        "tag": "REVISE",
+        "prediction": "Option A",
+        "explanation": "Minor adjustment",
+        "confidence": 0.75
+      },
+      {
+        "step": 3,
+        "agent_id": "Specialist",
+        "tag": "RATIFY",
+        "prediction": "Option A",
+        "explanation": "Agreed with revised evidence",
+        "confidence": 0.8
+      }
+    ],
+    "divergence_step": 2
+  },
+  {
+    "cf_fraction": 0.33,
+    "trial": 13,
+    "original_summary": {
+      "status": "DEADLOCK",
+      "prediction": "Option A",
+      "iterations": 4,
+      "deadlocked": true
+    },
+    "original_events": [
+      {
+        "step": 1,
+        "agent_id": "Analyst",
+        "tag": "RATIFY",
+        "prediction": "Option A",
+        "explanation": "Evidence A",
+        "confidence": 0.82
+      },
+      {
+        "step": 2,
+        "agent_id": "Critic",
+        "tag": "REFUTE",
+        "prediction": "Option A",
+        "explanation": "Evidence conflicts",
+        "confidence": 0.77
+      },
+      {
+        "step": 3,
+        "agent_id": "Specialist",
+        "tag": "REVISE",
+        "prediction": "Option B",
+        "explanation": "New evidence B",
+        "confidence": 0.71
+      },
+      {
+        "step": 4,
+        "agent_id": "Analyst",
+        "tag": "REFUTE",
+        "prediction": "Option B",
+        "explanation": "Conflicts with A",
+        "confidence": 0.6
+      }
+    ],
+    "counterfactual_summary": {
+      "status": "DEADLOCK",
+      "prediction": "Option A",
+      "iterations": 4,
+      "deadlocked": true
+    },
+    "counterfactual_events": [
+      {
+        "step": 1,
+        "agent_id": "Analyst",
+        "tag": "RATIFY",
+        "prediction": "Option A",
+        "explanation": "Evidence A",
+        "confidence": 0.82
+      },
+      {
+        "step": 2,
+        "agent_id": "Critic",
+        "tag": "REFUTE",
+        "prediction": "Option A",
+        "explanation": "Evidence conflicts",
+        "confidence": 0.77
+      },
+      {
+        "step": 3,
+        "agent_id": "Specialist",
+        "tag": "REVISE",
+        "prediction": "Option B",
+        "explanation": "New evidence B",
+        "confidence": 0.71
+      },
+      {
+        "step": 4,
+        "agent_id": "Analyst",
+        "tag": "REFUTE",
+        "prediction": "Option B",
+        "explanation": "Conflicts with A",
+        "confidence": 0.6
+      }
+    ],
+    "divergence_step": null
+  },
+  {
+    "cf_fraction": 0.33,
+    "trial": 14,
+    "original_summary": {
+      "status": "DEADLOCK",
+      "prediction": "Option A",
+      "iterations": 4,
+      "deadlocked": true
+    },
+    "original_events": [
+      {
+        "step": 1,
+        "agent_id": "Analyst",
+        "tag": "RATIFY",
+        "prediction": "Option A",
+        "explanation": "Evidence A",
+        "confidence": 0.82
+      },
+      {
+        "step": 2,
+        "agent_id": "Critic",
+        "tag": "REFUTE",
+        "prediction": "Option A",
+        "explanation": "Evidence conflicts",
+        "confidence": 0.77
+      },
+      {
+        "step": 3,
+        "agent_id": "Specialist",
+        "tag": "REVISE",
+        "prediction": "Option B",
+        "explanation": "New evidence B",
+        "confidence": 0.71
+      },
+      {
+        "step": 4,
+        "agent_id": "Analyst",
+        "tag": "REFUTE",
+        "prediction": "Option B",
+        "explanation": "Conflicts with A",
+        "confidence": 0.6
+      }
+    ],
+    "counterfactual_summary": {
+      "status": "DEADLOCK",
+      "prediction": "Option A",
+      "iterations": 4,
+      "deadlocked": true
+    },
+    "counterfactual_events": [
+      {
+        "step": 1,
+        "agent_id": "Analyst",
+        "tag": "RATIFY",
+        "prediction": "Option A",
+        "explanation": "Evidence A",
+        "confidence": 0.82
+      },
+      {
+        "step": 2,
+        "agent_id": "Critic",
+        "tag": "REFUTE",
+        "prediction": "Option A",
+        "explanation": "Evidence conflicts",
+        "confidence": 0.77
+      },
+      {
+        "step": 3,
+        "agent_id": "Specialist",
+        "tag": "REVISE",
+        "prediction": "Option B",
+        "explanation": "New evidence B",
+        "confidence": 0.71
+      },
+      {
+        "step": 4,
+        "agent_id": "Analyst",
+        "tag": "REFUTE",
+        "prediction": "Option B",
+        "explanation": "Conflicts with A",
+        "confidence": 0.6
+      }
+    ],
+    "divergence_step": null
+  },
+  {
+    "cf_fraction": 0.33,
+    "trial": 15,
+    "original_summary": {
+      "status": "DEADLOCK",
+      "prediction": "Option A",
+      "iterations": 4,
+      "deadlocked": true
+    },
+    "original_events": [
+      {
+        "step": 1,
+        "agent_id": "Analyst",
+        "tag": "RATIFY",
+        "prediction": "Option A",
+        "explanation": "Evidence A",
+        "confidence": 0.82
+      },
+      {
+        "step": 2,
+        "agent_id": "Critic",
+        "tag": "REFUTE",
+        "prediction": "Option A",
+        "explanation": "Evidence conflicts",
+        "confidence": 0.77
+      },
+      {
+        "step": 3,
+        "agent_id": "Specialist",
+        "tag": "REVISE",
+        "prediction": "Option B",
+        "explanation": "New evidence B",
+        "confidence": 0.71
+      },
+      {
+        "step": 4,
+        "agent_id": "Analyst",
+        "tag": "REFUTE",
+        "prediction": "Option B",
+        "explanation": "Conflicts with A",
+        "confidence": 0.6
+      }
+    ],
+    "counterfactual_summary": {
+      "status": "CONSENSUS",
+      "prediction": "Option A",
+      "iterations": 3,
+      "deadlocked": false
+    },
+    "counterfactual_events": [
+      {
+        "step": 1,
+        "agent_id": "Analyst",
+        "tag": "RATIFY",
+        "prediction": "Option A",
+        "explanation": "Evidence A",
+        "confidence": 0.82
+      },
+      {
+        "step": 2,
+        "agent_id": "Critic",
+        "tag": "REFUTE",
+        "prediction": "Option A",
+        "explanation": "Evidence conflicts",
+        "confidence": 0.77
+      },
+      {
+        "step": 2,
+        "agent_id": "Critic",
+        "tag": "REVISE",
+        "prediction": "Option A",
+        "explanation": "Minor adjustment",
+        "confidence": 0.75
+      },
+      {
+        "step": 3,
+        "agent_id": "Specialist",
+        "tag": "RATIFY",
+        "prediction": "Option A",
+        "explanation": "Agreed with revised evidence",
+        "confidence": 0.8
+      }
+    ],
+    "divergence_step": 2
+  },
+  {
+    "cf_fraction": 0.33,
+    "trial": 16,
+    "original_summary": {
+      "status": "CONSENSUS",
+      "prediction": "Option B",
+      "iterations": 3,
+      "deadlocked": false
+    },
+    "original_events": [
+      {
+        "step": 1,
+        "agent_id": "Analyst",
+        "tag": "RATIFY",
+        "prediction": "Option A",
+        "explanation": "Evidence A",
+        "confidence": 0.82
+      },
+      {
+        "step": 2,
+        "agent_id": "Critic",
+        "tag": "REFUTE",
+        "prediction": "Option A",
+        "explanation": "Evidence conflicts",
+        "confidence": 0.77
+      },
+      {
+        "step": 3,
+        "agent_id": "Specialist",
+        "tag": "REVISE",
+        "prediction": "Option B",
+        "explanation": "New evidence B",
+        "confidence": 0.71
+      }
+    ],
+    "counterfactual_summary": null,
+    "counterfactual_events": null,
+    "divergence_step": null
+  },
+  {
+    "cf_fraction": 0.33,
+    "trial": 17,
+    "original_summary": {
+      "status": "CONSENSUS",
+      "prediction": "Option B",
+      "iterations": 3,
+      "deadlocked": false
+    },
+    "original_events": [
+      {
+        "step": 1,
+        "agent_id": "Analyst",
+        "tag": "RATIFY",
+        "prediction": "Option A",
+        "explanation": "Evidence A",
+        "confidence": 0.82
+      },
+      {
+        "step": 2,
+        "agent_id": "Critic",
+        "tag": "REFUTE",
+        "prediction": "Option A",
+        "explanation": "Evidence conflicts",
+        "confidence": 0.77
+      },
+      {
+        "step": 3,
+        "agent_id": "Specialist",
+        "tag": "REVISE",
+        "prediction": "Option B",
+        "explanation": "New evidence B",
+        "confidence": 0.71
+      }
+    ],
+    "counterfactual_summary": null,
+    "counterfactual_events": null,
+    "divergence_step": null
+  },
+  {
+    "cf_fraction": 0.33,
+    "trial": 18,
+    "original_summary": {
+      "status": "CONSENSUS",
+      "prediction": "Option B",
+      "iterations": 3,
+      "deadlocked": false
+    },
+    "original_events": [
+      {
+        "step": 1,
+        "agent_id": "Analyst",
+        "tag": "RATIFY",
+        "prediction": "Option A",
+        "explanation": "Evidence A",
+        "confidence": 0.82
+      },
+      {
+        "step": 2,
+        "agent_id": "Critic",
+        "tag": "REFUTE",
+        "prediction": "Option A",
+        "explanation": "Evidence conflicts",
+        "confidence": 0.77
+      },
+      {
+        "step": 3,
+        "agent_id": "Specialist",
+        "tag": "REVISE",
+        "prediction": "Option B",
+        "explanation": "New evidence B",
+        "confidence": 0.71
+      }
+    ],
+    "counterfactual_summary": null,
+    "counterfactual_events": null,
+    "divergence_step": null
+  },
+  {
+    "cf_fraction": 0.33,
+    "trial": 19,
+    "original_summary": {
+      "status": "DEADLOCK",
+      "prediction": "Option A",
+      "iterations": 4,
+      "deadlocked": true
+    },
+    "original_events": [
+      {
+        "step": 1,
+        "agent_id": "Analyst",
+        "tag": "RATIFY",
+        "prediction": "Option A",
+        "explanation": "Evidence A",
+        "confidence": 0.82
+      },
+      {
+        "step": 2,
+        "agent_id": "Critic",
+        "tag": "REFUTE",
+        "prediction": "Option A",
+        "explanation": "Evidence conflicts",
+        "confidence": 0.77
+      },
+      {
+        "step": 3,
+        "agent_id": "Specialist",
+        "tag": "REVISE",
+        "prediction": "Option B",
+        "explanation": "New evidence B",
+        "confidence": 0.71
+      },
+      {
+        "step": 4,
+        "agent_id": "Analyst",
+        "tag": "REFUTE",
+        "prediction": "Option B",
+        "explanation": "Conflicts with A",
+        "confidence": 0.6
+      }
+    ],
+    "counterfactual_summary": {
+      "status": "DEADLOCK",
+      "prediction": "Option A",
+      "iterations": 4,
+      "deadlocked": true
+    },
+    "counterfactual_events": [
+      {
+        "step": 1,
+        "agent_id": "Analyst",
+        "tag": "RATIFY",
+        "prediction": "Option A",
+        "explanation": "Evidence A",
+        "confidence": 0.82
+      },
+      {
+        "step": 2,
+        "agent_id": "Critic",
+        "tag": "REFUTE",
+        "prediction": "Option A",
+        "explanation": "Evidence conflicts",
+        "confidence": 0.77
+      },
+      {
+        "step": 3,
+        "agent_id": "Specialist",
+        "tag": "REVISE",
+        "prediction": "Option B",
+        "explanation": "New evidence B",
+        "confidence": 0.71
+      },
+      {
+        "step": 4,
+        "agent_id": "Analyst",
+        "tag": "REFUTE",
+        "prediction": "Option B",
+        "explanation": "Conflicts with A",
+        "confidence": 0.6
+      }
+    ],
+    "divergence_step": null
+  },
+  {
+    "cf_fraction": 0.66,
+    "trial": 0,
+    "original_summary": {
+      "status": "DEADLOCK",
+      "prediction": "Option A",
+      "iterations": 4,
+      "deadlocked": true
+    },
+    "original_events": [
+      {
+        "step": 1,
+        "agent_id": "Analyst",
+        "tag": "RATIFY",
+        "prediction": "Option A",
+        "explanation": "Evidence A",
+        "confidence": 0.82
+      },
+      {
+        "step": 2,
+        "agent_id": "Critic",
+        "tag": "REFUTE",
+        "prediction": "Option A",
+        "explanation": "Evidence conflicts",
+        "confidence": 0.77
+      },
+      {
+        "step": 3,
+        "agent_id": "Specialist",
+        "tag": "REVISE",
+        "prediction": "Option B",
+        "explanation": "New evidence B",
+        "confidence": 0.71
+      },
+      {
+        "step": 4,
+        "agent_id": "Analyst",
+        "tag": "REFUTE",
+        "prediction": "Option B",
+        "explanation": "Conflicts with A",
+        "confidence": 0.6
+      }
+    ],
+    "counterfactual_summary": {
+      "status": "CONSENSUS",
+      "prediction": "Option A",
+      "iterations": 3,
+      "deadlocked": false
+    },
+    "counterfactual_events": [
+      {
+        "step": 1,
+        "agent_id": "Analyst",
+        "tag": "RATIFY",
+        "prediction": "Option A",
+        "explanation": "Evidence A",
+        "confidence": 0.82
+      },
+      {
+        "step": 2,
+        "agent_id": "Critic",
+        "tag": "REFUTE",
+        "prediction": "Option A",
+        "explanation": "Evidence conflicts",
+        "confidence": 0.77
+      },
+      {
+        "step": 2,
+        "agent_id": "Critic",
+        "tag": "REVISE",
+        "prediction": "Option A",
+        "explanation": "Minor adjustment",
+        "confidence": 0.75
+      },
+      {
+        "step": 3,
+        "agent_id": "Specialist",
+        "tag": "RATIFY",
+        "prediction": "Option A",
+        "explanation": "Agreed with revised evidence",
+        "confidence": 0.8
+      }
+    ],
+    "divergence_step": 2
+  },
+  {
+    "cf_fraction": 0.66,
+    "trial": 1,
+    "original_summary": {
+      "status": "CONSENSUS",
+      "prediction": "Option B",
+      "iterations": 3,
+      "deadlocked": false
+    },
+    "original_events": [
+      {
+        "step": 1,
+        "agent_id": "Analyst",
+        "tag": "RATIFY",
+        "prediction": "Option A",
+        "explanation": "Evidence A",
+        "confidence": 0.82
+      },
+      {
+        "step": 2,
+        "agent_id": "Critic",
+        "tag": "REFUTE",
+        "prediction": "Option A",
+        "explanation": "Evidence conflicts",
+        "confidence": 0.77
+      },
+      {
+        "step": 3,
+        "agent_id": "Specialist",
+        "tag": "REVISE",
+        "prediction": "Option B",
+        "explanation": "New evidence B",
+        "confidence": 0.71
+      }
+    ],
+    "counterfactual_summary": null,
+    "counterfactual_events": null,
+    "divergence_step": null
+  },
+  {
+    "cf_fraction": 0.66,
+    "trial": 2,
+    "original_summary": {
+      "status": "CONSENSUS",
+      "prediction": "Option B",
+      "iterations": 3,
+      "deadlocked": false
+    },
+    "original_events": [
+      {
+        "step": 1,
+        "agent_id": "Analyst",
+        "tag": "RATIFY",
+        "prediction": "Option A",
+        "explanation": "Evidence A",
+        "confidence": 0.82
+      },
+      {
+        "step": 2,
+        "agent_id": "Critic",
+        "tag": "REFUTE",
+        "prediction": "Option A",
+        "explanation": "Evidence conflicts",
+        "confidence": 0.77
+      },
+      {
+        "step": 3,
+        "agent_id": "Specialist",
+        "tag": "REVISE",
+        "prediction": "Option B",
+        "explanation": "New evidence B",
+        "confidence": 0.71
+      }
+    ],
+    "counterfactual_summary": null,
+    "counterfactual_events": null,
+    "divergence_step": null
+  },
+  {
+    "cf_fraction": 0.66,
+    "trial": 3,
+    "original_summary": {
+      "status": "CONSENSUS",
+      "prediction": "Option B",
+      "iterations": 3,
+      "deadlocked": false
+    },
+    "original_events": [
+      {
+        "step": 1,
+        "agent_id": "Analyst",
+        "tag": "RATIFY",
+        "prediction": "Option A",
+        "explanation": "Evidence A",
+        "confidence": 0.82
+      },
+      {
+        "step": 2,
+        "agent_id": "Critic",
+        "tag": "REFUTE",
+        "prediction": "Option A",
+        "explanation": "Evidence conflicts",
+        "confidence": 0.77
+      },
+      {
+        "step": 3,
+        "agent_id": "Specialist",
+        "tag": "REVISE",
+        "prediction": "Option B",
+        "explanation": "New evidence B",
+        "confidence": 0.71
+      }
+    ],
+    "counterfactual_summary": null,
+    "counterfactual_events": null,
+    "divergence_step": null
+  },
+  {
+    "cf_fraction": 0.66,
+    "trial": 4,
+    "original_summary": {
+      "status": "CONSENSUS",
+      "prediction": "Option B",
+      "iterations": 3,
+      "deadlocked": false
+    },
+    "original_events": [
+      {
+        "step": 1,
+        "agent_id": "Analyst",
+        "tag": "RATIFY",
+        "prediction": "Option A",
+        "explanation": "Evidence A",
+        "confidence": 0.82
+      },
+      {
+        "step": 2,
+        "agent_id": "Critic",
+        "tag": "REFUTE",
+        "prediction": "Option A",
+        "explanation": "Evidence conflicts",
+        "confidence": 0.77
+      },
+      {
+        "step": 3,
+        "agent_id": "Specialist",
+        "tag": "REVISE",
+        "prediction": "Option B",
+        "explanation": "New evidence B",
+        "confidence": 0.71
+      }
+    ],
+    "counterfactual_summary": null,
+    "counterfactual_events": null,
+    "divergence_step": null
+  },
+  {
+    "cf_fraction": 0.66,
+    "trial": 5,
+    "original_summary": {
+      "status": "CONSENSUS",
+      "prediction": "Option B",
+      "iterations": 3,
+      "deadlocked": false
+    },
+    "original_events": [
+      {
+        "step": 1,
+        "agent_id": "Analyst",
+        "tag": "RATIFY",
+        "prediction": "Option A",
+        "explanation": "Evidence A",
+        "confidence": 0.82
+      },
+      {
+        "step": 2,
+        "agent_id": "Critic",
+        "tag": "REFUTE",
+        "prediction": "Option A",
+        "explanation": "Evidence conflicts",
+        "confidence": 0.77
+      },
+      {
+        "step": 3,
+        "agent_id": "Specialist",
+        "tag": "REVISE",
+        "prediction": "Option B",
+        "explanation": "New evidence B",
+        "confidence": 0.71
+      }
+    ],
+    "counterfactual_summary": null,
+    "counterfactual_events": null,
+    "divergence_step": null
+  },
+  {
+    "cf_fraction": 0.66,
+    "trial": 6,
+    "original_summary": {
+      "status": "CONSENSUS",
+      "prediction": "Option B",
+      "iterations": 3,
+      "deadlocked": false
+    },
+    "original_events": [
+      {
+        "step": 1,
+        "agent_id": "Analyst",
+        "tag": "RATIFY",
+        "prediction": "Option A",
+        "explanation": "Evidence A",
+        "confidence": 0.82
+      },
+      {
+        "step": 2,
+        "agent_id": "Critic",
+        "tag": "REFUTE",
+        "prediction": "Option A",
+        "explanation": "Evidence conflicts",
+        "confidence": 0.77
+      },
+      {
+        "step": 3,
+        "agent_id": "Specialist",
+        "tag": "REVISE",
+        "prediction": "Option B",
+        "explanation": "New evidence B",
+        "confidence": 0.71
+      }
+    ],
+    "counterfactual_summary": null,
+    "counterfactual_events": null,
+    "divergence_step": null
+  },
+  {
+    "cf_fraction": 0.66,
+    "trial": 7,
+    "original_summary": {
+      "status": "DEADLOCK",
+      "prediction": "Option A",
+      "iterations": 4,
+      "deadlocked": true
+    },
+    "original_events": [
+      {
+        "step": 1,
+        "agent_id": "Analyst",
+        "tag": "RATIFY",
+        "prediction": "Option A",
+        "explanation": "Evidence A",
+        "confidence": 0.82
+      },
+      {
+        "step": 2,
+        "agent_id": "Critic",
+        "tag": "REFUTE",
+        "prediction": "Option A",
+        "explanation": "Evidence conflicts",
+        "confidence": 0.77
+      },
+      {
+        "step": 3,
+        "agent_id": "Specialist",
+        "tag": "REVISE",
+        "prediction": "Option B",
+        "explanation": "New evidence B",
+        "confidence": 0.71
+      },
+      {
+        "step": 4,
+        "agent_id": "Analyst",
+        "tag": "REFUTE",
+        "prediction": "Option B",
+        "explanation": "Conflicts with A",
+        "confidence": 0.6
+      }
+    ],
+    "counterfactual_summary": {
+      "status": "CONSENSUS",
+      "prediction": "Option A",
+      "iterations": 3,
+      "deadlocked": false
+    },
+    "counterfactual_events": [
+      {
+        "step": 1,
+        "agent_id": "Analyst",
+        "tag": "RATIFY",
+        "prediction": "Option A",
+        "explanation": "Evidence A",
+        "confidence": 0.82
+      },
+      {
+        "step": 2,
+        "agent_id": "Critic",
+        "tag": "REFUTE",
+        "prediction": "Option A",
+        "explanation": "Evidence conflicts",
+        "confidence": 0.77
+      },
+      {
+        "step": 2,
+        "agent_id": "Critic",
+        "tag": "REVISE",
+        "prediction": "Option A",
+        "explanation": "Minor adjustment",
+        "confidence": 0.75
+      },
+      {
+        "step": 3,
+        "agent_id": "Specialist",
+        "tag": "RATIFY",
+        "prediction": "Option A",
+        "explanation": "Agreed with revised evidence",
+        "confidence": 0.8
+      }
+    ],
+    "divergence_step": 2
+  },
+  {
+    "cf_fraction": 0.66,
+    "trial": 8,
+    "original_summary": {
+      "status": "DEADLOCK",
+      "prediction": "Option A",
+      "iterations": 4,
+      "deadlocked": true
+    },
+    "original_events": [
+      {
+        "step": 1,
+        "agent_id": "Analyst",
+        "tag": "RATIFY",
+        "prediction": "Option A",
+        "explanation": "Evidence A",
+        "confidence": 0.82
+      },
+      {
+        "step": 2,
+        "agent_id": "Critic",
+        "tag": "REFUTE",
+        "prediction": "Option A",
+        "explanation": "Evidence conflicts",
+        "confidence": 0.77
+      },
+      {
+        "step": 3,
+        "agent_id": "Specialist",
+        "tag": "REVISE",
+        "prediction": "Option B",
+        "explanation": "New evidence B",
+        "confidence": 0.71
+      },
+      {
+        "step": 4,
+        "agent_id": "Analyst",
+        "tag": "REFUTE",
+        "prediction": "Option B",
+        "explanation": "Conflicts with A",
+        "confidence": 0.6
+      }
+    ],
+    "counterfactual_summary": {
+      "status": "CONSENSUS",
+      "prediction": "Option A",
+      "iterations": 3,
+      "deadlocked": false
+    },
+    "counterfactual_events": [
+      {
+        "step": 1,
+        "agent_id": "Analyst",
+        "tag": "RATIFY",
+        "prediction": "Option A",
+        "explanation": "Evidence A",
+        "confidence": 0.82
+      },
+      {
+        "step": 2,
+        "agent_id": "Critic",
+        "tag": "REFUTE",
+        "prediction": "Option A",
+        "explanation": "Evidence conflicts",
+        "confidence": 0.77
+      },
+      {
+        "step": 2,
+        "agent_id": "Critic",
+        "tag": "REVISE",
+        "prediction": "Option A",
+        "explanation": "Minor adjustment",
+        "confidence": 0.75
+      },
+      {
+        "step": 3,
+        "agent_id": "Specialist",
+        "tag": "RATIFY",
+        "prediction": "Option A",
+        "explanation": "Agreed with revised evidence",
+        "confidence": 0.8
+      }
+    ],
+    "divergence_step": 2
+  },
+  {
+    "cf_fraction": 0.66,
+    "trial": 9,
+    "original_summary": {
+      "status": "DEADLOCK",
+      "prediction": "Option A",
+      "iterations": 4,
+      "deadlocked": true
+    },
+    "original_events": [
+      {
+        "step": 1,
+        "agent_id": "Analyst",
+        "tag": "RATIFY",
+        "prediction": "Option A",
+        "explanation": "Evidence A",
+        "confidence": 0.82
+      },
+      {
+        "step": 2,
+        "agent_id": "Critic",
+        "tag": "REFUTE",
+        "prediction": "Option A",
+        "explanation": "Evidence conflicts",
+        "confidence": 0.77
+      },
+      {
+        "step": 3,
+        "agent_id": "Specialist",
+        "tag": "REVISE",
+        "prediction": "Option B",
+        "explanation": "New evidence B",
+        "confidence": 0.71
+      },
+      {
+        "step": 4,
+        "agent_id": "Analyst",
+        "tag": "REFUTE",
+        "prediction": "Option B",
+        "explanation": "Conflicts with A",
+        "confidence": 0.6
+      }
+    ],
+    "counterfactual_summary": {
+      "status": "DEADLOCK",
+      "prediction": "Option A",
+      "iterations": 4,
+      "deadlocked": true
+    },
+    "counterfactual_events": [
+      {
+        "step": 1,
+        "agent_id": "Analyst",
+        "tag": "RATIFY",
+        "prediction": "Option A",
+        "explanation": "Evidence A",
+        "confidence": 0.82
+      },
+      {
+        "step": 2,
+        "agent_id": "Critic",
+        "tag": "REFUTE",
+        "prediction": "Option A",
+        "explanation": "Evidence conflicts",
+        "confidence": 0.77
+      },
+      {
+        "step": 3,
+        "agent_id": "Specialist",
+        "tag": "REVISE",
+        "prediction": "Option B",
+        "explanation": "New evidence B",
+        "confidence": 0.71
+      },
+      {
+        "step": 4,
+        "agent_id": "Analyst",
+        "tag": "REFUTE",
+        "prediction": "Option B",
+        "explanation": "Conflicts with A",
+        "confidence": 0.6
+      }
+    ],
+    "divergence_step": null
+  },
+  {
+    "cf_fraction": 0.66,
+    "trial": 10,
+    "original_summary": {
+      "status": "CONSENSUS",
+      "prediction": "Option B",
+      "iterations": 3,
+      "deadlocked": false
+    },
+    "original_events": [
+      {
+        "step": 1,
+        "agent_id": "Analyst",
+        "tag": "RATIFY",
+        "prediction": "Option A",
+        "explanation": "Evidence A",
+        "confidence": 0.82
+      },
+      {
+        "step": 2,
+        "agent_id": "Critic",
+        "tag": "REFUTE",
+        "prediction": "Option A",
+        "explanation": "Evidence conflicts",
+        "confidence": 0.77
+      },
+      {
+        "step": 3,
+        "agent_id": "Specialist",
+        "tag": "REVISE",
+        "prediction": "Option B",
+        "explanation": "New evidence B",
+        "confidence": 0.71
+      }
+    ],
+    "counterfactual_summary": null,
+    "counterfactual_events": null,
+    "divergence_step": null
+  },
+  {
+    "cf_fraction": 0.66,
+    "trial": 11,
+    "original_summary": {
+      "status": "DEADLOCK",
+      "prediction": "Option A",
+      "iterations": 4,
+      "deadlocked": true
+    },
+    "original_events": [
+      {
+        "step": 1,
+        "agent_id": "Analyst",
+        "tag": "RATIFY",
+        "prediction": "Option A",
+        "explanation": "Evidence A",
+        "confidence": 0.82
+      },
+      {
+        "step": 2,
+        "agent_id": "Critic",
+        "tag": "REFUTE",
+        "prediction": "Option A",
+        "explanation": "Evidence conflicts",
+        "confidence": 0.77
+      },
+      {
+        "step": 3,
+        "agent_id": "Specialist",
+        "tag": "REVISE",
+        "prediction": "Option B",
+        "explanation": "New evidence B",
+        "confidence": 0.71
+      },
+      {
+        "step": 4,
+        "agent_id": "Analyst",
+        "tag": "REFUTE",
+        "prediction": "Option B",
+        "explanation": "Conflicts with A",
+        "confidence": 0.6
+      }
+    ],
+    "counterfactual_summary": {
+      "status": "CONSENSUS",
+      "prediction": "Option A",
+      "iterations": 3,
+      "deadlocked": false
+    },
+    "counterfactual_events": [
+      {
+        "step": 1,
+        "agent_id": "Analyst",
+        "tag": "RATIFY",
+        "prediction": "Option A",
+        "explanation": "Evidence A",
+        "confidence": 0.82
+      },
+      {
+        "step": 2,
+        "agent_id": "Critic",
+        "tag": "REFUTE",
+        "prediction": "Option A",
+        "explanation": "Evidence conflicts",
+        "confidence": 0.77
+      },
+      {
+        "step": 2,
+        "agent_id": "Critic",
+        "tag": "REVISE",
+        "prediction": "Option A",
+        "explanation": "Minor adjustment",
+        "confidence": 0.75
+      },
+      {
+        "step": 3,
+        "agent_id": "Specialist",
+        "tag": "RATIFY",
+        "prediction": "Option A",
+        "explanation": "Agreed with revised evidence",
+        "confidence": 0.8
+      }
+    ],
+    "divergence_step": 2
+  },
+  {
+    "cf_fraction": 0.66,
+    "trial": 12,
+    "original_summary": {
+      "status": "DEADLOCK",
+      "prediction": "Option A",
+      "iterations": 4,
+      "deadlocked": true
+    },
+    "original_events": [
+      {
+        "step": 1,
+        "agent_id": "Analyst",
+        "tag": "RATIFY",
+        "prediction": "Option A",
+        "explanation": "Evidence A",
+        "confidence": 0.82
+      },
+      {
+        "step": 2,
+        "agent_id": "Critic",
+        "tag": "REFUTE",
+        "prediction": "Option A",
+        "explanation": "Evidence conflicts",
+        "confidence": 0.77
+      },
+      {
+        "step": 3,
+        "agent_id": "Specialist",
+        "tag": "REVISE",
+        "prediction": "Option B",
+        "explanation": "New evidence B",
+        "confidence": 0.71
+      },
+      {
+        "step": 4,
+        "agent_id": "Analyst",
+        "tag": "REFUTE",
+        "prediction": "Option B",
+        "explanation": "Conflicts with A",
+        "confidence": 0.6
+      }
+    ],
+    "counterfactual_summary": {
+      "status": "DEADLOCK",
+      "prediction": "Option A",
+      "iterations": 4,
+      "deadlocked": true
+    },
+    "counterfactual_events": [
+      {
+        "step": 1,
+        "agent_id": "Analyst",
+        "tag": "RATIFY",
+        "prediction": "Option A",
+        "explanation": "Evidence A",
+        "confidence": 0.82
+      },
+      {
+        "step": 2,
+        "agent_id": "Critic",
+        "tag": "REFUTE",
+        "prediction": "Option A",
+        "explanation": "Evidence conflicts",
+        "confidence": 0.77
+      },
+      {
+        "step": 3,
+        "agent_id": "Specialist",
+        "tag": "REVISE",
+        "prediction": "Option B",
+        "explanation": "New evidence B",
+        "confidence": 0.71
+      },
+      {
+        "step": 4,
+        "agent_id": "Analyst",
+        "tag": "REFUTE",
+        "prediction": "Option B",
+        "explanation": "Conflicts with A",
+        "confidence": 0.6
+      }
+    ],
+    "divergence_step": null
+  },
+  {
+    "cf_fraction": 0.66,
+    "trial": 13,
+    "original_summary": {
+      "status": "DEADLOCK",
+      "prediction": "Option A",
+      "iterations": 4,
+      "deadlocked": true
+    },
+    "original_events": [
+      {
+        "step": 1,
+        "agent_id": "Analyst",
+        "tag": "RATIFY",
+        "prediction": "Option A",
+        "explanation": "Evidence A",
+        "confidence": 0.82
+      },
+      {
+        "step": 2,
+        "agent_id": "Critic",
+        "tag": "REFUTE",
+        "prediction": "Option A",
+        "explanation": "Evidence conflicts",
+        "confidence": 0.77
+      },
+      {
+        "step": 3,
+        "agent_id": "Specialist",
+        "tag": "REVISE",
+        "prediction": "Option B",
+        "explanation": "New evidence B",
+        "confidence": 0.71
+      },
+      {
+        "step": 4,
+        "agent_id": "Analyst",
+        "tag": "REFUTE",
+        "prediction": "Option B",
+        "explanation": "Conflicts with A",
+        "confidence": 0.6
+      }
+    ],
+    "counterfactual_summary": {
+      "status": "CONSENSUS",
+      "prediction": "Option A",
+      "iterations": 3,
+      "deadlocked": false
+    },
+    "counterfactual_events": [
+      {
+        "step": 1,
+        "agent_id": "Analyst",
+        "tag": "RATIFY",
+        "prediction": "Option A",
+        "explanation": "Evidence A",
+        "confidence": 0.82
+      },
+      {
+        "step": 2,
+        "agent_id": "Critic",
+        "tag": "REFUTE",
+        "prediction": "Option A",
+        "explanation": "Evidence conflicts",
+        "confidence": 0.77
+      },
+      {
+        "step": 2,
+        "agent_id": "Critic",
+        "tag": "REVISE",
+        "prediction": "Option A",
+        "explanation": "Minor adjustment",
+        "confidence": 0.75
+      },
+      {
+        "step": 3,
+        "agent_id": "Specialist",
+        "tag": "RATIFY",
+        "prediction": "Option A",
+        "explanation": "Agreed with revised evidence",
+        "confidence": 0.8
+      }
+    ],
+    "divergence_step": 2
+  },
+  {
+    "cf_fraction": 0.66,
+    "trial": 14,
+    "original_summary": {
+      "status": "DEADLOCK",
+      "prediction": "Option A",
+      "iterations": 4,
+      "deadlocked": true
+    },
+    "original_events": [
+      {
+        "step": 1,
+        "agent_id": "Analyst",
+        "tag": "RATIFY",
+        "prediction": "Option A",
+        "explanation": "Evidence A",
+        "confidence": 0.82
+      },
+      {
+        "step": 2,
+        "agent_id": "Critic",
+        "tag": "REFUTE",
+        "prediction": "Option A",
+        "explanation": "Evidence conflicts",
+        "confidence": 0.77
+      },
+      {
+        "step": 3,
+        "agent_id": "Specialist",
+        "tag": "REVISE",
+        "prediction": "Option B",
+        "explanation": "New evidence B",
+        "confidence": 0.71
+      },
+      {
+        "step": 4,
+        "agent_id": "Analyst",
+        "tag": "REFUTE",
+        "prediction": "Option B",
+        "explanation": "Conflicts with A",
+        "confidence": 0.6
+      }
+    ],
+    "counterfactual_summary": {
+      "status": "CONSENSUS",
+      "prediction": "Option A",
+      "iterations": 3,
+      "deadlocked": false
+    },
+    "counterfactual_events": [
+      {
+        "step": 1,
+        "agent_id": "Analyst",
+        "tag": "RATIFY",
+        "prediction": "Option A",
+        "explanation": "Evidence A",
+        "confidence": 0.82
+      },
+      {
+        "step": 2,
+        "agent_id": "Critic",
+        "tag": "REFUTE",
+        "prediction": "Option A",
+        "explanation": "Evidence conflicts",
+        "confidence": 0.77
+      },
+      {
+        "step": 2,
+        "agent_id": "Critic",
+        "tag": "REVISE",
+        "prediction": "Option A",
+        "explanation": "Minor adjustment",
+        "confidence": 0.75
+      },
+      {
+        "step": 3,
+        "agent_id": "Specialist",
+        "tag": "RATIFY",
+        "prediction": "Option A",
+        "explanation": "Agreed with revised evidence",
+        "confidence": 0.8
+      }
+    ],
+    "divergence_step": 2
+  },
+  {
+    "cf_fraction": 0.66,
+    "trial": 15,
+    "original_summary": {
+      "status": "DEADLOCK",
+      "prediction": "Option A",
+      "iterations": 4,
+      "deadlocked": true
+    },
+    "original_events": [
+      {
+        "step": 1,
+        "agent_id": "Analyst",
+        "tag": "RATIFY",
+        "prediction": "Option A",
+        "explanation": "Evidence A",
+        "confidence": 0.82
+      },
+      {
+        "step": 2,
+        "agent_id": "Critic",
+        "tag": "REFUTE",
+        "prediction": "Option A",
+        "explanation": "Evidence conflicts",
+        "confidence": 0.77
+      },
+      {
+        "step": 3,
+        "agent_id": "Specialist",
+        "tag": "REVISE",
+        "prediction": "Option B",
+        "explanation": "New evidence B",
+        "confidence": 0.71
+      },
+      {
+        "step": 4,
+        "agent_id": "Analyst",
+        "tag": "REFUTE",
+        "prediction": "Option B",
+        "explanation": "Conflicts with A",
+        "confidence": 0.6
+      }
+    ],
+    "counterfactual_summary": {
+      "status": "CONSENSUS",
+      "prediction": "Option A",
+      "iterations": 3,
+      "deadlocked": false
+    },
+    "counterfactual_events": [
+      {
+        "step": 1,
+        "agent_id": "Analyst",
+        "tag": "RATIFY",
+        "prediction": "Option A",
+        "explanation": "Evidence A",
+        "confidence": 0.82
+      },
+      {
+        "step": 2,
+        "agent_id": "Critic",
+        "tag": "REFUTE",
+        "prediction": "Option A",
+        "explanation": "Evidence conflicts",
+        "confidence": 0.77
+      },
+      {
+        "step": 2,
+        "agent_id": "Critic",
+        "tag": "REVISE",
+        "prediction": "Option A",
+        "explanation": "Minor adjustment",
+        "confidence": 0.75
+      },
+      {
+        "step": 3,
+        "agent_id": "Specialist",
+        "tag": "RATIFY",
+        "prediction": "Option A",
+        "explanation": "Agreed with revised evidence",
+        "confidence": 0.8
+      }
+    ],
+    "divergence_step": 2
+  },
+  {
+    "cf_fraction": 0.66,
+    "trial": 16,
+    "original_summary": {
+      "status": "CONSENSUS",
+      "prediction": "Option B",
+      "iterations": 3,
+      "deadlocked": false
+    },
+    "original_events": [
+      {
+        "step": 1,
+        "agent_id": "Analyst",
+        "tag": "RATIFY",
+        "prediction": "Option A",
+        "explanation": "Evidence A",
+        "confidence": 0.82
+      },
+      {
+        "step": 2,
+        "agent_id": "Critic",
+        "tag": "REFUTE",
+        "prediction": "Option A",
+        "explanation": "Evidence conflicts",
+        "confidence": 0.77
+      },
+      {
+        "step": 3,
+        "agent_id": "Specialist",
+        "tag": "REVISE",
+        "prediction": "Option B",
+        "explanation": "New evidence B",
+        "confidence": 0.71
+      }
+    ],
+    "counterfactual_summary": null,
+    "counterfactual_events": null,
+    "divergence_step": null
+  },
+  {
+    "cf_fraction": 0.66,
+    "trial": 17,
+    "original_summary": {
+      "status": "DEADLOCK",
+      "prediction": "Option A",
+      "iterations": 4,
+      "deadlocked": true
+    },
+    "original_events": [
+      {
+        "step": 1,
+        "agent_id": "Analyst",
+        "tag": "RATIFY",
+        "prediction": "Option A",
+        "explanation": "Evidence A",
+        "confidence": 0.82
+      },
+      {
+        "step": 2,
+        "agent_id": "Critic",
+        "tag": "REFUTE",
+        "prediction": "Option A",
+        "explanation": "Evidence conflicts",
+        "confidence": 0.77
+      },
+      {
+        "step": 3,
+        "agent_id": "Specialist",
+        "tag": "REVISE",
+        "prediction": "Option B",
+        "explanation": "New evidence B",
+        "confidence": 0.71
+      },
+      {
+        "step": 4,
+        "agent_id": "Analyst",
+        "tag": "REFUTE",
+        "prediction": "Option B",
+        "explanation": "Conflicts with A",
+        "confidence": 0.6
+      }
+    ],
+    "counterfactual_summary": {
+      "status": "CONSENSUS",
+      "prediction": "Option A",
+      "iterations": 3,
+      "deadlocked": false
+    },
+    "counterfactual_events": [
+      {
+        "step": 1,
+        "agent_id": "Analyst",
+        "tag": "RATIFY",
+        "prediction": "Option A",
+        "explanation": "Evidence A",
+        "confidence": 0.82
+      },
+      {
+        "step": 2,
+        "agent_id": "Critic",
+        "tag": "REFUTE",
+        "prediction": "Option A",
+        "explanation": "Evidence conflicts",
+        "confidence": 0.77
+      },
+      {
+        "step": 2,
+        "agent_id": "Critic",
+        "tag": "REVISE",
+        "prediction": "Option A",
+        "explanation": "Minor adjustment",
+        "confidence": 0.75
+      },
+      {
+        "step": 3,
+        "agent_id": "Specialist",
+        "tag": "RATIFY",
+        "prediction": "Option A",
+        "explanation": "Agreed with revised evidence",
+        "confidence": 0.8
+      }
+    ],
+    "divergence_step": 2
+  },
+  {
+    "cf_fraction": 0.66,
+    "trial": 18,
+    "original_summary": {
+      "status": "CONSENSUS",
+      "prediction": "Option B",
+      "iterations": 3,
+      "deadlocked": false
+    },
+    "original_events": [
+      {
+        "step": 1,
+        "agent_id": "Analyst",
+        "tag": "RATIFY",
+        "prediction": "Option A",
+        "explanation": "Evidence A",
+        "confidence": 0.82
+      },
+      {
+        "step": 2,
+        "agent_id": "Critic",
+        "tag": "REFUTE",
+        "prediction": "Option A",
+        "explanation": "Evidence conflicts",
+        "confidence": 0.77
+      },
+      {
+        "step": 3,
+        "agent_id": "Specialist",
+        "tag": "REVISE",
+        "prediction": "Option B",
+        "explanation": "New evidence B",
+        "confidence": 0.71
+      }
+    ],
+    "counterfactual_summary": null,
+    "counterfactual_events": null,
+    "divergence_step": null
+  },
+  {
+    "cf_fraction": 0.66,
+    "trial": 19,
+    "original_summary": {
+      "status": "CONSENSUS",
+      "prediction": "Option B",
+      "iterations": 3,
+      "deadlocked": false
+    },
+    "original_events": [
+      {
+        "step": 1,
+        "agent_id": "Analyst",
+        "tag": "RATIFY",
+        "prediction": "Option A",
+        "explanation": "Evidence A",
+        "confidence": 0.82
+      },
+      {
+        "step": 2,
+        "agent_id": "Critic",
+        "tag": "REFUTE",
+        "prediction": "Option A",
+        "explanation": "Evidence conflicts",
+        "confidence": 0.77
+      },
+      {
+        "step": 3,
+        "agent_id": "Specialist",
+        "tag": "REVISE",
+        "prediction": "Option B",
+        "explanation": "New evidence B",
+        "confidence": 0.71
+      }
+    ],
+    "counterfactual_summary": null,
+    "counterfactual_events": null,
+    "divergence_step": null
+  },
+  {
+    "cf_fraction": 1.0,
+    "trial": 0,
+    "original_summary": {
+      "status": "DEADLOCK",
+      "prediction": "Option A",
+      "iterations": 4,
+      "deadlocked": true
+    },
+    "original_events": [
+      {
+        "step": 1,
+        "agent_id": "Analyst",
+        "tag": "RATIFY",
+        "prediction": "Option A",
+        "explanation": "Evidence A",
+        "confidence": 0.82
+      },
+      {
+        "step": 2,
+        "agent_id": "Critic",
+        "tag": "REFUTE",
+        "prediction": "Option A",
+        "explanation": "Evidence conflicts",
+        "confidence": 0.77
+      },
+      {
+        "step": 3,
+        "agent_id": "Specialist",
+        "tag": "REVISE",
+        "prediction": "Option B",
+        "explanation": "New evidence B",
+        "confidence": 0.71
+      },
+      {
+        "step": 4,
+        "agent_id": "Analyst",
+        "tag": "REFUTE",
+        "prediction": "Option B",
+        "explanation": "Conflicts with A",
+        "confidence": 0.6
+      }
+    ],
+    "counterfactual_summary": {
+      "status": "CONSENSUS",
+      "prediction": "Option A",
+      "iterations": 3,
+      "deadlocked": false
+    },
+    "counterfactual_events": [
+      {
+        "step": 1,
+        "agent_id": "Analyst",
+        "tag": "RATIFY",
+        "prediction": "Option A",
+        "explanation": "Evidence A",
+        "confidence": 0.82
+      },
+      {
+        "step": 2,
+        "agent_id": "Critic",
+        "tag": "REFUTE",
+        "prediction": "Option A",
+        "explanation": "Evidence conflicts",
+        "confidence": 0.77
+      },
+      {
+        "step": 2,
+        "agent_id": "Critic",
+        "tag": "REVISE",
+        "prediction": "Option A",
+        "explanation": "Minor adjustment",
+        "confidence": 0.75
+      },
+      {
+        "step": 3,
+        "agent_id": "Specialist",
+        "tag": "RATIFY",
+        "prediction": "Option A",
+        "explanation": "Agreed with revised evidence",
+        "confidence": 0.8
+      }
+    ],
+    "divergence_step": 2
+  },
+  {
+    "cf_fraction": 1.0,
+    "trial": 1,
+    "original_summary": {
+      "status": "DEADLOCK",
+      "prediction": "Option A",
+      "iterations": 4,
+      "deadlocked": true
+    },
+    "original_events": [
+      {
+        "step": 1,
+        "agent_id": "Analyst",
+        "tag": "RATIFY",
+        "prediction": "Option A",
+        "explanation": "Evidence A",
+        "confidence": 0.82
+      },
+      {
+        "step": 2,
+        "agent_id": "Critic",
+        "tag": "REFUTE",
+        "prediction": "Option A",
+        "explanation": "Evidence conflicts",
+        "confidence": 0.77
+      },
+      {
+        "step": 3,
+        "agent_id": "Specialist",
+        "tag": "REVISE",
+        "prediction": "Option B",
+        "explanation": "New evidence B",
+        "confidence": 0.71
+      },
+      {
+        "step": 4,
+        "agent_id": "Analyst",
+        "tag": "REFUTE",
+        "prediction": "Option B",
+        "explanation": "Conflicts with A",
+        "confidence": 0.6
+      }
+    ],
+    "counterfactual_summary": {
+      "status": "CONSENSUS",
+      "prediction": "Option A",
+      "iterations": 3,
+      "deadlocked": false
+    },
+    "counterfactual_events": [
+      {
+        "step": 1,
+        "agent_id": "Analyst",
+        "tag": "RATIFY",
+        "prediction": "Option A",
+        "explanation": "Evidence A",
+        "confidence": 0.82
+      },
+      {
+        "step": 2,
+        "agent_id": "Critic",
+        "tag": "REFUTE",
+        "prediction": "Option A",
+        "explanation": "Evidence conflicts",
+        "confidence": 0.77
+      },
+      {
+        "step": 2,
+        "agent_id": "Critic",
+        "tag": "REVISE",
+        "prediction": "Option A",
+        "explanation": "Minor adjustment",
+        "confidence": 0.75
+      },
+      {
+        "step": 3,
+        "agent_id": "Specialist",
+        "tag": "RATIFY",
+        "prediction": "Option A",
+        "explanation": "Agreed with revised evidence",
+        "confidence": 0.8
+      }
+    ],
+    "divergence_step": 2
+  },
+  {
+    "cf_fraction": 1.0,
+    "trial": 2,
+    "original_summary": {
+      "status": "CONSENSUS",
+      "prediction": "Option B",
+      "iterations": 3,
+      "deadlocked": false
+    },
+    "original_events": [
+      {
+        "step": 1,
+        "agent_id": "Analyst",
+        "tag": "RATIFY",
+        "prediction": "Option A",
+        "explanation": "Evidence A",
+        "confidence": 0.82
+      },
+      {
+        "step": 2,
+        "agent_id": "Critic",
+        "tag": "REFUTE",
+        "prediction": "Option A",
+        "explanation": "Evidence conflicts",
+        "confidence": 0.77
+      },
+      {
+        "step": 3,
+        "agent_id": "Specialist",
+        "tag": "REVISE",
+        "prediction": "Option B",
+        "explanation": "New evidence B",
+        "confidence": 0.71
+      }
+    ],
+    "counterfactual_summary": null,
+    "counterfactual_events": null,
+    "divergence_step": null
+  },
+  {
+    "cf_fraction": 1.0,
+    "trial": 3,
+    "original_summary": {
+      "status": "DEADLOCK",
+      "prediction": "Option A",
+      "iterations": 4,
+      "deadlocked": true
+    },
+    "original_events": [
+      {
+        "step": 1,
+        "agent_id": "Analyst",
+        "tag": "RATIFY",
+        "prediction": "Option A",
+        "explanation": "Evidence A",
+        "confidence": 0.82
+      },
+      {
+        "step": 2,
+        "agent_id": "Critic",
+        "tag": "REFUTE",
+        "prediction": "Option A",
+        "explanation": "Evidence conflicts",
+        "confidence": 0.77
+      },
+      {
+        "step": 3,
+        "agent_id": "Specialist",
+        "tag": "REVISE",
+        "prediction": "Option B",
+        "explanation": "New evidence B",
+        "confidence": 0.71
+      },
+      {
+        "step": 4,
+        "agent_id": "Analyst",
+        "tag": "REFUTE",
+        "prediction": "Option B",
+        "explanation": "Conflicts with A",
+        "confidence": 0.6
+      }
+    ],
+    "counterfactual_summary": {
+      "status": "CONSENSUS",
+      "prediction": "Option A",
+      "iterations": 3,
+      "deadlocked": false
+    },
+    "counterfactual_events": [
+      {
+        "step": 1,
+        "agent_id": "Analyst",
+        "tag": "RATIFY",
+        "prediction": "Option A",
+        "explanation": "Evidence A",
+        "confidence": 0.82
+      },
+      {
+        "step": 2,
+        "agent_id": "Critic",
+        "tag": "REFUTE",
+        "prediction": "Option A",
+        "explanation": "Evidence conflicts",
+        "confidence": 0.77
+      },
+      {
+        "step": 2,
+        "agent_id": "Critic",
+        "tag": "REVISE",
+        "prediction": "Option A",
+        "explanation": "Minor adjustment",
+        "confidence": 0.75
+      },
+      {
+        "step": 3,
+        "agent_id": "Specialist",
+        "tag": "RATIFY",
+        "prediction": "Option A",
+        "explanation": "Agreed with revised evidence",
+        "confidence": 0.8
+      }
+    ],
+    "divergence_step": 2
+  },
+  {
+    "cf_fraction": 1.0,
+    "trial": 4,
+    "original_summary": {
+      "status": "DEADLOCK",
+      "prediction": "Option A",
+      "iterations": 4,
+      "deadlocked": true
+    },
+    "original_events": [
+      {
+        "step": 1,
+        "agent_id": "Analyst",
+        "tag": "RATIFY",
+        "prediction": "Option A",
+        "explanation": "Evidence A",
+        "confidence": 0.82
+      },
+      {
+        "step": 2,
+        "agent_id": "Critic",
+        "tag": "REFUTE",
+        "prediction": "Option A",
+        "explanation": "Evidence conflicts",
+        "confidence": 0.77
+      },
+      {
+        "step": 3,
+        "agent_id": "Specialist",
+        "tag": "REVISE",
+        "prediction": "Option B",
+        "explanation": "New evidence B",
+        "confidence": 0.71
+      },
+      {
+        "step": 4,
+        "agent_id": "Analyst",
+        "tag": "REFUTE",
+        "prediction": "Option B",
+        "explanation": "Conflicts with A",
+        "confidence": 0.6
+      }
+    ],
+    "counterfactual_summary": {
+      "status": "CONSENSUS",
+      "prediction": "Option A",
+      "iterations": 3,
+      "deadlocked": false
+    },
+    "counterfactual_events": [
+      {
+        "step": 1,
+        "agent_id": "Analyst",
+        "tag": "RATIFY",
+        "prediction": "Option A",
+        "explanation": "Evidence A",
+        "confidence": 0.82
+      },
+      {
+        "step": 2,
+        "agent_id": "Critic",
+        "tag": "REFUTE",
+        "prediction": "Option A",
+        "explanation": "Evidence conflicts",
+        "confidence": 0.77
+      },
+      {
+        "step": 2,
+        "agent_id": "Critic",
+        "tag": "REVISE",
+        "prediction": "Option A",
+        "explanation": "Minor adjustment",
+        "confidence": 0.75
+      },
+      {
+        "step": 3,
+        "agent_id": "Specialist",
+        "tag": "RATIFY",
+        "prediction": "Option A",
+        "explanation": "Agreed with revised evidence",
+        "confidence": 0.8
+      }
+    ],
+    "divergence_step": 2
+  },
+  {
+    "cf_fraction": 1.0,
+    "trial": 5,
+    "original_summary": {
+      "status": "CONSENSUS",
+      "prediction": "Option B",
+      "iterations": 3,
+      "deadlocked": false
+    },
+    "original_events": [
+      {
+        "step": 1,
+        "agent_id": "Analyst",
+        "tag": "RATIFY",
+        "prediction": "Option A",
+        "explanation": "Evidence A",
+        "confidence": 0.82
+      },
+      {
+        "step": 2,
+        "agent_id": "Critic",
+        "tag": "REFUTE",
+        "prediction": "Option A",
+        "explanation": "Evidence conflicts",
+        "confidence": 0.77
+      },
+      {
+        "step": 3,
+        "agent_id": "Specialist",
+        "tag": "REVISE",
+        "prediction": "Option B",
+        "explanation": "New evidence B",
+        "confidence": 0.71
+      }
+    ],
+    "counterfactual_summary": null,
+    "counterfactual_events": null,
+    "divergence_step": null
+  },
+  {
+    "cf_fraction": 1.0,
+    "trial": 6,
+    "original_summary": {
+      "status": "CONSENSUS",
+      "prediction": "Option B",
+      "iterations": 3,
+      "deadlocked": false
+    },
+    "original_events": [
+      {
+        "step": 1,
+        "agent_id": "Analyst",
+        "tag": "RATIFY",
+        "prediction": "Option A",
+        "explanation": "Evidence A",
+        "confidence": 0.82
+      },
+      {
+        "step": 2,
+        "agent_id": "Critic",
+        "tag": "REFUTE",
+        "prediction": "Option A",
+        "explanation": "Evidence conflicts",
+        "confidence": 0.77
+      },
+      {
+        "step": 3,
+        "agent_id": "Specialist",
+        "tag": "REVISE",
+        "prediction": "Option B",
+        "explanation": "New evidence B",
+        "confidence": 0.71
+      }
+    ],
+    "counterfactual_summary": null,
+    "counterfactual_events": null,
+    "divergence_step": null
+  },
+  {
+    "cf_fraction": 1.0,
+    "trial": 7,
+    "original_summary": {
+      "status": "CONSENSUS",
+      "prediction": "Option B",
+      "iterations": 3,
+      "deadlocked": false
+    },
+    "original_events": [
+      {
+        "step": 1,
+        "agent_id": "Analyst",
+        "tag": "RATIFY",
+        "prediction": "Option A",
+        "explanation": "Evidence A",
+        "confidence": 0.82
+      },
+      {
+        "step": 2,
+        "agent_id": "Critic",
+        "tag": "REFUTE",
+        "prediction": "Option A",
+        "explanation": "Evidence conflicts",
+        "confidence": 0.77
+      },
+      {
+        "step": 3,
+        "agent_id": "Specialist",
+        "tag": "REVISE",
+        "prediction": "Option B",
+        "explanation": "New evidence B",
+        "confidence": 0.71
+      }
+    ],
+    "counterfactual_summary": null,
+    "counterfactual_events": null,
+    "divergence_step": null
+  },
+  {
+    "cf_fraction": 1.0,
+    "trial": 8,
+    "original_summary": {
+      "status": "DEADLOCK",
+      "prediction": "Option A",
+      "iterations": 4,
+      "deadlocked": true
+    },
+    "original_events": [
+      {
+        "step": 1,
+        "agent_id": "Analyst",
+        "tag": "RATIFY",
+        "prediction": "Option A",
+        "explanation": "Evidence A",
+        "confidence": 0.82
+      },
+      {
+        "step": 2,
+        "agent_id": "Critic",
+        "tag": "REFUTE",
+        "prediction": "Option A",
+        "explanation": "Evidence conflicts",
+        "confidence": 0.77
+      },
+      {
+        "step": 3,
+        "agent_id": "Specialist",
+        "tag": "REVISE",
+        "prediction": "Option B",
+        "explanation": "New evidence B",
+        "confidence": 0.71
+      },
+      {
+        "step": 4,
+        "agent_id": "Analyst",
+        "tag": "REFUTE",
+        "prediction": "Option B",
+        "explanation": "Conflicts with A",
+        "confidence": 0.6
+      }
+    ],
+    "counterfactual_summary": {
+      "status": "CONSENSUS",
+      "prediction": "Option A",
+      "iterations": 3,
+      "deadlocked": false
+    },
+    "counterfactual_events": [
+      {
+        "step": 1,
+        "agent_id": "Analyst",
+        "tag": "RATIFY",
+        "prediction": "Option A",
+        "explanation": "Evidence A",
+        "confidence": 0.82
+      },
+      {
+        "step": 2,
+        "agent_id": "Critic",
+        "tag": "REFUTE",
+        "prediction": "Option A",
+        "explanation": "Evidence conflicts",
+        "confidence": 0.77
+      },
+      {
+        "step": 2,
+        "agent_id": "Critic",
+        "tag": "REVISE",
+        "prediction": "Option A",
+        "explanation": "Minor adjustment",
+        "confidence": 0.75
+      },
+      {
+        "step": 3,
+        "agent_id": "Specialist",
+        "tag": "RATIFY",
+        "prediction": "Option A",
+        "explanation": "Agreed with revised evidence",
+        "confidence": 0.8
+      }
+    ],
+    "divergence_step": 2
+  },
+  {
+    "cf_fraction": 1.0,
+    "trial": 9,
+    "original_summary": {
+      "status": "CONSENSUS",
+      "prediction": "Option B",
+      "iterations": 3,
+      "deadlocked": false
+    },
+    "original_events": [
+      {
+        "step": 1,
+        "agent_id": "Analyst",
+        "tag": "RATIFY",
+        "prediction": "Option A",
+        "explanation": "Evidence A",
+        "confidence": 0.82
+      },
+      {
+        "step": 2,
+        "agent_id": "Critic",
+        "tag": "REFUTE",
+        "prediction": "Option A",
+        "explanation": "Evidence conflicts",
+        "confidence": 0.77
+      },
+      {
+        "step": 3,
+        "agent_id": "Specialist",
+        "tag": "REVISE",
+        "prediction": "Option B",
+        "explanation": "New evidence B",
+        "confidence": 0.71
+      }
+    ],
+    "counterfactual_summary": null,
+    "counterfactual_events": null,
+    "divergence_step": null
+  },
+  {
+    "cf_fraction": 1.0,
+    "trial": 10,
+    "original_summary": {
+      "status": "CONSENSUS",
+      "prediction": "Option B",
+      "iterations": 3,
+      "deadlocked": false
+    },
+    "original_events": [
+      {
+        "step": 1,
+        "agent_id": "Analyst",
+        "tag": "RATIFY",
+        "prediction": "Option A",
+        "explanation": "Evidence A",
+        "confidence": 0.82
+      },
+      {
+        "step": 2,
+        "agent_id": "Critic",
+        "tag": "REFUTE",
+        "prediction": "Option A",
+        "explanation": "Evidence conflicts",
+        "confidence": 0.77
+      },
+      {
+        "step": 3,
+        "agent_id": "Specialist",
+        "tag": "REVISE",
+        "prediction": "Option B",
+        "explanation": "New evidence B",
+        "confidence": 0.71
+      }
+    ],
+    "counterfactual_summary": null,
+    "counterfactual_events": null,
+    "divergence_step": null
+  },
+  {
+    "cf_fraction": 1.0,
+    "trial": 11,
+    "original_summary": {
+      "status": "DEADLOCK",
+      "prediction": "Option A",
+      "iterations": 4,
+      "deadlocked": true
+    },
+    "original_events": [
+      {
+        "step": 1,
+        "agent_id": "Analyst",
+        "tag": "RATIFY",
+        "prediction": "Option A",
+        "explanation": "Evidence A",
+        "confidence": 0.82
+      },
+      {
+        "step": 2,
+        "agent_id": "Critic",
+        "tag": "REFUTE",
+        "prediction": "Option A",
+        "explanation": "Evidence conflicts",
+        "confidence": 0.77
+      },
+      {
+        "step": 3,
+        "agent_id": "Specialist",
+        "tag": "REVISE",
+        "prediction": "Option B",
+        "explanation": "New evidence B",
+        "confidence": 0.71
+      },
+      {
+        "step": 4,
+        "agent_id": "Analyst",
+        "tag": "REFUTE",
+        "prediction": "Option B",
+        "explanation": "Conflicts with A",
+        "confidence": 0.6
+      }
+    ],
+    "counterfactual_summary": {
+      "status": "CONSENSUS",
+      "prediction": "Option A",
+      "iterations": 3,
+      "deadlocked": false
+    },
+    "counterfactual_events": [
+      {
+        "step": 1,
+        "agent_id": "Analyst",
+        "tag": "RATIFY",
+        "prediction": "Option A",
+        "explanation": "Evidence A",
+        "confidence": 0.82
+      },
+      {
+        "step": 2,
+        "agent_id": "Critic",
+        "tag": "REFUTE",
+        "prediction": "Option A",
+        "explanation": "Evidence conflicts",
+        "confidence": 0.77
+      },
+      {
+        "step": 2,
+        "agent_id": "Critic",
+        "tag": "REVISE",
+        "prediction": "Option A",
+        "explanation": "Minor adjustment",
+        "confidence": 0.75
+      },
+      {
+        "step": 3,
+        "agent_id": "Specialist",
+        "tag": "RATIFY",
+        "prediction": "Option A",
+        "explanation": "Agreed with revised evidence",
+        "confidence": 0.8
+      }
+    ],
+    "divergence_step": 2
+  },
+  {
+    "cf_fraction": 1.0,
+    "trial": 12,
+    "original_summary": {
+      "status": "DEADLOCK",
+      "prediction": "Option A",
+      "iterations": 4,
+      "deadlocked": true
+    },
+    "original_events": [
+      {
+        "step": 1,
+        "agent_id": "Analyst",
+        "tag": "RATIFY",
+        "prediction": "Option A",
+        "explanation": "Evidence A",
+        "confidence": 0.82
+      },
+      {
+        "step": 2,
+        "agent_id": "Critic",
+        "tag": "REFUTE",
+        "prediction": "Option A",
+        "explanation": "Evidence conflicts",
+        "confidence": 0.77
+      },
+      {
+        "step": 3,
+        "agent_id": "Specialist",
+        "tag": "REVISE",
+        "prediction": "Option B",
+        "explanation": "New evidence B",
+        "confidence": 0.71
+      },
+      {
+        "step": 4,
+        "agent_id": "Analyst",
+        "tag": "REFUTE",
+        "prediction": "Option B",
+        "explanation": "Conflicts with A",
+        "confidence": 0.6
+      }
+    ],
+    "counterfactual_summary": {
+      "status": "CONSENSUS",
+      "prediction": "Option A",
+      "iterations": 3,
+      "deadlocked": false
+    },
+    "counterfactual_events": [
+      {
+        "step": 1,
+        "agent_id": "Analyst",
+        "tag": "RATIFY",
+        "prediction": "Option A",
+        "explanation": "Evidence A",
+        "confidence": 0.82
+      },
+      {
+        "step": 2,
+        "agent_id": "Critic",
+        "tag": "REFUTE",
+        "prediction": "Option A",
+        "explanation": "Evidence conflicts",
+        "confidence": 0.77
+      },
+      {
+        "step": 2,
+        "agent_id": "Critic",
+        "tag": "REVISE",
+        "prediction": "Option A",
+        "explanation": "Minor adjustment",
+        "confidence": 0.75
+      },
+      {
+        "step": 3,
+        "agent_id": "Specialist",
+        "tag": "RATIFY",
+        "prediction": "Option A",
+        "explanation": "Agreed with revised evidence",
+        "confidence": 0.8
+      }
+    ],
+    "divergence_step": 2
+  },
+  {
+    "cf_fraction": 1.0,
+    "trial": 13,
+    "original_summary": {
+      "status": "DEADLOCK",
+      "prediction": "Option A",
+      "iterations": 4,
+      "deadlocked": true
+    },
+    "original_events": [
+      {
+        "step": 1,
+        "agent_id": "Analyst",
+        "tag": "RATIFY",
+        "prediction": "Option A",
+        "explanation": "Evidence A",
+        "confidence": 0.82
+      },
+      {
+        "step": 2,
+        "agent_id": "Critic",
+        "tag": "REFUTE",
+        "prediction": "Option A",
+        "explanation": "Evidence conflicts",
+        "confidence": 0.77
+      },
+      {
+        "step": 3,
+        "agent_id": "Specialist",
+        "tag": "REVISE",
+        "prediction": "Option B",
+        "explanation": "New evidence B",
+        "confidence": 0.71
+      },
+      {
+        "step": 4,
+        "agent_id": "Analyst",
+        "tag": "REFUTE",
+        "prediction": "Option B",
+        "explanation": "Conflicts with A",
+        "confidence": 0.6
+      }
+    ],
+    "counterfactual_summary": {
+      "status": "CONSENSUS",
+      "prediction": "Option A",
+      "iterations": 3,
+      "deadlocked": false
+    },
+    "counterfactual_events": [
+      {
+        "step": 1,
+        "agent_id": "Analyst",
+        "tag": "RATIFY",
+        "prediction": "Option A",
+        "explanation": "Evidence A",
+        "confidence": 0.82
+      },
+      {
+        "step": 2,
+        "agent_id": "Critic",
+        "tag": "REFUTE",
+        "prediction": "Option A",
+        "explanation": "Evidence conflicts",
+        "confidence": 0.77
+      },
+      {
+        "step": 2,
+        "agent_id": "Critic",
+        "tag": "REVISE",
+        "prediction": "Option A",
+        "explanation": "Minor adjustment",
+        "confidence": 0.75
+      },
+      {
+        "step": 3,
+        "agent_id": "Specialist",
+        "tag": "RATIFY",
+        "prediction": "Option A",
+        "explanation": "Agreed with revised evidence",
+        "confidence": 0.8
+      }
+    ],
+    "divergence_step": 2
+  },
+  {
+    "cf_fraction": 1.0,
+    "trial": 14,
+    "original_summary": {
+      "status": "CONSENSUS",
+      "prediction": "Option B",
+      "iterations": 3,
+      "deadlocked": false
+    },
+    "original_events": [
+      {
+        "step": 1,
+        "agent_id": "Analyst",
+        "tag": "RATIFY",
+        "prediction": "Option A",
+        "explanation": "Evidence A",
+        "confidence": 0.82
+      },
+      {
+        "step": 2,
+        "agent_id": "Critic",
+        "tag": "REFUTE",
+        "prediction": "Option A",
+        "explanation": "Evidence conflicts",
+        "confidence": 0.77
+      },
+      {
+        "step": 3,
+        "agent_id": "Specialist",
+        "tag": "REVISE",
+        "prediction": "Option B",
+        "explanation": "New evidence B",
+        "confidence": 0.71
+      }
+    ],
+    "counterfactual_summary": null,
+    "counterfactual_events": null,
+    "divergence_step": null
+  },
+  {
+    "cf_fraction": 1.0,
+    "trial": 15,
+    "original_summary": {
+      "status": "DEADLOCK",
+      "prediction": "Option A",
+      "iterations": 4,
+      "deadlocked": true
+    },
+    "original_events": [
+      {
+        "step": 1,
+        "agent_id": "Analyst",
+        "tag": "RATIFY",
+        "prediction": "Option A",
+        "explanation": "Evidence A",
+        "confidence": 0.82
+      },
+      {
+        "step": 2,
+        "agent_id": "Critic",
+        "tag": "REFUTE",
+        "prediction": "Option A",
+        "explanation": "Evidence conflicts",
+        "confidence": 0.77
+      },
+      {
+        "step": 3,
+        "agent_id": "Specialist",
+        "tag": "REVISE",
+        "prediction": "Option B",
+        "explanation": "New evidence B",
+        "confidence": 0.71
+      },
+      {
+        "step": 4,
+        "agent_id": "Analyst",
+        "tag": "REFUTE",
+        "prediction": "Option B",
+        "explanation": "Conflicts with A",
+        "confidence": 0.6
+      }
+    ],
+    "counterfactual_summary": {
+      "status": "CONSENSUS",
+      "prediction": "Option A",
+      "iterations": 3,
+      "deadlocked": false
+    },
+    "counterfactual_events": [
+      {
+        "step": 1,
+        "agent_id": "Analyst",
+        "tag": "RATIFY",
+        "prediction": "Option A",
+        "explanation": "Evidence A",
+        "confidence": 0.82
+      },
+      {
+        "step": 2,
+        "agent_id": "Critic",
+        "tag": "REFUTE",
+        "prediction": "Option A",
+        "explanation": "Evidence conflicts",
+        "confidence": 0.77
+      },
+      {
+        "step": 2,
+        "agent_id": "Critic",
+        "tag": "REVISE",
+        "prediction": "Option A",
+        "explanation": "Minor adjustment",
+        "confidence": 0.75
+      },
+      {
+        "step": 3,
+        "agent_id": "Specialist",
+        "tag": "RATIFY",
+        "prediction": "Option A",
+        "explanation": "Agreed with revised evidence",
+        "confidence": 0.8
+      }
+    ],
+    "divergence_step": 2
+  },
+  {
+    "cf_fraction": 1.0,
+    "trial": 16,
+    "original_summary": {
+      "status": "DEADLOCK",
+      "prediction": "Option A",
+      "iterations": 4,
+      "deadlocked": true
+    },
+    "original_events": [
+      {
+        "step": 1,
+        "agent_id": "Analyst",
+        "tag": "RATIFY",
+        "prediction": "Option A",
+        "explanation": "Evidence A",
+        "confidence": 0.82
+      },
+      {
+        "step": 2,
+        "agent_id": "Critic",
+        "tag": "REFUTE",
+        "prediction": "Option A",
+        "explanation": "Evidence conflicts",
+        "confidence": 0.77
+      },
+      {
+        "step": 3,
+        "agent_id": "Specialist",
+        "tag": "REVISE",
+        "prediction": "Option B",
+        "explanation": "New evidence B",
+        "confidence": 0.71
+      },
+      {
+        "step": 4,
+        "agent_id": "Analyst",
+        "tag": "REFUTE",
+        "prediction": "Option B",
+        "explanation": "Conflicts with A",
+        "confidence": 0.6
+      }
+    ],
+    "counterfactual_summary": {
+      "status": "CONSENSUS",
+      "prediction": "Option A",
+      "iterations": 3,
+      "deadlocked": false
+    },
+    "counterfactual_events": [
+      {
+        "step": 1,
+        "agent_id": "Analyst",
+        "tag": "RATIFY",
+        "prediction": "Option A",
+        "explanation": "Evidence A",
+        "confidence": 0.82
+      },
+      {
+        "step": 2,
+        "agent_id": "Critic",
+        "tag": "REFUTE",
+        "prediction": "Option A",
+        "explanation": "Evidence conflicts",
+        "confidence": 0.77
+      },
+      {
+        "step": 2,
+        "agent_id": "Critic",
+        "tag": "REVISE",
+        "prediction": "Option A",
+        "explanation": "Minor adjustment",
+        "confidence": 0.75
+      },
+      {
+        "step": 3,
+        "agent_id": "Specialist",
+        "tag": "RATIFY",
+        "prediction": "Option A",
+        "explanation": "Agreed with revised evidence",
+        "confidence": 0.8
+      }
+    ],
+    "divergence_step": 2
+  },
+  {
+    "cf_fraction": 1.0,
+    "trial": 17,
+    "original_summary": {
+      "status": "CONSENSUS",
+      "prediction": "Option B",
+      "iterations": 3,
+      "deadlocked": false
+    },
+    "original_events": [
+      {
+        "step": 1,
+        "agent_id": "Analyst",
+        "tag": "RATIFY",
+        "prediction": "Option A",
+        "explanation": "Evidence A",
+        "confidence": 0.82
+      },
+      {
+        "step": 2,
+        "agent_id": "Critic",
+        "tag": "REFUTE",
+        "prediction": "Option A",
+        "explanation": "Evidence conflicts",
+        "confidence": 0.77
+      },
+      {
+        "step": 3,
+        "agent_id": "Specialist",
+        "tag": "REVISE",
+        "prediction": "Option B",
+        "explanation": "New evidence B",
+        "confidence": 0.71
+      }
+    ],
+    "counterfactual_summary": null,
+    "counterfactual_events": null,
+    "divergence_step": null
+  },
+  {
+    "cf_fraction": 1.0,
+    "trial": 18,
+    "original_summary": {
+      "status": "DEADLOCK",
+      "prediction": "Option A",
+      "iterations": 4,
+      "deadlocked": true
+    },
+    "original_events": [
+      {
+        "step": 1,
+        "agent_id": "Analyst",
+        "tag": "RATIFY",
+        "prediction": "Option A",
+        "explanation": "Evidence A",
+        "confidence": 0.82
+      },
+      {
+        "step": 2,
+        "agent_id": "Critic",
+        "tag": "REFUTE",
+        "prediction": "Option A",
+        "explanation": "Evidence conflicts",
+        "confidence": 0.77
+      },
+      {
+        "step": 3,
+        "agent_id": "Specialist",
+        "tag": "REVISE",
+        "prediction": "Option B",
+        "explanation": "New evidence B",
+        "confidence": 0.71
+      },
+      {
+        "step": 4,
+        "agent_id": "Analyst",
+        "tag": "REFUTE",
+        "prediction": "Option B",
+        "explanation": "Conflicts with A",
+        "confidence": 0.6
+      }
+    ],
+    "counterfactual_summary": {
+      "status": "CONSENSUS",
+      "prediction": "Option A",
+      "iterations": 3,
+      "deadlocked": false
+    },
+    "counterfactual_events": [
+      {
+        "step": 1,
+        "agent_id": "Analyst",
+        "tag": "RATIFY",
+        "prediction": "Option A",
+        "explanation": "Evidence A",
+        "confidence": 0.82
+      },
+      {
+        "step": 2,
+        "agent_id": "Critic",
+        "tag": "REFUTE",
+        "prediction": "Option A",
+        "explanation": "Evidence conflicts",
+        "confidence": 0.77
+      },
+      {
+        "step": 2,
+        "agent_id": "Critic",
+        "tag": "REVISE",
+        "prediction": "Option A",
+        "explanation": "Minor adjustment",
+        "confidence": 0.75
+      },
+      {
+        "step": 3,
+        "agent_id": "Specialist",
+        "tag": "RATIFY",
+        "prediction": "Option A",
+        "explanation": "Agreed with revised evidence",
+        "confidence": 0.8
+      }
+    ],
+    "divergence_step": 2
+  },
+  {
+    "cf_fraction": 1.0,
+    "trial": 19,
+    "original_summary": {
+      "status": "CONSENSUS",
+      "prediction": "Option B",
+      "iterations": 3,
+      "deadlocked": false
+    },
+    "original_events": [
+      {
+        "step": 1,
+        "agent_id": "Analyst",
+        "tag": "RATIFY",
+        "prediction": "Option A",
+        "explanation": "Evidence A",
+        "confidence": 0.82
+      },
+      {
+        "step": 2,
+        "agent_id": "Critic",
+        "tag": "REFUTE",
+        "prediction": "Option A",
+        "explanation": "Evidence conflicts",
+        "confidence": 0.77
+      },
+      {
+        "step": 3,
+        "agent_id": "Specialist",
+        "tag": "REVISE",
+        "prediction": "Option B",
+        "explanation": "New evidence B",
+        "confidence": 0.71
+      }
+    ],
+    "counterfactual_summary": null,
+    "counterfactual_events": null,
+    "divergence_step": null
+  }
+]

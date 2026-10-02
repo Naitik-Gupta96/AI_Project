@@ -6,6 +6,7 @@ This project implements an intelligible blackboard architecture for multi-agent 
 ## Current Stage
 **Phase 1: Foundational Architecture (Person 1)**
 - Blackboard + PXP protocol foundation complete
+- Scheduler, consensus/deadlock detection and counterfactual replay complete (Person 3, `feature/scheduler-counterfactual`)
 - Ready for Person 2 (PEX agents + LLM), Person 3 (Scheduler + Counterfactual), Person 4 (UI + Evaluation)
 
 ## Architecture Overview
@@ -24,13 +25,13 @@ This project implements an intelligible blackboard architecture for multi-agent 
           |           |           |
           +-----------+-----------+
                       |
-                   Scheduler      ← FUTURE (Person 3)
+                   Scheduler      ← IMPLEMENTED (Person 3)
                       |
              +--------+--------+
              |                 |
          Consensus          Deadlock
                                  |
-                          Counterfactual  ← FUTURE (Person 3)
+                          Counterfactual  ← IMPLEMENTED (Person 3)
                                  |
                                UI          ← FUTURE (Person 4)
 ```
@@ -53,7 +54,9 @@ AI_Project/
 │   ├── blackboard_api.md
 │   ├── shared_contract.md
 │   ├── decisions.md
-│   └── integration_guide.md
+│   ├── integration_guide.md
+│   ├── scheduler_api.md
+│   └── counterfactual_api.md
 ├── src/
 │   └── ai_project/
 │       ├── __init__.py
@@ -63,18 +66,25 @@ AI_Project/
 │       │   ├── models.py
 │       │   ├── history.py
 │       │   └── exceptions.py
-│       └── protocol/
-│           ├── __init__.py
-│           ├── pxp.py
-│           └── validator.py
+│       ├── protocol/
+│       │   ├── __init__.py
+│       │   ├── pxp.py
+│       │   └── validator.py
+│       ├── scheduler/          # Person 3: scheduler, policies, consensus, trace, mock agents
+│       ├── deadlock/           # Person 3: stance analysis + deadlock detection
+│       └── counterfactual/     # Person 3: branching, replay, comparison
 ├── examples/
-│   └── blackboard_demo.py
+│   ├── blackboard_demo.py
+│   └── scheduler_demo.py
 ├── tests/
 │   ├── test_blackboard.py
 │   ├── test_pxp.py
 │   ├── test_history.py
 │   ├── test_snapshot.py
-│   └── test_thread_safety.py
+│   ├── test_thread_safety.py
+│   ├── scheduler/
+│   ├── deadlock/
+│   └── counterfactual/
 ├── experiments/
 │   └── README.md
 └── prompts/
@@ -97,6 +107,7 @@ pytest tests/ -v
 ## Running Demo
 ```bash
 python examples/blackboard_demo.py
+python examples/scheduler_demo.py    # scheduler -> deadlock -> counterfactual -> consensus
 ```
 
 ## Person 1 Responsibilities (This Branch)

@@ -17,13 +17,13 @@
           |           |           |
           +-----------+-----------+
                       |
-                   Scheduler      ← FUTURE (Person 3)
+                   Scheduler      ← IMPLEMENTED (Person 3)
                       |
              +--------+--------+
              |                 |
          Consensus          Deadlock
                                  |
-                          Counterfactual  ← FUTURE (Person 3)
+                          Counterfactual  ← IMPLEMENTED (Person 3)
                                  |
                                UI          ← FUTURE (Person 4)
 ```
@@ -40,9 +40,9 @@
 | Thread Safety | ✅ IMPLEMENTED | Person 1 |
 | PEX Agents | 🔄 FUTURE | Person 2 |
 | LLM Integration | 🔄 FUTURE | Person 2 |
-| Scheduler | 🔄 FUTURE | Person 3 |
-| Deadlock Detection | 🔄 FUTURE | Person 3 |
-| Counterfactual Engine | 🔄 FUTURE | Person 3 |
+| Scheduler | ✅ IMPLEMENTED | Person 3 |
+| Deadlock Detection | ✅ IMPLEMENTED | Person 3 |
+| Counterfactual Engine | ✅ IMPLEMENTED | Person 3 |
 | Visualization UI | 🔄 FUTURE | Person 4 |
 | Evaluation Framework | 🔄 FUTURE | Person 4 |
 
@@ -96,6 +96,13 @@ Agent → PXPMessage → Validator → Blackboard.publish_message()
 - `set_status(status: BlackboardStatus) -> None`
 - `snapshot() -> BlackboardSnapshot`
 - `record_event(event: HistoryEvent) -> None`
+
+### Scheduler / Deadlock / Counterfactual (Person 3)
+- `Scheduler(board, agents, policy, config)`: `step()`, `run()`, `get_status()`, `get_trace()`, `get_result()`
+- Replaceable policies: `RoundRobinPolicy`, `PriorityPolicy`
+- `detect_consensus(state, history)`, `detect_deadlock(history)`
+- `CounterfactualEngine`: `create_branch()`, `replay()`, `compare()`
+- See [docs/scheduler_api.md](docs/scheduler_api.md) and [docs/counterfactual_api.md](docs/counterfactual_api.md)
 
 ### PXP Protocol (src/ai_project/protocol/pxp.py)
 - `PXPTag` enum: RATIFY, REVISE, REFUTE, REJECT

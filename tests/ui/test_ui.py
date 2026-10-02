@@ -1,4 +1,4 @@
-from ai_project.ui_models import UIEvent, RunSummary, SimulationResult
+from ai_project.ui.models import UIEvent, RunSummary, SimulationResult
 
 def test_ui_models():
     summary = RunSummary(status="CONSENSUS", prediction="Option A", iterations=3, deadlocked=False)

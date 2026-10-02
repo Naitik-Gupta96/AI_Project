@@ -5,7 +5,7 @@ from dataclasses import asdict
 from datetime import datetime
 import yaml
 
-from ai_project.ui_models import UIEvent, RunSummary, SimulationResult
+from ai_project.ui.models import UIEvent, RunSummary, SimulationResult
 
 def load_config(config_path="experiments/config.yaml"):
     if not os.path.exists(config_path):

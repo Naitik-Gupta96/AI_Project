@@ -80,7 +80,8 @@ h3 { font-size: 0.78rem !important; font-weight: 650 !important; letter-spacing:
 .diff > div { padding:.7rem .9rem; border:1px solid rgba(128,128,128,.3); border-radius:4px; }
 .diff .lbl { font: 600 .7rem ui-monospace,Menlo,monospace; letter-spacing:.08em; color:var(--muted); }
 .diff .after { border-color: var(--revise); }
-.flow { font: .9rem ui-monospace,Menlo,monospace; line-height: 1.7; }
+.flow { font: .9rem ui-monospace,Menlo,monospace; line-height: 1.8; }
+.flow .muted { display:inline-block; width: 9.5rem; font-size:.9rem; }
 .muted { color: var(--muted); font-size: .88rem; }
 </style>
 """,
@@ -193,59 +194,65 @@ with tab_talk:
         options=list(ROLES), default=list(FLASH_TALK_CF_AGENTS), key="talk_cf",
     )
     cols[1].markdown("<div style='height:1.8rem'></div>", unsafe_allow_html=True)
-    if cols[1].button("Run", key="talk_run", type="primary", width="stretch"):
+    # Runs once on first load so the tab is never empty; Run re-executes with the selection
+    if cols[1].button("Run", key="talk_run", type="primary", width="stretch") or (
+        "talk_demo" not in st.session_state
+    ):
         st.session_state["talk_demo"] = flash_talk_demo(cf_agents)
 
-    demo: DemoView | None = st.session_state.get("talk_demo")
-    if demo is None:
-        st.info("Press **Run** to execute the task.")
+    demo: DemoView = st.session_state["talk_demo"]
+    st.caption("Showing the run with counterfactual-capable agents: "
+               f"{', '.join(demo.cf_agents) or 'none'}")
+    with st.expander("What each agent privately knows", expanded=False):
+        evidence_table(demo)
+
+    st.markdown("### 2 · Agent interaction (original run)")
+    timeline(demo.original.events)
+
+    if not demo.deadlocked:
+        st.success(f"No deadlock: {outcome_line(demo.original)}.")
     else:
-        with st.expander("What each agent privately knows", expanded=False):
-            evidence_table(demo)
+        st.markdown("### 3 · Counterfactual reflection")
+        if not demo.cf_agents:
+            st.warning("No agent is counterfactual-capable, so the deadlock stands. "
+                       "Select at least one agent and run again.")
+        for r in demo.reflections:
+            verdict = (f"would have sent **{r.revised}** instead"
+                       if r.revised else "would not change it")
+            result = f" → replayed: **{r.outcome}**" if r.replayed else ""
+            st.markdown(f"- `{r.agent_id}` reflects on step {r.step} "
+                        f"(`{r.original}`): {verdict}{result}")
 
-        st.markdown("### 2 · Agent interaction (original run)")
-        timeline(demo.original.events)
+        cf = demo.shown_branch
+        if cf is not None:
+            st.markdown("### 4 · Intervention")
+            changed_event(cf)
 
-        if not demo.deadlocked:
-            st.success(f"No deadlock: {outcome_line(demo.original)}.")
-        else:
-            st.markdown("### 3 · Counterfactual reflection")
-            if not demo.cf_agents:
-                st.warning("No agent is counterfactual-capable, so the deadlock stands. "
-                           "Select at least one agent and run again.")
-            for r in demo.reflections:
-                verdict = (f"would have sent **{r.revised}** instead"
-                           if r.revised else "would not change it")
-                result = f" → replayed: **{r.outcome}**" if r.replayed else ""
-                st.markdown(f"- `{r.agent_id}` reflects on step {r.step} "
-                            f"(`{r.original}`): {verdict}{result}")
+            st.markdown("### 5 · Replay")
+            st.markdown(
+                f'<p class="muted">Steps before {cf.branch_point} are inherited unchanged; '
+                f"step {cf.branch_point} is replaced; everything after is produced again by "
+                "the same agents, policy and configuration.</p>",
+                unsafe_allow_html=True,
+            )
+            timeline(cf.branch.events)
 
-            cf = demo.shown_branch
-            if cf is not None:
-                st.markdown("### 4 · Intervention")
-                changed_event(cf)
+        st.markdown("### 6 · Outcome")
+        rows = [("original", outcome_line(demo.original))]
+        if cf is not None:
+            rows.append(("counterfactual", outcome_line(cf.branch)))
+            rows.append(("diverged at", f"step {cf.divergence_step} "
+                                        f"(shared prefix: {cf.shared_prefix} event)"))
+        rows.append(("original board", "unchanged by branching" if demo.original_preserved
+                     else "CHANGED (bug)"))
+        st.markdown(
+            '<div class="flow">' + "".join(
+                f"<div><span class='muted'>{esc(k)}</span>{esc(v)}</div>" for k, v in rows
+            ) + "</div>",
+            unsafe_allow_html=True,
+        )
 
-                st.markdown("### 5 · Replay")
-                st.markdown(
-                    f'<p class="muted">Steps before {cf.branch_point} are inherited unchanged; '
-                    f"step {cf.branch_point} is replaced; everything after is produced again by "
-                    "the same agents, policy and configuration.</p>",
-                    unsafe_allow_html=True,
-                )
-                timeline(cf.branch.events)
-
-            st.markdown("### 6 · Outcome")
-            flow = [f"original        {outcome_line(demo.original)}"]
-            if cf is not None:
-                flow.append(f"counterfactual  {outcome_line(cf.branch)}")
-                flow.append(f"diverged at     step {cf.divergence_step}  "
-                            f"(shared prefix: {cf.shared_prefix} event)")
-            flow.append("original board  " + ("unchanged by branching" if demo.original_preserved
-                                              else "CHANGED (bug)"))
-            st.markdown(f'<pre class="flow">{esc(chr(10).join(flow))}</pre>',
-                        unsafe_allow_html=True)
-
-        raw_data("this run", demo.to_dict())
+    raw_data("this run", demo.to_dict())
 
 # ------------------------------------------------------------------ Run Explorer
 
@@ -329,7 +336,7 @@ with tab_explore:
             st.markdown("### Selected event")
             e = run.events[idx]
             if e.is_message:
-                st.markdown(event_html(e), unsafe_allow_html=True)
+                st.markdown(f"> {e.explanation}")
                 st.markdown(
                     f"| | |\n|---|---|\n"
                     f"| agent | `{e.agent_id}` ({e.role or '-'}) |\n"

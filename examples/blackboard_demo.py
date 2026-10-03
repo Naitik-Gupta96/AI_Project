@@ -14,6 +14,8 @@ Demonstrates the core Blackboard + PXP functionality:
 9. Show that the live board did not change
 """
 
+import dataclasses
+
 from ai_project.protocol import PXPMessage, PXPTag
 from ai_project.blackboard import Blackboard, BlackboardStatus
 
@@ -100,8 +102,13 @@ def main() -> None:
     snapshot.state.current_prediction = "Modified: Hybrid Approach with Flexible Tags"
     snapshot.state.iteration = 999
     snapshot.state.metadata["counterfactual"] = True
-    # Try to modify history (should not affect live board)
-    snapshot.history[0].agent_id = "MODIFIED_AGENT"
+    # History events are frozen: editing one in place is refused outright...
+    try:
+        snapshot.history[0].agent_id = "MODIFIED_AGENT"
+    except dataclasses.FrozenInstanceError:
+        print("    History events are immutable: in-place edit refused")
+    # ...so a branch replaces events in its own copy of the list instead
+    snapshot.history[0] = dataclasses.replace(snapshot.history[0], agent_id="MODIFIED_AGENT")
     print(f"    Snapshot prediction changed to: {snapshot.state.current_prediction}")
     print(f"    Snapshot iteration changed to: {snapshot.state.iteration}")
     print(f"    Snapshot history[0] agent_id changed to: {snapshot.history[0].agent_id}")

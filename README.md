@@ -61,7 +61,7 @@ python -m venv .venv
 .venv\Scripts\activate            # Windows   (source .venv/bin/activate elsewhere)
 pip install -e ".[dev]"           # core + UI + pytest/ruff
 
-python -m pytest                                  # 261 tests, ~10 s
+python -m pytest                                  # 265 tests, ~10 s
 python examples/flash_talk_demo.py                # end-to-end demo in the terminal
 python -m streamlit run frontend/app.py           # the UI
 python experiments/run_experiment.py              # pilot: 800 trials, ~3 s

@@ -1,81 +1,79 @@
-import json
+#!/usr/bin/env python
+"""
+Summarize a pilot results file (descriptive statistics only).
+
+Usage:
+    python experiments/analyze_results.py            # newest file in experiments/results/
+    python experiments/analyze_results.py PATH.json  # a specific file
+
+Writes PATH_summary.csv next to the results file and prints both tables.
+"""
+
 import csv
 import sys
-import os
+from pathlib import Path
 
-def analyze(results_path):
-    with open(results_path, "r") as f:
-        results = json.load(f)
-        
-    summary = {}
-    
-    for r in results:
-        frac = r["cf_fraction"]
-        if frac not in summary:
-            summary[frac] = {
-                "total_trials": 0,
-                "original_deadlocks": 0,
-                "final_consensus": 0,
-                "total_original_iterations": 0,
-                "cf_recoveries": 0
-            }
-            
-        stats = summary[frac]
-        stats["total_trials"] += 1
-        
-        orig_deadlocked = r["original_summary"]["deadlocked"]
-        if orig_deadlocked:
-            stats["original_deadlocks"] += 1
-            
-        stats["total_original_iterations"] += r["original_summary"]["iterations"]
-        
-        if orig_deadlocked and r.get("counterfactual_summary"):
-            if not r["counterfactual_summary"]["deadlocked"]:
-                stats["cf_recoveries"] += 1
-                stats["final_consensus"] += 1
-        elif not orig_deadlocked:
-            stats["final_consensus"] += 1
-            
-    csv_path = results_path.replace(".json", "_summary.csv")
-    with open(csv_path, "w", newline="") as f:
-        writer = csv.writer(f)
-        writer.writerow([
-            "cf_fraction", "total_trials", "deadlock_rate", 
-            "consensus_rate", "mean_iterations", "cf_recovery_rate"
-        ])
-        
-        for frac in sorted(summary.keys()):
-            stats = summary[frac]
-            t = stats["total_trials"]
-            deadlock_rate = stats["original_deadlocks"] / t
-            consensus_rate = stats["final_consensus"] / t
-            mean_iter = stats["total_original_iterations"] / t
-            
-            if stats["original_deadlocks"] > 0:
-                cf_recovery_rate = stats["cf_recoveries"] / stats["original_deadlocks"]
-            else:
-                cf_recovery_rate = 0.0
-                
-            writer.writerow([
-                frac, t, deadlock_rate, consensus_rate, mean_iter, cf_recovery_rate
-            ])
-            
-            print(f"Fraction: {frac}")
-            print(f"  Trials: {t}")
-            print(f"  Deadlock Rate: {deadlock_rate:.2f}")
-            print(f"  Consensus Rate: {consensus_rate:.2f}")
-            print(f"  Mean Iterations: {mean_iter:.2f}")
-            print(f"  CF Recovery Rate: {cf_recovery_rate:.2f}")
-            print("-" * 20)
+from ai_project.experiment import load_results, summarize
+
+RESULTS_DIR = Path(__file__).resolve().parent / "results"
+
+
+def _fmt(value) -> str:
+    if value is None:
+        return "-"
+    if isinstance(value, float):
+        return f"{value:.2f}"
+    if isinstance(value, tuple):
+        return f"[{value[0]:.2f}, {value[1]:.2f}]"
+    return str(value)
+
+
+def print_table(rows, columns) -> None:
+    widths = [max(len(c), *(len(_fmt(r.get(c))) for r in rows)) for c in columns]
+    print("  ".join(c.ljust(w) for c, w in zip(columns, widths, strict=True)))
+    for r in rows:
+        print("  ".join(_fmt(r.get(c)).ljust(w) for c, w in zip(columns, widths, strict=True)))
+
+
+def main() -> int:
+    if len(sys.argv) > 1:
+        path = Path(sys.argv[1])
+    else:
+        files = sorted(RESULTS_DIR.glob("pilot_*.json"), key=lambda p: p.stat().st_mtime)
+        if not files:
+            print("No results found. Run: python experiments/run_experiment.py")
+            return 1
+        path = files[-1]
+
+    doc = load_results(path)
+    summary = summarize(doc)
+    p = doc["parameters"]
+    print(f"{path}\n{doc['mode']}")
+    print(f"seed={p['seed']} tasks={p['n_tasks']} options={p['n_options']} "
+          f"provider={doc['provider']['name']} commit={doc['git_commit']}\n")
+
+    print("By counterfactual fraction (pooled over agent subsets; trials share tasks):")
+    print_table(summary["by_fraction"], [
+        "cf_fraction", "trials", "deadlock_rate", "deadlocked", "deadlocked_feasible",
+        "recovery_rate", "recovery_rate_feasible", "final_consensus_rate",
+        "best_decision_rate", "mean_iterations"])
+    print("\nBy condition (one subset of counterfactual-capable agents):")
+    print_table(summary["by_condition"], [
+        "cf_agents", "trials", "deadlocked_feasible", "recovered",
+        "recovery_rate_feasible", "recovery_rate_feasible_ci95", "mean_branches_replayed"])
+    print("\nDescriptive results of a deterministic pilot over synthetic tasks; "
+          "not a validated research finding.")
+
+    csv_path = path.with_name(path.stem + "_summary.csv")
+    rows = summary["by_condition"]
+    with csv_path.open("w", newline="", encoding="utf-8") as f:
+        writer = csv.DictWriter(f, fieldnames=list(rows[0]))
+        writer.writeheader()
+        for row in rows:
+            writer.writerow({k: _fmt(v) if isinstance(v, tuple) else v for k, v in row.items()})
+    print(f"\nPer-condition summary written to {csv_path}")
+    return 0
+
 
 if __name__ == "__main__":
-    if len(sys.argv) > 1:
-        analyze(sys.argv[1])
-    else:
-        # find most recent
-        import glob
-        files = glob.glob("experiments/results/results_*.json")
-        if files:
-            analyze(max(files, key=os.path.getctime))
-        else:
-            print("No results found.")
+    sys.exit(main())

@@ -49,7 +49,8 @@ every run (tested across processes).
    higher (0.82 vs 0.71); the critic knows A breaks reproducibility constraint
    C3; the specialist knows A misses the latency budget. Option B is acceptable
    to everyone, but no agent's forward rules put it on the table.
-2. Leave **counterfactual-capable agents = critic** and press **Run**.
+2. The tab has already run with **counterfactual-capable agents = critic** (the
+   caption says which configuration is shown). **Run** re-executes it live.
 3. **Agent interaction:**
    `01 analyst RATIFY Option A` → `02 critic REFUTE Option A` →
    `03 specialist REFUTE Option A` → **DEADLOCK** ("Option A was objected to 2

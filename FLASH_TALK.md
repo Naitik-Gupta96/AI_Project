@@ -97,6 +97,12 @@ every run (tested across processes).
 
 ## 7. Safe claims
 
+One-sentence summary to close the talk with:
+
+> We implemented a counterfactual replay mechanism and demonstrated recovery from
+> a controlled deadlock scenario. We also built an end-to-end evaluation pipeline
+> for further experimentation.
+
 - The Blackboard/PXP protocol, Scheduler, deadlock detector, counterfactual
   engine and counterfactual agents are implemented and tested (265 tests).
 - The demo is produced live by that code, not scripted after the task is

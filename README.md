@@ -119,4 +119,4 @@ docs/              API references, decisions, evaluation
 - API: [blackboard](docs/blackboard_api.md) · [agents](docs/agents_api.md) ·
   [scheduler](docs/scheduler_api.md) · [counterfactual](docs/counterfactual_api.md) ·
   [UI](docs/ui_api.md) · [contract between layers](docs/shared_contract.md)
-- [TEAM.md](TEAM.md), [TASKS.md](TASKS.md), [PROJECT.md](PROJECT.md)
+- [TEAM.md](TEAM.md), [TASKS.md](TASKS.md), [PROJECT.md](PROJECT.md), [hardening report](docs/hardening_report.md)

@@ -1,6 +1,12 @@
 #!/usr/bin/env python
 """
-Scheduler + Deadlock + Counterfactual Demo
+Scheduler + Deadlock + Counterfactual Demo (scheduler-level)
+
+Uses RuleBasedMockAgent, the scheduler's scripted test-double agents, and a
+hand-written intervention, to show the control loop and the counterfactual
+engine in isolation. The Flash Talk demo (examples/flash_talk_demo.py) runs
+the same engine with the real role agents, where the intervention comes from
+an agent's own counterfactual reflection.
 
 Every line below is printed from real Scheduler / Blackboard state:
 

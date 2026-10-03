@@ -1,72 +1,52 @@
-# UI API Documentation
+# UI API
 
-## Running the UI
-
-Install the UI dependencies once:
 ```bash
 pip install -e ".[ui]"
+python -m streamlit run frontend/app.py
 ```
 
-To run the full multi-tab interface:
-```bash
-streamlit run frontend/app.py
-```
+`frontend/app.py` only renders. Every value it shows comes from
+`ai_project.ui`, which builds typed views from real executions
+(`pipeline.run_task`) or from pilot results files. The frontend makes no
+scheduling, deadlock or counterfactual decisions.
 
-## Running the Presentation Demo
+## Tabs
 
-To launch directly into the flash talk mode:
-```bash
-python examples/run_demo.py
-```
+| Tab | Purpose | Data source |
+|---|---|---|
+| Flash Talk | task → interaction → deadlock → reflection → intervention → replay → outcome | `flash_talk_demo(cf_agents)` (live run) |
+| Run Explorer | metadata, selectable timeline, per-event details, raw data | live Flash Talk run, or a recorded pilot trial re-executed live and checked against its record |
+| Evaluation | methodology, results by fraction and condition, what is not measured | `experiments/results/pilot_*.json` |
 
-## UI Models
+Set `AI_PROJECT_RESULTS_DIR` to read results from another directory (the tests do).
 
-The frontend depends on standard data contracts to stay decoupled from the backend implementation.
+## Data contract (`ai_project.ui.models`)
 
-### `UIEvent`
-Represents a single agent action on the Blackboard.
-- `step`: Execution sequence step.
-- `agent_id`: Analyst, Critic, etc.
-- `tag`: PXP Message Tag (RATIFY, REFUTE, REVISE, REJECT).
-- `prediction`: The hypothesis supported.
-- `explanation`: The reasoning.
-- `confidence`: Agent confidence score (`None` if the agent gave none).
+| Type | Fields |
+|---|---|
+| `RunEvent` | `kind` (message / inherited / intervention / status), `step`, `tag`, `agent_id`, `role`, `prediction`, `explanation`, `confidence`, `alternative`, `rule`, `reason` (why the scheduler chose the agent, or why the status was set), `status_after`, `timestamp`, `message_id` |
+| `Outcome` | `status`, `prediction`, `iterations`, `reason` |
+| `RunView` | `title`, `task`, `options`, `mode`, `provider`, `policy`, `config`, `events`, `outcome` |
+| `AgentView` | `agent_id`, `role`, `description`, `evidence`, `counterfactual_capable` |
+| `ReflectionView` | `agent_id`, `step`, `original`, `revised` (None = no change), `replayed`, `outcome` |
+| `CounterfactualView` | `agent_id`, `branch_point`, `original_event`, `revised_event`, `branch: RunView`, `divergence_step`, `shared_prefix`, `recovered`, `summary` |
+| `DemoView` | `original`, `agents`, `cf_agents`, `reflections`, `branches`, `final`, `original_preserved`, `runtime_ms`; `shown_branch` = the recovering branch, else the last one tried |
+| `ExperimentView` | `path`, `mode`, `provider`, `generated_at`, `git_commit`, `parameters`, `definitions`, `by_fraction`, `by_condition`, `n_trials` |
 
-### `RunSummary`
-Summarizes an execution trace.
-- `status`: CONSENSUS or DEADLOCK.
-- `prediction`: Final agreed prediction, if any.
-- `iterations`: Number of steps executed.
-- `deadlocked`: Boolean indicating if impasse was reached.
+All types serialize with `.to_dict()`.
 
-### `SimulationResult`
-Pairs the original execution trace with the counterfactual alternative branch.
-- `divergence_step`: First step where the two traces differ (`None` without a counterfactual).
-- `summary`: One-sentence comparison of the two runs (`None` without a counterfactual).
+Mode labels: `MODE_MOCK = "DETERMINISTIC MOCK"`, `MODE_LOCAL_MODEL = "LIVE / LOCAL MODEL"`,
+`MODE_PILOT = "END-TO-END PILOT"`.
 
-The models live in `ai_project.ui.models` and are re-exported from `ai_project.ui`.
-
-## Backend Adapter (`ai_project.ui`)
-
-The frontend never calls the Scheduler or counterfactual engine directly. The
-adapter converts their results into the UI models above:
+## Adapter (`ai_project.ui.adapter`)
 
 | Function | Returns |
 |---|---|
-| `event_to_ui(event)` | `UIEvent` from a serialized history event (`iteration` becomes `step`) |
-| `summarize(result)` | `RunSummary` from a `SchedulerResult` |
-| `build_simulation_result(original, outcome=None)` | `SimulationResult` from an original `SchedulerResult` and an optional `CounterfactualOutcome` |
-| `run_scenario(scenario)` | runs a scheduler `Scenario` (no counterfactual) |
-| `run_deadlock_counterfactual_demo()` | Scenario C: original DEADLOCK on Option A, counterfactual CONSENSUS on Option B, diverging at step 2 |
-| `run_pex_agents_demo(task=...)` | Person 2's Analyst, Critic and Specialist (MockLLMProvider) under the Scheduler |
+| `flash_talk_demo(cf_agents=("critic",), provider=None)` | `DemoView` of the Flash Talk task |
+| `demo_view(pipeline_run)` | `DemoView` of any `PipelineRun` |
+| `run_view(result, task, provider, title, trace=None)` | `RunView` of a `SchedulerResult` (pass a branch's full trace for branches) |
+| `find_results(dir)` / `experiment_view(path)` | pilot results files / their `ExperimentView` |
+| `trial_demo_view(doc, trial)` | `(DemoView, reproduced)` for a recorded trial |
 
-`DEMO_RUNS` maps each scenario name shown in the Flash Talk Demo tab to the
-function that runs it. Add an entry there to show a new scenario in the UI.
-
-Person 2's mock agents choose options with Python's `hash(task)`, so the
-"PEX agents" outcome can change between app restarts unless `PYTHONHASHSEED`
-is set. The scheduler scenarios are fully deterministic.
-
-The Run Viewer and Experiment Analytics tabs still read the files produced by
-the mock simulator in `experiments/run_experiment.py` (see
-[evaluation.md](evaluation.md)).
+`original_preserved` is computed by comparing the original board's history and
+status after branching with the original result, not assumed.

@@ -228,7 +228,9 @@ class TestReporting:
         assert first.to_dict() | {"timestamp": None} == second.to_dict() | {"timestamp": None}
 
 
-@pytest.mark.parametrize("package", ["scheduler", "deadlock", "counterfactual"])
+@pytest.mark.parametrize(
+    "package", ["scheduler", "deadlock", "counterfactual", "agents", "llm", "ui", "."]
+)
 def test_only_public_blackboard_api_is_used(package):
     for path in (SRC / package).glob("*.py"):
         source = path.read_text()

@@ -1,54 +1,33 @@
 # Project: Intelligible Blackboard Architecture with Counterfactual Agents
 
-## Project Title
-Intelligible Blackboard Architecture with Counterfactual Agents
+## Problem
 
-## Problem Statement
-Multi-agent AI systems often suffer from opaque decision-making, difficulty in debugging agent interactions, and deadlock situations where agents cannot reach consensus. Traditional message-passing architectures create long chains that are hard to trace and replay.
+Multi-agent systems built from long chains of direct messages are hard to
+inspect: it is unclear who knew what, why the agents disagreed, and which
+message could have changed the outcome. When the agents cannot agree
+(deadlock), there is usually no principled way to find out why.
 
-## Research Motivation
-We propose a structured Blackboard architecture where:
-1. All agents communicate through a central, globally shared Blackboard
-2. Interactions follow the PXP protocol (RATIFY, REVISE, REFUTE, REJECT)
-3. Full history enables counterfactual replay for deadlock resolution
-4. Structured outputs (prediction + explanation) enable intelligibility
+## Approach
 
-## Current Prototype Goal (Flash Talk - Oct 6)
-A working vertical slice demonstrating:
-- Multiple agents publishing PXP messages to the Blackboard
-- Structured disagreement (REFUTE/REJECT) leading to deadlock
-- History log capturing all interactions
-- Snapshot capability for counterfactual branching
-- Clean integration points for scheduler, counterfactual engine, and UI
+1. Agents communicate only through a shared, structured **Blackboard**.
+2. Every contribution is a **PXP** message: tag (RATIFY, REVISE, REFUTE,
+   REJECT), prediction, explanation, confidence. The full history is kept and
+   can be snapshotted.
+3. A **Scheduler** decides who acts and detects consensus and deadlock with
+   explicit rules.
+4. After a deadlock, **counterfactual agents** reconsider their own past
+   messages; the **counterfactual engine** branches history at that message and
+   replays the future. A branch that reaches consensus points to the message
+   that, said differently, would have unblocked the team.
 
-## Eventual Project Direction
-- Full multi-agent system with LLM-based agents (Person 2)
-- Deterministic scheduler with deadlock detection (Person 3)
-- Counterfactual reasoning engine for automatic resolution (Person 3)
-- Real-time visualization of agent interactions (Person 4)
-- Evaluation on benchmarks (KramaBench, MSCoRe, MedAgentBench)
+## Scope of the current prototype
 
-## Team Roles
+A working vertical slice with deterministic rule-based agents, a hand-written
+Flash Talk task, a pilot over generated tasks, and a UI. What is implemented,
+demonstrated, piloted and planned is tracked in one place:
+[README.md#project-status](README.md#project-status). Research framing and
+limitations: [RESEARCH.md](RESEARCH.md).
 
-### Person 1: Foundational Architecture / Blackboard / PXP (Current)
-- Blackboard core with thread-safe state management
-- PXP message protocol and validation
-- History/event logging
-- Snapshot and serialization
-- Integration contracts for teammates
+## Team
 
-### Person 2: PEX Agents + LLM Integration
-- Agent implementations that produce PXP messages
-- LLM prompt engineering for prediction + explanation
-- Agent orchestration logic
-
-### Person 3: Scheduler + Deadlock Detection + Counterfactual Reasoning
-- Deterministic scheduler controlling agent turns
-- Deadlock detection from Blackboard history
-- Counterfactual replay engine using snapshots
-- Resolution strategies
-
-### Person 4: Visualization + Evaluation/Experiments
-- Real-time UI for Blackboard state and history
-- Experiment framework and benchmarking
-- Results analysis and reporting
+Roles and deliverables: [TEAM.md](TEAM.md).

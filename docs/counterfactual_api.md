@@ -203,8 +203,10 @@ ORIGINAL                                   COUNTERFACTUAL (branch point = 2)
                                            -> CONSENSUS on Option B
 ```
 
-This is an engineering proof of the mechanism with deterministic mock agents,
-not an empirical result.
+This scenario uses the scheduler's scripted test-double agents and a hand-written
+intervention. The Flash Talk demo produces the same trajectory with the real role
+agents, where the critic's own reflection generates the intervention (see below).
+Either way it demonstrates the mechanism; it is not an empirical result.
 
 ---
 
@@ -216,7 +218,39 @@ not an empirical result.
 - Traces contain no wall-clock timestamps, so two runs of the same scenario
   produce identical traces and comparisons (tested). `HistoryEvent.timestamp`
   values naturally differ between runs.
-- Replay is only as deterministic as the agents. Person 2's mock agents choose
-  options with Python's `hash(task)`, which is randomized per process unless
-  `PYTHONHASHSEED` is set. Within one process the original run and its replay
-  agree; across processes, set `PYTHONHASHSEED` for repeatable results.
+- Replay is only as deterministic as the agents. The role agents with
+  `MockLLMProvider` and the `RuleBasedMockAgent` test doubles are pure
+  functions of the board, so runs are identical across processes (a test runs
+  the Flash Talk demo under three `PYTHONHASHSEED` values and compares output).
+  A model-backed provider (`OllamaProvider`) is not guaranteed deterministic.
+- Inherited events are re-published with their original message metadata
+  (e.g. a named alternative), so a pure replay reproduces the original run.
+
+---
+
+## Counterfactual agents: `CounterfactualResolver` (`counterfactual/resolver.py`)
+
+Scenario C above scripts the intervention. In the full system the intervention
+comes from the agents themselves:
+
+```python
+from ai_project.pipeline import run_task
+from ai_project.tasks import flash_talk_task
+
+run = run_task(flash_talk_task(), cf_agents=("critic",))
+run.original.status            # "DEADLOCK"
+for r in run.resolution.reflections:
+    r.agent_id, r.iteration, r.revised, r.recovered
+run.final.status               # "CONSENSUS" (the recovering branch's result)
+```
+
+After a deadlock, each *counterfactual-capable* agent is shown the full run and
+one of its own past messages (`BaseAgent.reflect`) and answers with the message
+it would have sent instead, or "no change". It may use what the run made
+public (which options were refuted) and its own evidence, never another
+agent's private evidence. Each revision becomes an `Intervention`; the engine
+branches the original at that step and replays with the same agents, policy and
+config. Candidates are tried latest message first (the smallest change to
+history) and resolution stops at the first branch that reaches CONSENSUS.
+Every attempted branch is kept in `Resolution.reflections`. A replay that
+fails (e.g. a provider error) is recorded as a FAILED branch, not raised.

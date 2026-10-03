@@ -1,346 +1,107 @@
-# Agents API Reference
+# Agents API
 
-## Overview
+`ai_project.agents`, `ai_project.llm`, `ai_project.tasks`.
 
-The Agents module provides a complete agent layer for the Blackboard/PXP system. It includes:
-
-- **BaseAgent**: Abstract base class for all agents
-- **AgentDecision**: Internal structured decision representation
-- **AgentContext**: Structured context for agent reasoning
-- **Concrete Agents**: Analyst, Critic, Specialist
-- **LLM Providers**: Mock and extensible provider interface
-- **Structured Parsing**: JSON output validation
-
----
-
-## Core Classes
-
-### AgentDecision
-
-Internal structured representation of an agent's reasoning output.
+## Quick start
 
 ```python
-from ai_project.agents import AgentDecision
-from ai_project.protocol import PXPTag
-
-decision = AgentDecision(
-    tag=PXPTag.RATIFY,
-    prediction="Option A",
-    explanation="Reasoning...",
-    confidence=0.85,
-    metadata={"key": "value"}
-)
-
-# Convert to PXPMessage for Blackboard
-pxp_msg = decision.to_pxp_message("agent_id", iteration=1)
-
-# Serialize
-data = decision.to_dict()
-```
-
-**Fields**:
-| Field | Type | Required | Description |
-|-------|------|----------|-------------|
-| tag | PXPTag | Yes | RATIFY, REVISE, REFUTE, REJECT |
-| prediction | str | Yes | Concrete decision |
-| explanation | str | Yes | Reasoning trace |
-| confidence | float | Yes | 0.0 - 1.0 |
-| metadata | dict | No | Extra data |
-
-**Methods**:
-- `to_pxp_message(agent_id, iteration)` → PXPMessage
-- `to_dict()` → dict
-
----
-
-### AgentContext
-
-Structured context passed to agents for reasoning.
-
-```python
-from ai_project.agents import AgentContext
-
-context = AgentContext(
-    task="Choose best option",
-    current_prediction="Option A",
-    current_explanation="Previous reasoning...",
-    status="RUNNING",
-    iteration=2,
-    recent_history=[...],
-    agent_id="critic_1",
-    agent_role="Critic"
-)
-
-# For prompt templating
-prompt_data = context.to_prompt_context()
-```
-
-**Fields**:
-| Field | Type | Description |
-|-------|------|-------------|
-| task | str | Task description |
-| current_prediction | str | Latest board prediction |
-| current_explanation | str | Latest board explanation |
-| status | str | Board status |
-| iteration | int | Current iteration |
-| recent_history | List[HistoryEvent] | Recent events |
-| agent_id | str | This agent's ID |
-| agent_role | str | This agent's role |
-| metadata | dict | Extra context |
-
-**Methods**:
-- `to_prompt_context()` → dict for templating
-
----
-
-### BaseAgent
-
-Abstract base class for all agents.
-
-```python
-from ai_project.agents import BaseAgent
-from ai_project.llm import MockLLMProvider
-
-class MyAgent(BaseAgent):
-    def reason(self, context: AgentContext) -> AgentDecision:
-        # Your reasoning logic here
-        return AgentDecision(...)
-
-agent = MyAgent(agent_id="my_agent", role="Custom", llm_provider=MockLLMProvider())
-message = agent.act(board)  # Returns PXPMessage
-```
-
-**Constructor**:
-```python
-BaseAgent(
-    agent_id: str,           # Unique identifier
-    role: str,               # Human-readable role
-    llm_provider: LLMProvider = None,  # Optional LLM
-    parser: AgentDecisionParser = None  # Optional parser
-)
-```
-
-**Methods**:
-- `act(board: Blackboard) -> PXPMessage` - Main entry point
-- `reason(context: AgentContext) -> AgentDecision` - Abstract, implement this
-- `get_identity() -> dict` - Returns {"agent_id", "role"}
-
-**Internal**:
-- `_build_context(board)` - Builds AgentContext from Blackboard
-- `_call_llm(prompt)` - Calls provider and parses output
-
----
-
-### AnalystAgent
-
-Generates initial or independent predictions.
-
-```python
-from ai_project.agents import AnalystAgent
-from ai_project.llm import MockLLMProvider
-
-analyst = AnalystAgent(
-    agent_id="analyst_1",
-    llm_provider=MockLLMProvider()  # or real provider
-)
-```
-
-**Behavior**:
-- If no current prediction: generates initial prediction (RATIFY)
-- If prediction exists: evaluates independently (usually RATIFY)
-- Uses mock or real LLM provider
-
----
-
-### CriticAgent
-
-Challenges or validates current reasoning.
-
-```python
-from ai_project.agents import CriticAgent
-from ai_project.llm import MockLLMProvider
-
-critic = CriticAgent(
-    agent_id="critic_1",
-    llm_provider=MockLLMProvider()
-)
-```
-
-**Behavior**:
-- No prediction: returns REVISE requesting initial prediction
-- Has prediction: RATIFY, REVISE, or REFUTE based on analysis
-- Reads full history for context-aware critique
-
----
-
-### SpecialistAgent
-
-Provides independent specialized perspective.
-
-```python
-from ai_project.agents import SpecialistAgent
-from ai_project.llm import MockLLMProvider
-
-specialist = SpecialistAgent(
-    agent_id="specialist_1",
-    llm_provider=MockLLMProvider()
-)
-```
-
-**Behavior**:
-- Generates independent prediction based on specialization
-- May RATIFY, REVISE, or REFUTE current prediction
-- Considers full history and context
-
----
-
-## LLM Providers
-
-### LLMProvider (Abstract Base)
-
-```python
-from ai_project.llm import LLMProvider
-
-class MyProvider(LLMProvider):
-    def generate(self, prompt: str, **kwargs) -> str:
-        return "response"
-
-    def is_available(self) -> bool:
-        return True
-```
-
----
-
-### MockLLMProvider
-
-Deterministic provider for testing/demos.
-
-```python
-from ai_project.llm import MockLLMProvider
-
-provider = MockLLMProvider(seed=42)
-response = provider.generate("You are the Analyst agent. Task: test.")
-# Returns JSON string with tag, prediction, explanation, confidence
-```
-
-**Features**:
-- Deterministic: same seed + prompt = same output
-- Role-aware: detects Analyst/Critic/Specialist from prompt
-- Context-aware: extracts current prediction from prompt
-- Fast: no network calls
-
----
-
-### AgentDecisionParser
-
-Parses and validates structured LLM output.
-
-```python
-from ai_project.llm import AgentDecisionParser, ParseError
-
-parser = AgentDecisionParser()
-
-# Valid JSON
-json_str = '{"tag": "RATIFY", "prediction": "A", "explanation": "Good", "confidence": 0.8}'
-decision = parser.parse(json_str)
-
-# Handles markdown fences
-json_str = '```json\n{"tag": "RATIFY", ...}\n```'
-decision = parser.parse(json_str)
-```
-
-**Validation**:
-- Required fields: tag, prediction, explanation, confidence
-- Tag must be valid PXPTag
-- Prediction/explanation non-empty
-- Confidence in [0.0, 1.0]
-
-**Exceptions**:
-- `ParseError` for invalid/missing fields
-
----
-
-## Usage Pattern
-
-```python
+from ai_project.agents import build_team
 from ai_project.blackboard import Blackboard
-from ai_project.agents import AnalystAgent, CriticAgent, SpecialistAgent
-from ai_project.llm import MockLLMProvider
+from ai_project.tasks import flash_talk_task
 
-# Setup
+task = flash_talk_task()
 board = Blackboard()
-board.initialize_task("Your task here")
+board.initialize_task(task.question, task.board_metadata())   # question + option names only
 
-provider = MockLLMProvider()
-analyst = AnalystAgent("analyst_1", provider)
-critic = CriticAgent("critic_1", provider)
-specialist = SpecialistAgent("specialist_1", provider)
-
-# Execute (scheduler would control this)
-msg1 = analyst.act(board)
-board.publish_message(msg1)
-
-msg2 = critic.act(board)
-board.publish_message(msg2)
-
-msg3 = specialist.act(board)
-board.publish_message(msg3)
-
-# Results
-history = board.get_history()
-state = board.get_state()
-```
-
----
-
-## Error Handling
-
-```python
-from ai_project.agents import AgentError
-from ai_project.llm import ParseError, ProviderUnavailableError
-
-try:
-    message = agent.act(board)
-    board.publish_message(message)
-except AgentError as e:
-    # Agent reasoning failed (provider, parsing, etc.)
-    print(f"Agent failed: {e}")
-except InvalidMessageError as e:
-    # PXP validation failed (should not happen with valid AgentDecision)
-    print(f"Invalid message: {e}")
-```
-
----
-
-## Integration with Scheduler (Person 3)
-
-```python
-# Scheduler controls WHEN agents act
-agent = agents["critic"]  # Get agent by role/id
-
-# Scheduler decides order, then:
-message = agent.act(board)  # Agent decides WHAT to communicate
+analyst, critic, specialist = build_team(task)                # default: MockLLMProvider
+message = analyst.act(board)       # PXPMessage; the Scheduler normally publishes it
 board.publish_message(message)
-
-# Scheduler can also:
-board.set_status(BlackboardStatus.DEADLOCK)
-snapshot = board.snapshot()  # For counterfactual
 ```
 
----
+## Tasks and evidence (`ai_project.tasks`)
 
-## Integration with UI/Evaluation (Person 4)
+| Type | Fields |
+|---|---|
+| `Evidence` | `scores: {option: float}` (preference, higher is better), `objections: {option: reason}` |
+| `DecisionTask` | `task_id`, `question`, `options`, `evidence: {role: Evidence}` |
+
+`DecisionTask.feasible_options()` (no role objects) and `best_feasible()`
+(highest analyst score among those) are ground truth for experiments; agents
+never see other roles' evidence. `flash_talk_task()` is the demo task;
+`generate_tasks(n, seed, n_options=3, objection_rate=0.3)` builds synthetic
+tasks deterministically.
+
+## The decision pipeline (`BaseAgent`)
+
+```
+act(board):  build_context(board) -> decide(context) -> AgentDecision.to_pxp_message(...)
+decide(ctx): render_prompt(ctx) -> provider.generate(LLMRequest(prompt, ctx))
+             -> parser.parse(text) -> _normalize(decision, ctx)
+reflect(task, options, history, own_event) -> AgentDecision | None
+```
+
+| Type | Role |
+|---|---|
+| `AgentContext` | what the agent sees: `agent_id, role, task, options, evidence, status, iteration, proposal, history, reflect_on` |
+| `AgentDecision` | what it decides: `tag, prediction, explanation, confidence, metadata` (validated on construction) |
+| `PXPMessage` | what is published (see [blackboard_api.md](blackboard_api.md)) |
+
+Constructor: `AnalystAgent(agent_id=None, llm_provider=None, evidence=None, parser=None)`
+(same for `CriticAgent`, `SpecialistAgent`). `agent.usage` counts provider
+calls and the tokens the provider reported (`None` if it reported none).
+
+**Normalization** keeps model output within PXP semantics and records every
+repair in `metadata["normalized"]`: a REFUTE of a non-standing option becomes a
+REFUTE of the standing proposal naming that option as `alternative`; a RATIFY of
+a different option becomes REVISE; an option name embedded in longer text is
+mapped to the option; an unknown option raises `AgentError`. The deterministic
+mock never triggers these repairs.
+
+Errors: provider failures and unparseable output raise `AgentError`; the
+Scheduler turns that into a FAILED run with the error in its trace.
+
+## Roles
+
+| Role | Forward behaviour (mock rules) | Reflection after a deadlock |
+|---|---|---|
+| analyst | opens with its best acceptable option; refutes proposals its evidence rules out; otherwise ratifies | if its opening proposal was later refuted: open with its best unrefuted option instead |
+| critic | refutes proposals that break a constraint it knows, citing it, **without naming an alternative**; otherwise ratifies | if it refuted without an alternative: same refutation, naming its best unrefuted acceptable option |
+| specialist | if the latest objection names an alternative it accepts, REVISE to it; otherwise refutes or ratifies by its domain evidence | if it refuted or ratified a later-refuted option: REVISE to its best unrefuted acceptable option instead |
+
+The exact rules are in the docstring of `llm/mock.py`. Reflection uses only
+the agent's own evidence and what the run made public.
+
+## Providers (`ai_project.llm`)
 
 ```python
-# All structured data accessible
-for event in board.get_history():
-    print(event.agent_id, event.tag, event.prediction, event.confidence)
-
-# Agent decisions available via history
-state = board.get_state()
-print(state.current_prediction, state.current_explanation)
-
-# Serialization
-json.dump(board.get_state().to_dict(), f)
-json.dump([e.to_dict() for e in board.get_history()], f)
+class LLMProvider(ABC):
+    name: str
+    deterministic: bool
+    def generate(self, request: LLMRequest) -> LLMResponse: ...   # LLMResponse(text, usage)
+    def is_available(self) -> bool: ...
+    def describe(self) -> dict: ...                                # recorded with results
 ```
+
+| Provider | What it is |
+|---|---|
+| `MockLLMProvider` | **Deterministic mock.** Applies the role rules to `request.context`; ignores the prompt text, which carries the same information. No hashing, no randomness, no token usage. |
+| `OllamaProvider(model="qwen3:4b", host=..., seed=0, temperature=0.0)` | **Local model.** Sends `request.prompt` to Ollama with JSON output, temperature 0 and a seed; reports token counts. Optional; not labelled deterministic. |
+
+To add a provider, subclass `LLMProvider`, return the JSON schema in
+`llm/prompts/act.md` (or `{"no_change": true, ...}` for reflection prompts),
+and pass it to `build_team(task, provider)` or `run_task(..., provider=...)`.
+
+## Prompts
+
+`src/ai_project/llm/prompts/` (shipped as package data): `act.md` and
+`reflect.md` frames, plus `analyst.md`, `critic.md`, `specialist.md` role
+instructions. They are `string.Template` files (`$task`, `$evidence`,
+`$history`, ...). `agent.render_prompt(context)` shows exactly what a model would see;
+`python examples/agents_demo.py --show-prompt` prints them.
+
+## Parser
+
+`AgentDecisionParser.parse(text)` extracts the JSON object (markdown fences
+tolerated), checks required fields (`tag`, `prediction`, `explanation`,
+`confidence` in [0, 1]) and returns an `AgentDecision`, raising `ParseError`
+otherwise. `parse_reflection(text)` returns `None` for `{"no_change": true}`.

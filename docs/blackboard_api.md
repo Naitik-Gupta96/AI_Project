@@ -270,7 +270,9 @@ class BlackboardStatus(Enum):
 
 ## Class: HistoryEvent
 
-Immutable event record.
+Immutable event record (`frozen` dataclass). Assigning to a field raises
+`dataclasses.FrozenInstanceError`, so history cannot be edited through a
+reference returned by `get_history()` or `snapshot()`.
 
 ### Fields
 
@@ -284,6 +286,7 @@ Immutable event record.
 | `explanation` | `str` | Explanation |
 | `confidence` | `Optional[float]` | Confidence |
 | `message_id` | `str` | Message ID |
+| `metadata` | `Dict[str, Any]` | The message's metadata (e.g. `alternative`), kept so counterfactual replays are faithful |
 
 ### Methods
 

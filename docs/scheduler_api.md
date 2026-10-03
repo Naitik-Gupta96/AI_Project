@@ -251,7 +251,11 @@ disagreement_cycles, stagnant_steps, objecting_agents, dissenting_agents)`.
 
 ---
 
-## Deterministic mock agents and scenarios
+## Scheduler test doubles and scenarios
+
+These exist to test the scheduler, deadlock detector and counterfactual engine
+in isolation. The demo and experiments use the real role agents
+(`ai_project.agents`, see [agents_api.md](agents_api.md)).
 
 `RuleBasedMockAgent(agent_id, role, preferred, objections, suggests, adopts_alternatives, confidence)`
 is a test double with explicit rules (first match wins):
@@ -346,6 +350,6 @@ Keys: `status`, `stop_reason`, `final_prediction`, `iterations`, `steps`,
 ## Demo
 
 ```bash
-python examples/scheduler_demo.py                  # original deadlock -> counterfactual consensus
+python examples/scheduler_demo.py                  # test doubles + scripted intervention
 python examples/scheduler_demo.py --json run.json  # also export all structured results
 ```

@@ -1,114 +1,108 @@
-# Architecture Documentation
+# Architecture
 
-## System Architecture
+Status of each component: [README.md#project-status](README.md#project-status).
+
+## Components and data flow
 
 ```
-                    TASK
-                      |
-                      v
-                +-----------+
-                | BLACKBOARD|  ← IMPLEMENTED NOW (Person 1)
-                +-----+-----+
-                      |
-          +-----------+-----------+
-          |           |           |
-          v           v           v
-       Agent A     Agent B     Agent C  ← FUTURE (Person 2)
-          |           |           |
-          +-----------+-----------+
-                      |
-                   Scheduler      ← IMPLEMENTED (Person 3)
-                      |
-             +--------+--------+
-             |                 |
-         Consensus          Deadlock
-                                 |
-                          Counterfactual  ← IMPLEMENTED (Person 3)
-                                 |
-                               UI          ← FUTURE (Person 4)
+pipeline.run_task(task, cf_agents, provider)
+│
+├─ Blackboard.initialize_task(question, {options})        public task info only
+├─ build_team(task, provider)                             each agent gets its own evidence
+├─ Scheduler(board, agents, PriorityPolicy, config).run()
+│     loop: policy.select(context) → agent.act(board) → board.publish_message(msg)
+│           → detect_consensus → detect_deadlock
+│
+└─ if DEADLOCK: CounterfactualResolver.resolve(...)
+      for each message by a counterfactual-capable agent, latest first:
+          agent.reflect(task, options, full history, own message) → revised decision | None
+          engine.run_counterfactual(snapshot, original, agents, Intervention(...))
+              create_branch: new Blackboard, re-publish history before step k,
+                             publish the revised message at step k
+              replay:        a new Scheduler with the same agents/policy/config
+              compare:       statuses, predictions, shared prefix, divergence step
+          stop at the first branch that reaches CONSENSUS
 ```
 
-## Component Status
+The UI (`ui/adapter.py` → `frontend/app.py`), the CLI demo and the pilot
+experiment all call `run_task`; none of them reimplements any of these steps.
 
-| Component | Status | Owner |
-|-----------|--------|-------|
-| Blackboard Core | ✅ IMPLEMENTED | Person 1 |
-| PXP Protocol | ✅ IMPLEMENTED | Person 1 |
-| PXP Validator | ✅ IMPLEMENTED | Person 1 |
-| History/Event Log | ✅ IMPLEMENTED | Person 1 |
-| Snapshot/Serialization | ✅ IMPLEMENTED | Person 1 |
-| Thread Safety | ✅ IMPLEMENTED | Person 1 |
-| PEX Agents | 🔄 FUTURE | Person 2 |
-| LLM Integration | 🔄 FUTURE | Person 2 |
-| Scheduler | ✅ IMPLEMENTED | Person 3 |
-| Deadlock Detection | ✅ IMPLEMENTED | Person 3 |
-| Counterfactual Engine | ✅ IMPLEMENTED | Person 3 |
-| Visualization UI | 🔄 FUTURE | Person 4 |
-| Evaluation Framework | 🔄 FUTURE | Person 4 |
+## One agent decision
 
-## Data Flow
+```
+board ─► AgentContext ─► prompt (llm/prompts/act.md) ─► LLMProvider.generate(LLMRequest)
+                                                             │ JSON text
+            PXPMessage ◄─ AgentDecision ◄─ normalize ◄─ AgentDecisionParser
+```
 
-1. **Task Initialization**: External caller creates a task on the Blackboard
-2. **Agent Publication**: Agents publish PXP messages (validated before acceptance)
-3. **State Update**: Blackboard updates current prediction/explanation, increments iteration, records history
-4. **Scheduler Control**: Scheduler reads state/history, controls agent turns, sets status
-5. **Counterfactual Replay**: Engine reads history/snapshots, creates branches
-6. **Visualization**: UI reads state/history for display
+- `AgentContext`: what the agent sees (task, options, its private evidence,
+  status, standing proposal, history; for reflection also the message under review).
+- `AgentDecision`: what it decides (tag, prediction, explanation, confidence, metadata).
+- `PXPMessage`: what is published (decision + agent id + iteration + id + timestamp).
 
-## Blackboard State Machine
+`MockLLMProvider` reads the structured context and applies the role rules
+documented in `llm/mock.py`. `OllamaProvider` sends the rendered prompt to a
+local model. The agent code is identical for both. Normalization holds model
+output to PXP semantics (e.g. a REFUTE must name the standing proposal).
+
+## PXP semantics
+
+| Tag | Meaning | Effect on the standing proposal |
+|---|---|---|
+| RATIFY X | I support X (or open with X) | becomes X if nothing was proposed or X differs |
+| REVISE X | I replace the proposal with X | becomes X |
+| REFUTE X | I object to X, the standing proposal; alternative in `metadata.alternative` | unchanged |
+| REJECT | No option can be accepted | unchanged; objects to whatever stands |
+
+The *standing proposal* is derived from history (`deadlock.stances`), not from
+`BlackboardState.current_prediction`, which is simply the latest message's prediction.
+
+## Blackboard status
 
 ```
 INITIALIZED → RUNNING → CONSENSUS
-                    ↓
-               DEADLOCK → (Counterfactual) → RUNNING
-                    ↓
-                 FAILED
+                 │
+                 └──→ DEADLOCK      (terminal for a run; a counterfactual uses a new board)
+any → FAILED     (agent or provider error during a run)
 ```
 
-- **INITIALIZED**: Task created, no messages yet
-- **RUNNING**: Normal operation, agents publishing
-- **CONSENSUS**: All agents RATIFY same prediction
-- **DEADLOCK**: Agents cannot agree (REFUTE/REJECT cycle detected)
-- **FAILED**: Unrecoverable error or timeout
+`set_status` enforces these transitions; the Scheduler is the only component
+that sets CONSENSUS, DEADLOCK or FAILED.
 
-## PXP Message Flow
+## Termination rules
 
-```
-Agent → PXPMessage → Validator → Blackboard.publish_message()
-                                              ↓
-                                    ┌─────────┴─────────┐
-                                    ↓                   ↓
-                              State Update        History Append
-                              (prediction,        (immutable
-                               explanation,        event)
-                               iteration)
-```
+- **Consensus**: every registered agent's latest message supports the current
+  prediction, with at least `min_supporters` (2) supporters.
+- **Deadlock**, either rule:
+  - *repeated disagreement*: the standing proposal was objected to
+    `max_disagreement_cycles` (2) times since it was introduced, and someone still objects;
+  - *stagnation*: no never-before-seen proposal for `max_stagnant_steps` (6)
+    messages while someone still does not support the proposal.
+- **Budget**: `max_steps` (12) agent actions; the run stops with status RUNNING
+  and `stop_reason = "max_steps"`. This is not called a deadlock.
 
-## Key Interfaces
+## Isolation guarantees
 
-### Blackboard API (src/ai_project/blackboard/board.py)
-- `initialize_task(task: str, metadata: dict = None) -> None`
-- `publish_message(message: PXPMessage) -> None`
-- `get_state() -> BlackboardState`
-- `get_latest_message() -> Optional[PXPMessage]`
-- `get_history() -> List[HistoryEvent]`
-- `get_iteration() -> int`
-- `set_status(status: BlackboardStatus) -> None`
-- `snapshot() -> BlackboardSnapshot`
-- `record_event(event: HistoryEvent) -> None`
+- The Blackboard validates a message before changing any state.
+- `HistoryEvent` is frozen; `get_history()` and `snapshot()` return copies.
+- A counterfactual branch is a new Blackboard built by re-publishing history
+  (with message metadata), so the Blackboard itself recomputes iteration and
+  state. The original board is read only through `snapshot()`.
 
-### Scheduler / Deadlock / Counterfactual (Person 3)
-- `Scheduler(board, agents, policy, config)`: `step()`, `run()`, `get_status()`, `get_trace()`, `get_result()`
-- Replaceable policies: `RoundRobinPolicy`, `PriorityPolicy`
-- `detect_consensus(state, history)`, `detect_deadlock(history)`
-- `CounterfactualEngine`: `create_branch()`, `replay()`, `compare()`
-- See [docs/scheduler_api.md](docs/scheduler_api.md) and [docs/counterfactual_api.md](docs/counterfactual_api.md)
+## Module map
 
-### PXP Protocol (src/ai_project/protocol/pxp.py)
-- `PXPTag` enum: RATIFY, REVISE, REFUTE, REJECT
-- `PXPMessage` dataclass with all required fields
-- `PXPValidator` for structural validation
+| Path | Responsibility |
+|---|---|
+| `protocol/` | `PXPMessage`, `PXPTag`, `PXPValidator` |
+| `blackboard/` | `Blackboard`, `BlackboardState`, `HistoryEvent`, `BlackboardSnapshot` |
+| `tasks.py` | `DecisionTask`, `Evidence`, `flash_talk_task`, `generate_tasks` |
+| `agents/` | `AgentContext`, `AgentDecision`, `BaseAgent`, role classes, `build_team` |
+| `llm/` | `LLMProvider`, `MockLLMProvider`, `OllamaProvider`, parser, prompt templates |
+| `scheduler/` | `Scheduler`, `RoundRobinPolicy`, `PriorityPolicy`, consensus, trace; test doubles |
+| `deadlock/` | stance analysis, `detect_deadlock`, `DeadlockConfig` |
+| `counterfactual/` | `CounterfactualEngine`, `Intervention`, `CounterfactualResolver` |
+| `pipeline.py` | `run_task`, `RunConfig`, `PipelineRun` |
+| `experiment.py` | pilot runner, results format, descriptive summary |
+| `ui/` | UI data models and adapter |
 
-## Design Decisions
-
-See [docs/decisions.md](decisions.md) for detailed Architecture Decision Records.
+Design rationale: [docs/decisions.md](docs/decisions.md).

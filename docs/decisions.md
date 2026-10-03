@@ -70,7 +70,7 @@
 - Deadlock detection can rely on known tag patterns
 - Visualization can have fixed color/legend per tag
 
-**Future**: If research shows need for more tags (e.g., BRAINSTORM, QUESTION), can extend enum.
+**Future**: If experiments show a need for more tags (e.g., BRAINSTORM, QUESTION), can extend enum.
 
 ---
 
@@ -108,7 +108,7 @@
 - Enables exact replay at any iteration
 - Thread-safe via same RLock
 
-**Implementation**: `HistoryEvent` is a dataclass with `to_dict()`/`from_dict()`. `History.get_all()` returns copy.
+**Implementation**: `HistoryEvent` is a frozen dataclass with `to_dict()`/`from_dict()`, and it keeps the message's metadata (see Decision 15). `History.get_all()` returns a copy of the list.
 
 ---
 
@@ -186,7 +186,7 @@ FAILED → (none)
 
 ---
 
-## Decision 10: Serialization via to_dict()/from_dict()
+## Decision 10b: Serialization via to_dict()/from_dict()
 
 **Date**: 2024-09-30
 **Status**: Accepted
@@ -220,4 +220,119 @@ FAILED → (none)
 **Reasoning**:
 - Enables future refactoring (Redis backend, async, etc.)
 - Clear integration guide for teammates
-- Tested via `docs/shared_contract.md` and `docs/integration_guide.md`
+- Documented in `docs/shared_contract.md`; enforced by `test_only_public_blackboard_api_is_used`
+
+---
+
+The records below were added during the 2026-10-03 hardening pass.
+
+## Decision 12: A Deterministic Mock Provider Instead of Mock Logic in Agents
+
+**Status**: Accepted
+
+**Context**: The agents ran private mock methods whenever they detected a
+`MockLLMProvider`, choosing options with Python's `hash()`, which is salted
+per process. The same task deadlocked in one process and reached consensus in
+another, and the provider had a second, unrelated mock implementation.
+
+**Decision**: Every decision goes through one pipeline (context → prompt →
+`LLMProvider.generate` → parser → decision). The deterministic mock is a
+provider that applies explicit role rules to the structured context.
+
+**Reasoning**: One abstraction; the demo is reproducible; the rules are
+readable and testable; swapping in a model changes one constructor argument.
+Labelling: the mock is called a deterministic mock everywhere, never an LLM.
+
+## Decision 13: Local Model Support Is Optional
+
+**Status**: Accepted
+
+**Decision**: `OllamaProvider` (standard library HTTP) behind the same interface.
+Not used by the demo, the tests' expected outcomes or any reported result.
+
+**Reasoning**: The flash talk must not depend on a model, network or API key,
+and a 4B local model took minutes per run and did not follow the role
+instructions reliably in a trial run. Keeping the path working allows LLM
+experiments later without changing the architecture.
+
+## Decision 14: PXP Tag Semantics
+
+**Status**: Accepted
+
+**Decision**: `prediction` always names the option the tag is about. RATIFY X
+supports X; REVISE X replaces the proposal with X; REFUTE X objects to the
+standing proposal X, with any alternative in `metadata["alternative"]`; REJECT
+objects to every option. Agents normalize model output to these rules.
+
+**Reasoning**: Consensus, deadlock and policies derive stances from history. A
+REFUTE whose prediction is some other option (which the old mock agents
+produced) is ambiguous and breaks those derivations.
+
+## Decision 15: Branches Re-publish History, Including Metadata
+
+**Status**: Accepted
+
+**Decision**: A counterfactual branch is a new Blackboard on which history up
+to the branch point is re-published (with each message's metadata), then the
+intervention, then a new Scheduler replays. `HistoryEvent` stores metadata.
+
+**Reasoning**: Re-publishing makes the Blackboard recompute its own state
+instead of trusting an edited snapshot. Metadata matters because agents act on
+it (a named alternative). Without it, a pure replay of a run containing an
+alternative could diverge from the original.
+
+## Decision 16: What "Deadlock" Means
+
+**Status**: Accepted
+
+**Decision**: Deadlock is either (a) the standing proposal was objected to
+`max_disagreement_cycles` (2) times since it was introduced and someone still
+objects, or (b) no never-before-seen proposal for `max_stagnant_steps` (6)
+messages while someone still dissents. Running out of `max_steps` is a separate
+stop reason, not a deadlock.
+
+**Reasoning**: Both rules are checkable from history alone and explainable in
+one sentence. A single objection, or an objection that leads to a new proposal,
+is normal debate and is not counted.
+
+## Decision 17: Counterfactual Agents and the Counterfactual Fraction
+
+**Status**: Accepted
+
+**Context**: The project title promises counterfactual agents, and the old
+experiment config varied a "counterfactual fraction" (0, 0.33, 0.66, 1) over 3
+agents without defining it. The old runner implemented it as a probability of
+recovery, which measured nothing.
+
+**Decision**: An agent is *counterfactual-capable* if, after a deadlock, it may
+revise one of its own past messages in hindsight, using only its own evidence
+and what the run made public. The counterfactual fraction is the share of the 3
+agents that are capable. The resolver tries revisions latest message first (the
+smallest change to history) and stops at the first branch that reaches consensus.
+
+## Decision 18: Experiments Run the Real Pipeline
+
+**Status**: Accepted
+
+**Decision**: The experiment calls `pipeline.run_task` for every trial and
+records seed, task, condition, traces, branches, provider and commit. Synthetic
+*tasks* are allowed and labelled; synthetic *outcomes* are not.
+
+**Reasoning**: Results must come from the system they describe and be
+re-executable (the UI re-runs any trial and checks it against the record).
+
+## Decision 19: Replaceable, Stateless Scheduling Policies
+
+**Status**: Accepted
+
+**Decision**: A policy is an object with `select(SchedulingContext) -> Selection`
+(agent id, rule, human-readable reason). The built-in `RoundRobinPolicy` and
+`PriorityPolicy` keep no state between calls.
+
+**Reasoning**: Turn-taking is a research variable (the proposal compares
+coordination strategies), so it must change without touching the Scheduler.
+Statelessness is what makes counterfactual replay faithful: a branch board
+with the same history gets the same selections. The reason string goes into
+the trace, so the UI can show why each agent spoke. Snapshots (Decision 7)
+serve the same goal from the data side: branches start from an isolated copy
+of history, never from the live board.

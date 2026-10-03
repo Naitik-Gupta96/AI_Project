@@ -1,132 +1,122 @@
-# AI Project: Intelligible Blackboard Architecture with Counterfactual Agents
+# Intelligible Blackboard Architecture with Counterfactual Agents
 
-## Project Purpose
-This project implements an intelligible blackboard architecture for multi-agent AI systems where agents communicate through a globally shared structured Blackboard rather than direct message-passing chains. The system supports counterfactual reasoning for deadlock resolution.
+A research prototype. Three role-based agents (analyst, critic, specialist)
+coordinate only through a shared **Blackboard** using structured **PXP**
+messages. A **Scheduler** decides who acts and detects **consensus** or
+**deadlock**. After a deadlock, **counterfactual-capable** agents revise one
+of their own past messages in hindsight, and the **counterfactual engine**
+branches history at that message and replays the future to see whether the
+team would have agreed.
 
-## Current Stage
-**Phase 1: Foundational Architecture (Person 1)**
-- Blackboard + PXP protocol foundation complete
-- Scheduler, consensus/deadlock detection and counterfactual replay complete (Person 3, `feature/scheduler-counterfactual`)
-- Ready for Person 2 (PEX agents + LLM), Person 3 (Scheduler + Counterfactual), Person 4 (UI + Evaluation)
-
-## Architecture Overview
 ```
-                    TASK
-                      |
-                      v
-                +-----------+
-                | BLACKBOARD|  ← IMPLEMENTED (Person 1)
-                +-----+-----+
-                      |
-          +-----------+-----------+
-          |           |           |
-          v           v           v
-       Agent A     Agent B     Agent C  ← FUTURE (Person 2)
-          |           |           |
-          +-----------+-----------+
-                      |
-                   Scheduler      ← IMPLEMENTED (Person 3)
-                      |
-             +--------+--------+
-             |                 |
-         Consensus          Deadlock
-                                 |
-                          Counterfactual  ← IMPLEMENTED (Person 3)
-                                 |
-                               UI          ← FUTURE (Person 4)
+ DecisionTask ──► Blackboard (state + append-only PXP history + snapshots)
+                     ▲   │
+     PXP messages    │   │ context
+                     │   ▼
+        analyst · critic · specialist ── LLMProvider (deterministic mock | optional Ollama)
+                     ▲
+                     │ who acts next
+                 Scheduler ── consensus check ── deadlock detector
+                                                      │ DEADLOCK
+                                                      ▼
+                         counterfactual-capable agents reflect on their own messages
+                                                      │ intervention
+                                                      ▼
+                       counterfactual engine: branch at step k → replay → compare
+                                                      │
+                               UI (Flash Talk · Run Explorer · Evaluation) · pilot experiment
 ```
 
-## Repository Structure
-```
-AI_Project/
-├── README.md
-├── PROJECT.md
-├── ARCHITECTURE.md
-├── TEAM.md
-├── TASKS.md
-├── FLASH_TALK.md
-├── RESEARCH.md
-├── pyproject.toml
-├── .gitignore
-├── .env.example
-├── docs/
-│   ├── proposal_summary.md
-│   ├── blackboard_api.md
-│   ├── shared_contract.md
-│   ├── decisions.md
-│   ├── integration_guide.md
-│   ├── scheduler_api.md
-│   └── counterfactual_api.md
-├── src/
-│   └── ai_project/
-│       ├── __init__.py
-│       ├── blackboard/
-│       │   ├── __init__.py
-│       │   ├── board.py
-│       │   ├── models.py
-│       │   ├── history.py
-│       │   └── exceptions.py
-│       ├── protocol/
-│       │   ├── __init__.py
-│       │   ├── pxp.py
-│       │   └── validator.py
-│       ├── scheduler/          # Person 3: scheduler, policies, consensus, trace, mock agents
-│       ├── deadlock/           # Person 3: stance analysis + deadlock detection
-│       └── counterfactual/     # Person 3: branching, replay, comparison
-├── examples/
-│   ├── blackboard_demo.py
-│   └── scheduler_demo.py
-├── tests/
-│   ├── test_blackboard.py
-│   ├── test_pxp.py
-│   ├── test_history.py
-│   ├── test_snapshot.py
-│   ├── test_thread_safety.py
-│   ├── scheduler/
-│   ├── deadlock/
-│   └── counterfactual/
-├── experiments/
-│   └── README.md
-└── prompts/
-    └── README.md
-```
+## Project status
 
-## Installation
+This table is the single source of truth for status; other documents link here.
+
+| Component | Status | Evidence |
+|---|---|---|
+| Blackboard, PXP protocol, validation, history, snapshots | **Implemented** | `src/ai_project/blackboard`, `protocol`; unit + thread-safety tests |
+| Role agents (analyst, critic, specialist) | **Implemented, deterministic mock** | `agents/`, `llm/mock.py`: explicit role rules, no language model |
+| Provider abstraction (one decision pipeline) | **Implemented** | `llm/base.py`; every decision goes context → prompt → provider → parser |
+| Local model provider (Ollama) | **Implemented, optional, lightly tried** | `llm/ollama.py`; tested against a stubbed HTTP layer; one manual run with `qwen3:4b` (see [FLASH_TALK.md](FLASH_TALK.md)); not used for any reported number |
+| Scheduler, policies, consensus, deadlock detection | **Implemented** | `scheduler/`, `deadlock/`; tests incl. edge cases |
+| Counterfactual branching, replay, comparison | **Implemented** | `counterfactual/engine.py`; isolation and replay tests |
+| Counterfactual agents (reflection → intervention → replay) | **Implemented** | `counterfactual/resolver.py`, `BaseAgent.reflect` |
+| End-to-end Flash Talk scenario | **Demonstrated** (deterministic mock) | UI Flash Talk tab, `examples/flash_talk_demo.py` |
+| Streamlit UI | **Implemented** | `frontend/app.py` on the typed adapter in `ui/` |
+| Pilot experiment | **End-to-end pilot** on synthetic tasks with deterministic mock agents | `experiment.py`, [docs/evaluation.md](docs/evaluation.md) |
+| Experiments with LLM agents | **Planned** | runner supports `--provider ollama`; no results yet |
+| Benchmarks (KramaBench, MSCoRe, MedAgentBench) | **Planned**, not integrated | proposal only |
+| Human evaluation of intelligibility | **Planned** | not measured |
+
+Vocabulary used everywhere: **DETERMINISTIC MOCK** (rule-based agents, no
+model), **LIVE / LOCAL MODEL** (Ollama), **END-TO-END PILOT** (the real
+system run over generated tasks). No result in this repository comes from a
+language model or a benchmark.
+
+## Quick start
+
+Requires Python 3.11+.
+
 ```bash
 python -m venv .venv
-.venv\Scripts\activate  # Windows
-pip install -e .
-pip install -e ".[dev]"
-pip install -e ".[ui]"   # Streamlit frontend
+.venv\Scripts\activate            # Windows   (source .venv/bin/activate elsewhere)
+pip install -e ".[dev]"           # core + UI + pytest/ruff
+
+python -m pytest                                  # 261 tests, ~10 s
+python examples/flash_talk_demo.py                # end-to-end demo in the terminal
+python -m streamlit run frontend/app.py           # the UI
+python experiments/run_experiment.py              # pilot: 800 trials, ~3 s
+python experiments/analyze_results.py             # summary tables + CSV
 ```
 
-## Running Tests
+The core package has no third-party dependencies (`pip install -e .`); `[ui]`
+adds Streamlit and pandas, `[dev]` adds the UI plus pytest and ruff. No
+internet access, API key or model is needed for anything above.
+
+Optional, with a local [Ollama](https://ollama.com) server:
+
 ```bash
-pytest tests/ -v
+ollama pull qwen3:4b
+python examples/flash_talk_demo.py --provider ollama --model qwen3:4b   # minutes, not seconds
 ```
 
-## Running Demo
+## Other demos
+
 ```bash
-python examples/blackboard_demo.py
-python examples/scheduler_demo.py    # scheduler -> deadlock -> counterfactual -> consensus
+python examples/agents_demo.py       # inside one agent decision: context, prompt, raw output, message
+python examples/scheduler_demo.py    # scheduler + engine with scripted test-double agents
+python examples/blackboard_demo.py   # Blackboard API: publish, history, snapshot isolation
 ```
 
-## Running the UI
-```bash
-streamlit run frontend/app.py        # or: python examples/run_demo.py
+## Repository layout
+
 ```
-The Flash Talk Demo tab runs the real Scheduler and counterfactual engine through
-`ai_project.ui` (see [docs/ui_api.md](docs/ui_api.md)).
+src/ai_project/
+  protocol/        PXP message, tags, validator
+  blackboard/      Blackboard, state, history, snapshots
+  tasks.py         DecisionTask (options + role-partitioned evidence), Flash Talk task, generator
+  agents/          AgentContext/AgentDecision, BaseAgent pipeline, the three roles
+  llm/             provider interface, deterministic mock (role rules), Ollama, parser, prompts/
+  scheduler/       Scheduler, policies, registry, consensus, trace (+ test-double agents)
+  deadlock/        stance analysis, deadlock rules
+  counterfactual/  engine (branch/replay/compare), resolver (counterfactual agents)
+  pipeline.py      run_task: the one end-to-end path
+  experiment.py    pilot runner and descriptive analysis
+  ui/              typed UI models + adapter
+frontend/app.py    Streamlit UI
+examples/          CLI demos
+experiments/       run_experiment.py, analyze_results.py, results/ (generated, git-ignored)
+tests/             unit, integration, determinism, UI tests
+docs/              API references, decisions, evaluation
+```
 
-## Person 1 Responsibilities (This Branch)
-- Blackboard core implementation
-- PXP message protocol and validation
-- Thread-safe state management
-- History/event logging
-- Snapshot/serialization support
-- Unit tests and demo
+## Documentation
 
-## Future Teammates Will Build
-- **Person 2**: PEX agents with LLM integration that produce PXP messages
-- **Person 3**: Scheduler with deadlock detection and counterfactual reasoning engine
-- **Person 4**: Real-time visualization UI and evaluation/experiment framework
+- [FLASH_TALK.md](FLASH_TALK.md): presentation guide (demo flow, safe claims, backup plan)
+- [ARCHITECTURE.md](ARCHITECTURE.md): components and data flow
+- [RESEARCH.md](RESEARCH.md): research question, hypotheses, what is and is not tested
+- [docs/decisions.md](docs/decisions.md): engineering decision records
+- [docs/evaluation.md](docs/evaluation.md): pilot methodology and results
+- API: [blackboard](docs/blackboard_api.md) · [agents](docs/agents_api.md) ·
+  [scheduler](docs/scheduler_api.md) · [counterfactual](docs/counterfactual_api.md) ·
+  [UI](docs/ui_api.md) · [contract between layers](docs/shared_contract.md)
+- [TEAM.md](TEAM.md), [TASKS.md](TASKS.md), [PROJECT.md](PROJECT.md)

@@ -1,44 +1,33 @@
 # Proposal Summary
 
-## Original Proposal: Intelligible Blackboard Architecture with Counterfactual Agents
+What the original proposal set out to build. What exists today is tracked in
+[README.md#project-status](../README.md#project-status); this page does not track status.
 
-### Core Idea
-Replace long direct message-passing chains with a globally shared structured Blackboard where agents communicate through a standardized PXP protocol (RATIFY, REVISE, REFUTE, REJECT).
+## Core idea
 
-### Key Layers
-1. **PXP-Governed Blackboard** (Person 1 - IMPLEMENTED)
-   - Thread-safe central state store
-   - Structured PXP message validation
-   - Historical state information
-   - State serialization
+Replace long direct message-passing chains with a globally shared, structured
+Blackboard on which agents communicate through the PXP protocol (RATIFY,
+REVISE, REFUTE, REJECT), every message carrying a prediction and an explanation.
 
-2. **Retrospective Counterfactual Reasoning** (Person 3 - FUTURE)
-   - Deadlock detection from interaction patterns
-   - Counterfactual replay using snapshots
-   - Automated resolution strategies
+## Layers
 
-3. **Deterministic Scheduler** (Person 3 - FUTURE)
-   - Controls agent turn order
-   - Manages task lifecycle
-   - Integrates with Blackboard status
+1. **PXP-governed Blackboard**: central, thread-safe state with validated
+   structured messages and a full history.
+2. **Deterministic scheduler**: controls agent turns and the task lifecycle.
+3. **Retrospective counterfactual reasoning**: detect deadlock from interaction
+   patterns, branch history, and replay alternatives to resolve it.
+4. **Visualization**: show Blackboard state, the interaction timeline and
+   counterfactual divergence.
 
-4. **Real-Time Visualization** (Person 4 - FUTURE)
-   - Live Blackboard state display
-   - History timeline
-   - Agent interaction graph
+## Evaluation proposed
 
-### Agent Output Format
-Every agent produces structured output containing:
-- **Prediction**: The agent's proposed answer/decision
-- **Explanation**: Reasoning supporting the prediction
+- Metrics: deadlock rate, resolution time, decision quality, traceability,
+  counterfactual effectiveness.
+- Benchmarks named: KramaBench, MSCoRe, MedAgentBench. None is integrated yet.
+- Baselines named: message-passing systems (e.g. CAMEL, AutoGen), single-agent
+  chain of thought, majority voting.
 
-### PXP Interaction Tags
-- **RATIFY**: Agree with current prediction
-- **REVISE**: Agree but with modifications
-- **REFUTE**: Disagree with current prediction
-- **REJECT**: Reject the entire task/approach
+## Flash Talk target (Oct 6)
 
-### Flash Talk Target (Oct 6)
-Small working vertical slice demonstrating:
-- Agents → Blackboard → structured PXP interaction
-- Disagreement → eventual integration with deadlock/counterfactual components
+A working vertical slice: agents → Blackboard → structured PXP interaction →
+deadlock → counterfactual resolution. See [FLASH_TALK.md](../FLASH_TALK.md).

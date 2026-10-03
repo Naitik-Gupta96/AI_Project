@@ -1,82 +1,135 @@
-# Flash Talk - October 6
+# Flash Talk Guide
 
-## Objective
-Demonstrate a working vertical slice of the Intelligible Blackboard Architecture with Counterfactual Agents.
+## 1. Objective
 
-## What We Will Show (IMPLEMENTED)
+Show, in 3-4 minutes, one complete run of the implemented system: a task, three
+agents disagreeing on a shared Blackboard, a detected deadlock, an agent's
+counterfactual revision of its own earlier message, the replay, and the
+resulting consensus. Then show that the same pipeline runs over many generated
+tasks.
 
-### 1. Agents → Blackboard → Structured PXP Interaction
-- Multiple agents publishing to a shared Blackboard
-- PXP messages with prediction + explanation
-- Four interaction tags: RATIFY, REVISE, REFUTE, REJECT
+## 2. Research question
 
-### 2. Disagreement Detection
-- Agent A: RATIFY "Option B"
-- Agent B: REFUTE "Option B" → proposes alternative
-- Blackboard captures disagreement in history
+When agents that coordinate through a shared Blackboard deadlock, can a
+counterfactual replay of their own recorded history identify a message that,
+said differently, would have led to agreement?
 
-### 3. History & Snapshot for Counterfactual Integration
-- Append-only event log preserves all interactions
-- Snapshot isolation enables counterfactual branching
-- Ready for Person 3's counterfactual engine
+## 3. What is implemented (and what the demo uses)
 
-### 4. Clean Integration Points
-- Person 2: `agent.publish_message(board)` 
-- Person 3: `board.get_history()`, `board.snapshot()`, `board.set_status()`
-- Person 4: `board.get_state()`, `board.get_history()` (serializable)
+| In the demo | Real or mock |
+|---|---|
+| Blackboard, PXP messages, history, snapshots | real |
+| Scheduler (priority policy), consensus check, deadlock detector | real |
+| Counterfactual reflection, branching, replay, comparison | real |
+| Agent reasoning | **deterministic mock**: explicit role rules over each agent's private evidence (no language model) |
+| Task | hand-written (`tasks.flash_talk_task`) |
 
-## What We Will NOT Show (FUTURE WORK)
-- LLM-based agents (Person 2)
-- Scheduler with turn management (Person 3)
-- Deadlock detection algorithm (Person 3)
-- Counterfactual replay engine (Person 3)
-- Real-time visualization UI (Person 4)
-- Benchmark evaluation (Person 4)
+Full status: [README.md#project-status](README.md#project-status).
 
-## Demo Script
+## 4. Commands
+
 ```bash
-python examples/blackboard_demo.py
+pip install -e ".[dev]"                     # once, before the talk
+python -m streamlit run frontend/app.py     # the demo (opens a browser tab)
 ```
 
-## Expected Demo Output
-```
-Task initialized: "Select the best approach for X"
+Backup without a browser, using the same backend path:
 
-Agent A -> RATIFY: "Option B" (confidence: 0.82)
-  Explanation: "Option B satisfies all constraints."
-
-Agent B -> REFUTE: "Option B" (confidence: 0.75)
-  Explanation: "Option B fails constraint C3."
-
-Current Status: RUNNING
-Iteration: 2
-
-History:
-  1. Agent A RATIFY "Option B"
-  2. Agent B REFUTE "Option B"
-
-Snapshot created.
-Snapshot modified (simulated counterfactual branch).
-Live Blackboard unchanged ✓
-```
-
-## UI Demo (Person 4)
 ```bash
-python examples/run_demo.py      # or: streamlit run frontend/app.py
+python examples/flash_talk_demo.py
 ```
 
-### Presenter Guide
-1. Run the demo script. The UI opens on the "Flash Talk Demo" tab.
-2. Keep "Deadlock -> counterfactual consensus (Scenario C)" selected and click **Run Demo**.
-3. Original path: analyst RATIFY Option A, critic REFUTE Option A, specialist REFUTE Option A -> `DEADLOCK` after 3 steps.
-4. Counterfactual path: only step 2 is changed (the critic's refutation also names Option B). The UI shows "Diverged at Step 2"; the specialist then REVISEs to Option B and the critic and analyst RATIFY it -> `CONSENSUS` on Option B after 5 steps.
-5. Expand individual steps to show each agent's confidence and explanation.
+Both run in well under a second, need no internet, and give identical output on
+every run (tested across processes).
 
-These runs use deterministic mock agents: they prove the mechanism, not an empirical result.
+## 5. Demo flow (Flash Talk tab)
 
-## Key Talking Points
-1. **Structured Communication**: No free-form strings - every message has prediction + explanation + tag
-2. **Validation First**: Invalid messages rejected before touching state
-3. **Historical Reproducibility**: Full event log enables replay and counterfactuals
-4. **Thread-Safe**: Ready for concurrent agent execution
-5. **Integration Ready**: Stable APIs for all three teammates
+1. **Task.** "Choose the architecture for the reasoning service: Option A or
+   Option B." Open *What each agent privately knows*: the analyst rates A
+   higher (0.82 vs 0.71); the critic knows A breaks reproducibility constraint
+   C3; the specialist knows A misses the latency budget. Option B is acceptable
+   to everyone, but no agent's forward rules put it on the table.
+2. Leave **counterfactual-capable agents = critic** and press **Run**.
+3. **Agent interaction:**
+   `01 analyst RATIFY Option A` → `02 critic REFUTE Option A` →
+   `03 specialist REFUTE Option A` → **DEADLOCK** ("Option A was objected to 2
+   times without being revised").
+4. **Counterfactual reflection:** the critic reconsiders step 2 knowing how the
+   run ended, and would have refuted A *and named Option B as an acceptable
+   alternative*.
+5. **Intervention:** the original and revised step 2, side by side.
+6. **Replay:** step 1 inherited, step 2 revised, then the same agents run again:
+   `03 specialist REVISE Option B` → `04 critic RATIFY Option B` →
+   `05 analyst RATIFY Option B` → **CONSENSUS**.
+7. **Outcome:** original DEADLOCK on A after 3 steps; counterfactual CONSENSUS
+   on B after 5 steps; diverged at step 2; original board unchanged.
+8. Optional (20 s): deselect every agent and run again. The deadlock stands.
+   Select only the specialist: it revises at step 3 instead.
+9. **Evaluation tab** (30 s): methodology box first, then the table by
+   counterfactual fraction.
+
+## 6. What to say
+
+- "Agents never talk to each other directly. Every message is a structured PXP
+  record (tag, prediction, explanation, confidence) on a shared Blackboard, so
+  the whole interaction is an inspectable history."
+- PXP tags, one sentence each:
+  **RATIFY X**: I support X.
+  **REVISE X**: I replace the proposal with X.
+  **REFUTE X**: I object to X; any alternative goes in metadata.
+  **REJECT**: no option can be accepted.
+- "Deadlock has a precise definition: the standing proposal was objected to
+  twice without being revised, or no new proposal appeared for six messages
+  while someone still disagreed."
+- "A counterfactual is a branch: we copy history up to step k, replace step k
+  with the agent's revised message, and let the *same* agents, policy and
+  configuration produce the rest. The original run is never modified."
+- "The deadlock here is an information problem: the critic knew an acceptable
+  alternative but didn't say so. The counterfactual points at exactly that
+  message."
+- "Today the agents are deterministic rule-based stand-ins for language models.
+  That makes the demo reproducible and every step explainable. The same
+  pipeline accepts a local model through a provider interface."
+- On the pilot: "We ran the real pipeline on 100 generated tasks for every
+  combination of counterfactual-capable agents. These numbers describe how this
+  mechanism behaves with rule-based agents, not how LLM agents would behave."
+
+## 7. Safe claims
+
+- The Blackboard/PXP protocol, Scheduler, deadlock detector, counterfactual
+  engine and counterfactual agents are implemented and tested (261 tests).
+- The demo is produced live by that code, not scripted after the task is
+  defined. The intervention is generated by the critic's own reflection rule.
+- Runs are deterministic and reproducible across processes.
+- Branching never modifies the original run (checked in tests and shown in the UI).
+- In the pilot (deterministic mock agents, 100 synthetic tasks, seed 42), every
+  deadlock on a task that had an option acceptable to all roles was recovered
+  when all three agents were counterfactual-capable (19/19). The deadlock rate
+  itself does not change with the condition, because reflection only happens
+  after a deadlock. Numbers: [docs/evaluation.md](docs/evaluation.md).
+
+## 8. Claims we must not make
+
+- That the agents are LLMs or "AI reasoning". They are deterministic rules.
+- That counterfactual reasoning *improves* multi-agent LLM systems, or any
+  comparison with AutoGen/CAMEL/majority voting. No such experiment exists.
+- That the pilot validates the hypotheses. It is a deterministic pilot over
+  synthetic tasks; its recovery rates follow from the rules.
+- Benchmark results (KramaBench, MSCoRe, MedAgentBench): none are integrated.
+- That the system improves human understanding or intelligibility: not measured.
+- That the local-model path works well. One manual run with `qwen3:4b`
+  completed end to end, but the model did not follow the specialist's resolver
+  role and the run stayed deadlocked. A single run is an anecdote, not a result.
+
+## 9. Backup plan
+
+| Problem | Do this |
+|---|---|
+| Browser/Streamlit fails | `python examples/flash_talk_demo.py` (same backend, same output) |
+| `streamlit` not found | `python -m streamlit run frontend/app.py` |
+| Package import error | `pip install -e ".[dev]"` from the repo root |
+| Evaluation tab is empty | press **Run pilot now** (~3 s) or run `python experiments/run_experiment.py` |
+| No laptop at all | show the replay printout from the CLI demo (screenshot it before the talk) |
+
+Before the talk: run `python -m pytest` and both demo commands once on the
+presentation machine.

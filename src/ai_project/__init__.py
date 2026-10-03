@@ -1,4 +1,4 @@
-# AI Project - Main Package
+"""Intelligible Blackboard Architecture with Counterfactual Agents (research prototype)."""
 
 from ai_project.protocol import PXPMessage, PXPTag, PXPValidator, ValidationError
 from ai_project.blackboard import (
@@ -21,6 +21,7 @@ from ai_project.agents import (
     AnalystAgent,
     CriticAgent,
     SpecialistAgent,
+    build_team,
 )
 from ai_project.llm import (
     LLMProvider,
@@ -28,9 +29,12 @@ from ai_project.llm import (
     ProviderUnavailableError,
     ProviderTimeoutError,
     MockLLMProvider,
+    OllamaProvider,
     AgentDecisionParser,
     ParseError,
 )
+from ai_project.tasks import DecisionTask, Evidence, flash_talk_task, generate_tasks
+from ai_project.pipeline import PipelineRun, RunConfig, run_task
 
 __version__ = "0.1.0"
 
@@ -59,12 +63,22 @@ __all__ = [
     "AnalystAgent",
     "CriticAgent",
     "SpecialistAgent",
+    "build_team",
     # LLM
     "LLMProvider",
     "LLMProviderError",
     "ProviderUnavailableError",
     "ProviderTimeoutError",
     "MockLLMProvider",
+    "OllamaProvider",
     "AgentDecisionParser",
     "ParseError",
+    # Tasks and the end-to-end pipeline
+    "DecisionTask",
+    "Evidence",
+    "flash_talk_task",
+    "generate_tasks",
+    "PipelineRun",
+    "RunConfig",
+    "run_task",
 ]

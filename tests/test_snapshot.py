@@ -1,3 +1,4 @@
+import dataclasses
 import pytest
 
 from ai_project.protocol.pxp import PXPMessage, PXPTag
@@ -29,7 +30,9 @@ class TestSnapshot:
         # Modify snapshot
         snapshot.state.current_prediction = "Modified"
         snapshot.state.iteration = 999
-        snapshot.history[0].agent_id = "MODIFIED"
+        snapshot.history[0] = dataclasses.replace(snapshot.history[0], agent_id="MODIFIED")
+        with pytest.raises(dataclasses.FrozenInstanceError):
+            snapshot.history[1].agent_id = "MODIFIED"
 
         # Live board should be unchanged
         live_state = self.board.get_state()

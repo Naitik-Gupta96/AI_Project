@@ -1,12 +1,26 @@
 from dataclasses import dataclass, field
-from datetime import datetime
+from datetime import datetime, timezone
 from enum import Enum
 from typing import Any, Dict, Optional
 import uuid
 
 
+def utc_timestamp() -> str:
+    """Current UTC time as an ISO-8601 string with a trailing 'Z'."""
+    return datetime.now(timezone.utc).isoformat().replace("+00:00", "Z")
+
+
 class PXPTag(Enum):
-    """PXP interaction tags for agent communication."""
+    """
+    PXP interaction tags. ``prediction`` always names the option the tag is about:
+
+    - RATIFY X: I support X (also used to open with X when nothing is proposed).
+    - REVISE X: I replace the standing proposal with X, and support X.
+    - REFUTE X: I object to X, the standing proposal. An alternative, if I have
+      one, goes in ``metadata["alternative"]``; it is not the prediction.
+    - REJECT:   No option can be accepted; the task as posed cannot be solved.
+      Objects to whatever proposal is standing.
+    """
 
     RATIFY = "RATIFY"
     REVISE = "REVISE"
@@ -46,7 +60,7 @@ class PXPMessage:
     explanation: str
     confidence: Optional[float] = None
     iteration: int = 0
-    timestamp: str = field(default_factory=lambda: datetime.utcnow().isoformat() + "Z")
+    timestamp: str = field(default_factory=utc_timestamp)
     metadata: Dict[str, Any] = field(default_factory=dict)
 
     def __post_init__(self) -> None:
@@ -84,7 +98,7 @@ class PXPMessage:
             explanation=data["explanation"],
             confidence=data.get("confidence"),
             iteration=data.get("iteration", 0),
-            timestamp=data.get("timestamp", datetime.utcnow().isoformat() + "Z"),
+            timestamp=data.get("timestamp") or utc_timestamp(),
             metadata=data.get("metadata", {}),
         )
 

@@ -134,8 +134,8 @@ class Blackboard:
                 iteration=self._state.iteration,
                 current_prediction=self._state.current_prediction,
                 current_explanation=self._state.current_explanation,
-                latest_message=self._state.latest_message,
-                metadata=dict(self._state.metadata),
+                latest_message=copy.deepcopy(self._state.latest_message),
+                metadata=copy.deepcopy(self._state.metadata),
             )
 
     def get_latest_message(self) -> Optional[Dict[str, Any]]:
@@ -150,7 +150,7 @@ class Blackboard:
         """
         with self._lock:
             self._ensure_initialized()
-            return self._state.latest_message
+            return copy.deepcopy(self._state.latest_message)
 
     def get_history(self) -> List[HistoryEvent]:
         """

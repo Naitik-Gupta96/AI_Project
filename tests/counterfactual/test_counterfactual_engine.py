@@ -1,3 +1,4 @@
+import dataclasses
 import json
 
 import pytest
@@ -130,7 +131,9 @@ class TestIsolation:
     def test_source_snapshot_is_isolated(self, original):
         _, board, _ = original
         branch = CounterfactualEngine().create_branch(board, demo_intervention())
-        branch.source_snapshot.history[0].agent_id = "MUTATED"
+        branch.source_snapshot.history[0] = dataclasses.replace(
+            branch.source_snapshot.history[0], agent_id="MUTATED"
+        )
         branch.source_snapshot.state.current_prediction = "MUTATED"
         assert board.get_history()[0].agent_id == "analyst"
         assert board.get_state().current_prediction == OPTION_A

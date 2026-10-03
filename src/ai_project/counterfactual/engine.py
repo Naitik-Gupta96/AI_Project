@@ -16,10 +16,11 @@ the original and from each other.
 Branch boards are rebuilt by re-publishing history through
 ``publish_message`` (rather than editing a snapshot and loading it) so the
 Blackboard itself recomputes iteration, current prediction and latest message.
-Limitation: ``HistoryEvent`` does not store message metadata, so inherited
-events are re-published with empty metadata.
+Inherited events keep their message metadata (e.g. a named alternative), so
+agents on the branch see exactly what they saw in the original run.
 """
 
+import copy
 from collections.abc import Mapping
 from dataclasses import dataclass, field
 from typing import Any
@@ -235,7 +236,7 @@ def _content(event: dict[str, Any]) -> tuple:
 
 
 def _message_from_event(event: HistoryEvent) -> PXPMessage:
-    """Rebuild a publishable PXP message from a history event (metadata is not in history)."""
+    """Rebuild a publishable PXP message from a history event."""
     return PXPMessage(
         message_id=event.message_id or f"inherited-it{event.iteration:03d}",
         agent_id=event.agent_id,
@@ -245,6 +246,7 @@ def _message_from_event(event: HistoryEvent) -> PXPMessage:
         confidence=event.confidence,
         iteration=event.iteration,
         timestamp=event.timestamp,
+        metadata=copy.deepcopy(event.metadata),
     )
 
 

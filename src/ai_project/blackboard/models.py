@@ -1,8 +1,9 @@
 from dataclasses import dataclass, field
-from datetime import datetime
 from enum import Enum
 from typing import Any, Dict, List, Optional
 import copy
+
+from ai_project.protocol.pxp import utc_timestamp
 
 
 class BlackboardStatus(Enum):
@@ -67,10 +68,14 @@ class BlackboardState:
         )
 
 
-@dataclass
+@dataclass(frozen=True)
 class HistoryEvent:
     """
     Immutable event record for the Blackboard history.
+
+    ``metadata`` is the published message's metadata. It is kept because agents
+    read it (e.g. the alternative named in a REFUTE), so a counterfactual branch
+    that re-publishes history must carry it to replay faithfully.
 
     Attributes:
         iteration: Iteration number when this event occurred
@@ -81,6 +86,7 @@ class HistoryEvent:
         explanation: Explanation from the message
         confidence: Confidence from the message (optional)
         message_id: ID of the message that caused this event
+        metadata: Metadata of that message
     """
 
     iteration: int
@@ -91,6 +97,7 @@ class HistoryEvent:
     explanation: str
     confidence: Optional[float] = None
     message_id: str = ""
+    metadata: Dict[str, Any] = field(default_factory=dict)
 
     def to_dict(self) -> Dict[str, Any]:
         """Convert to JSON-serializable dictionary."""
@@ -103,6 +110,7 @@ class HistoryEvent:
             "explanation": self.explanation,
             "confidence": self.confidence,
             "message_id": self.message_id,
+            "metadata": copy.deepcopy(self.metadata),
         }
 
     @classmethod
@@ -117,6 +125,7 @@ class HistoryEvent:
             explanation=data["explanation"],
             confidence=data.get("confidence"),
             message_id=data.get("message_id", ""),
+            metadata=copy.deepcopy(data.get("metadata") or {}),
         )
 
     @classmethod
@@ -134,6 +143,7 @@ class HistoryEvent:
             explanation=message.explanation,
             confidence=message.confidence,
             message_id=message.message_id,
+            metadata=copy.deepcopy(message.metadata),
         )
 
 
@@ -147,7 +157,7 @@ class BlackboardSnapshot:
 
     state: BlackboardState
     history: List[HistoryEvent]
-    timestamp: str = field(default_factory=lambda: datetime.utcnow().isoformat() + "Z")
+    timestamp: str = field(default_factory=utc_timestamp)
 
     def __post_init__(self) -> None:
         """Ensure deep copies are used."""
@@ -168,5 +178,5 @@ class BlackboardSnapshot:
         return cls(
             state=BlackboardState.from_dict(data["state"]),
             history=[HistoryEvent.from_dict(e) for e in data["history"]],
-            timestamp=data.get("timestamp", datetime.utcnow().isoformat() + "Z"),
+            timestamp=data.get("timestamp") or utc_timestamp(),
         )

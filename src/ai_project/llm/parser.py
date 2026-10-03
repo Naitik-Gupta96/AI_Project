@@ -1,5 +1,4 @@
 import json
-import re
 from typing import Any, Dict, Optional
 
 from ai_project.protocol.pxp import PXPTag
@@ -39,7 +38,29 @@ class AgentDecisionParser:
             data = json.loads(json_str)
         except json.JSONDecodeError as e:
             raise ParseError(f"Invalid JSON: {e}")
+        if not isinstance(data, dict):
+            raise ParseError("Expected a JSON object")
 
+        return self._validate_and_create(data)
+
+    def parse_reflection(self, raw_output: str) -> Optional[AgentDecision]:
+        """
+        Parse a counterfactual-reflection answer.
+
+        Returns None if the agent answered ``{"no_change": true, ...}``,
+        otherwise the revised decision.
+        """
+        json_str = self._extract_json(raw_output)
+        if not json_str:
+            raise ParseError(f"No valid JSON found in output: {raw_output[:200]}")
+        try:
+            data = json.loads(json_str)
+        except json.JSONDecodeError as e:
+            raise ParseError(f"Invalid JSON: {e}")
+        if not isinstance(data, dict):
+            raise ParseError("Expected a JSON object")
+        if data.get("no_change") is True:
+            return None
         return self._validate_and_create(data)
 
     def _extract_json(self, text: str) -> Optional[str]:

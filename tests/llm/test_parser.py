@@ -1,79 +1,8 @@
 import pytest
 
-from ai_project.llm import MockLLMProvider, AgentDecisionParser, ParseError
+from ai_project.llm import AgentDecisionParser, ParseError
 from ai_project.protocol.pxp import PXPTag
 from ai_project.agents.models import AgentDecision
-
-
-class TestMockLLMProvider:
-    """Tests for MockLLMProvider."""
-
-    def setup_method(self) -> None:
-        self.provider = MockLLMProvider()
-
-    def test_is_available(self) -> None:
-        assert self.provider.is_available() is True
-
-    def test_generate_returns_json(self) -> None:
-        prompt = "You are the Analyst agent. Task: test."
-        output = self.provider.generate(prompt)
-
-        # Should be valid JSON
-        import json
-        data = json.loads(output)
-        assert "tag" in data
-        assert "prediction" in data
-        assert "explanation" in data
-        assert "confidence" in data
-
-    def test_analyst_prompt_produces_ratify(self) -> None:
-        prompt = "You are the Analyst agent. Task: test."
-        output = self.provider.generate(prompt)
-
-        import json
-        data = json.loads(output)
-        assert data["tag"] == "RATIFY"
-        assert data["prediction"] in ["Option A", "Option B", "Option C", "Option D"]
-        assert 0.0 <= data["confidence"] <= 1.0
-
-    def test_critic_prompt_produces_valid_tag(self) -> None:
-        prompt = "You are the Critic agent. Task: test. Current prediction: Option A."
-        output = self.provider.generate(prompt)
-
-        import json
-        data = json.loads(output)
-        assert data["tag"] in ["RATIFY", "REVISE", "REFUTE", "REJECT"]
-
-    def test_specialist_prompt_produces_valid_tag(self) -> None:
-        prompt = "You are the Specialist agent. Task: test."
-        output = self.provider.generate(prompt)
-
-        import json
-        data = json.loads(output)
-        assert data["tag"] in ["RATIFY", "REVISE", "REFUTE", "REJECT"]
-
-    def test_deterministic_for_same_prompt(self) -> None:
-        prompt = "You are the Analyst agent. Task: same task."
-        out1 = self.provider.generate(prompt)
-        out2 = self.provider.generate(prompt)
-
-        assert out1 == out2
-
-    def test_different_roles_different_outputs(self) -> None:
-        analyst_prompt = "You are the Analyst agent. Task: test."
-        critic_prompt = "You are the Critic agent. Task: test."
-
-        out1 = self.provider.generate(analyst_prompt)
-        out2 = self.provider.generate(critic_prompt)
-
-        # Should be different (different roles)
-        import json
-        data1 = json.loads(out1)
-        data2 = json.loads(out2)
-
-        # Both should be valid
-        assert data1["tag"] in ["RATIFY", "REVISE", "REFUTE", "REJECT"]
-        assert data2["tag"] in ["RATIFY", "REVISE", "REFUTE", "REJECT"]
 
 
 class TestAgentDecisionParser:
@@ -160,3 +89,21 @@ class TestAgentDecisionParser:
         json_str = '{"tag": "RATIFY", "prediction": "Option A", "explanation": "Good", "confidence": 0.8, "extra": "field"}'
         decision = self.parser.parse(json_str)
         assert decision.tag == PXPTag.RATIFY
+
+class TestReflectionParsing:
+    def setup_method(self) -> None:
+        self.parser = AgentDecisionParser()
+
+    def test_no_change_returns_none(self) -> None:
+        assert self.parser.parse_reflection('{"no_change": true, "explanation": "fine"}') is None
+
+    def test_revision_parsed(self) -> None:
+        raw = ('{"tag": "REFUTE", "prediction": "Option A", "explanation": "x", '
+               '"confidence": 0.8, "metadata": {"alternative": "Option B"}}')
+        decision = self.parser.parse_reflection(raw)
+        assert decision.tag == PXPTag.REFUTE
+        assert decision.metadata["alternative"] == "Option B"
+
+    def test_non_object_rejected(self) -> None:
+        with pytest.raises(ParseError):
+            self.parser.parse_reflection("[1, 2]")

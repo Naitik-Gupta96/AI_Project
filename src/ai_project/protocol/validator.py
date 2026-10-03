@@ -1,5 +1,5 @@
 from dataclasses import dataclass
-from typing import List, Optional
+from typing import List
 
 from ai_project.protocol.pxp import PXPMessage, PXPTag
 

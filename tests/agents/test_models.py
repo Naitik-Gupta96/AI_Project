@@ -2,6 +2,8 @@ import pytest
 
 from ai_project.agents.models import AgentDecision, AgentContext
 from ai_project.protocol.pxp import PXPTag
+from ai_project.blackboard.models import HistoryEvent
+from ai_project.tasks import Evidence
 
 
 class TestAgentDecision:
@@ -88,48 +90,17 @@ class TestAgentDecision:
 
 
 class TestAgentContext:
-    """Tests for AgentContext model."""
-
-    def test_creation(self) -> None:
-        from ai_project.blackboard.models import HistoryEvent
-        context = AgentContext(
-            task="Test task",
-            current_prediction="Option A",
-            current_explanation="Reason",
-            status="RUNNING",
-            iteration=1,
-            recent_history=[],
-            agent_id="analyst",
-            agent_role="Analyst",
+    def test_latest_and_reflection_flags(self) -> None:
+        event = HistoryEvent(1, "analyst", "RATIFY", "t", "Option A", "why", 0.8)
+        ctx = AgentContext(
+            agent_id="critic", role="critic", task="T", options=("Option A",),
+            evidence=Evidence(), status="RUNNING", iteration=1, proposal="Option A",
+            history=(event,),
         )
-        assert context.task == "Test task"
-        assert context.iteration == 1
+        assert ctx.latest is event
+        assert not ctx.is_reflection
 
-    def test_to_prompt_context(self) -> None:
-        from ai_project.blackboard.models import HistoryEvent
-        history = [
-            HistoryEvent(
-                iteration=1,
-                agent_id="analyst",
-                tag="RATIFY",
-                timestamp="2024-01-01T00:00:00Z",
-                prediction="Option A",
-                explanation="Good",
-                confidence=0.8,
-            )
-        ]
-        context = AgentContext(
-            task="Test task",
-            current_prediction="Option A",
-            current_explanation="Reason",
-            status="RUNNING",
-            iteration=1,
-            recent_history=history,
-            agent_id="critic",
-            agent_role="Critic",
-        )
-        prompt_ctx = context.to_prompt_context()
-        assert prompt_ctx["task"] == "Test task"
-        assert prompt_ctx["iteration"] == 1
-        assert len(prompt_ctx["recent_history"]) == 1
-        assert prompt_ctx["agent_id"] == "critic"
+    def test_decision_alternative(self) -> None:
+        decision = AgentDecision(PXPTag.REFUTE, "Option A", "bad", 0.8, {"alternative": "Option B"})
+        assert decision.alternative == "Option B"
+        assert decision.to_pxp_message("critic", 2).metadata["alternative"] == "Option B"

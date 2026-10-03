@@ -1,22 +1,71 @@
-from dataclasses import dataclass, field
-from typing import Any, Dict, List, Optional
+"""
+The agent contract.
 
-from ai_project.protocol.pxp import PXPTag
+    AgentContext   what the agent sees   (built from the Blackboard + its private evidence)
+    AgentDecision  what the agent decides (parsed from the provider's structured output)
+    PXPMessage     what is published     (AgentDecision + agent id + iteration)
+"""
+
+from dataclasses import dataclass, field
+from typing import Any
+
+from ai_project.blackboard.models import HistoryEvent
+from ai_project.protocol.pxp import PXPMessage, PXPTag
+from ai_project.tasks import Evidence
+
+# Metadata key for the option an objection points to instead (see PXPTag)
+ALTERNATIVE_KEY = "alternative"
+
+
+@dataclass(frozen=True)
+class AgentContext:
+    """
+    Everything an agent reasons over for one decision.
+
+    Attributes:
+        agent_id: The deciding agent
+        role: "analyst", "critic" or "specialist"
+        task: Task question (public, from the Blackboard)
+        options: Option names (public, from the Blackboard)
+        evidence: This agent's private evidence
+        status: Blackboard status
+        iteration: Blackboard iteration
+        proposal: Standing proposal (None if nothing proposed yet)
+        history: Blackboard history up to now
+        reflect_on: Set only for counterfactual reflection: the agent's own past
+            event it is asked to reconsider, with ``history`` being the full
+            history of the run that followed
+    """
+
+    agent_id: str
+    role: str
+    task: str
+    options: tuple[str, ...]
+    evidence: Evidence
+    status: str
+    iteration: int
+    proposal: str | None
+    history: tuple[HistoryEvent, ...]
+    reflect_on: HistoryEvent | None = None
+
+    @property
+    def latest(self) -> HistoryEvent | None:
+        return self.history[-1] if self.history else None
+
+    @property
+    def is_reflection(self) -> bool:
+        return self.reflect_on is not None
 
 
 @dataclass
 class AgentDecision:
-    """
-    Internal structured representation of an agent's reasoning output.
-
-    This is the contract between agent reasoning and PXP message creation.
-    """
+    """A validated decision: PXP tag, prediction, explanation, confidence, metadata."""
 
     tag: PXPTag
     prediction: str
     explanation: str
     confidence: float
-    metadata: Dict[str, Any] = field(default_factory=dict)
+    metadata: dict[str, Any] = field(default_factory=dict)
 
     def __post_init__(self) -> None:
         if isinstance(self.tag, str):
@@ -29,9 +78,12 @@ class AgentDecision:
         if not self.explanation or not self.explanation.strip():
             raise ValueError("explanation must be non-empty")
 
-    def to_pxp_message(self, agent_id: str, iteration: int) -> "PXPMessage":
+    @property
+    def alternative(self) -> str | None:
+        return self.metadata.get(ALTERNATIVE_KEY)
+
+    def to_pxp_message(self, agent_id: str, iteration: int) -> PXPMessage:
         """Convert to a PXPMessage for Blackboard publication."""
-        from ai_project.protocol.pxp import PXPMessage
         return PXPMessage.create(
             agent_id=agent_id,
             tag=self.tag,
@@ -39,60 +91,15 @@ class AgentDecision:
             explanation=self.explanation,
             confidence=self.confidence,
             iteration=iteration,
-            metadata=self.metadata,
+            metadata=dict(self.metadata),
         )
 
-    def to_dict(self) -> Dict[str, Any]:
-        """Convert to JSON-serializable dictionary."""
+    def to_dict(self) -> dict[str, Any]:
+        """Convert to JSON-serializable dictionary (the provider output schema)."""
         return {
             "tag": self.tag.value,
             "prediction": self.prediction,
             "explanation": self.explanation,
             "confidence": self.confidence,
-            "metadata": self.metadata,
+            "metadata": dict(self.metadata),
         }
-
-
-@dataclass
-class AgentContext:
-    """
-    Structured context passed to agents for reasoning.
-
-    Contains all information an agent needs to make a decision.
-    """
-
-    task: str
-    current_prediction: str
-    current_explanation: str
-    status: str
-    iteration: int
-    recent_history: List["HistoryEvent"]
-    agent_id: str
-    agent_role: str
-    metadata: Dict[str, Any] = field(default_factory=dict)
-
-    def to_prompt_context(self) -> Dict[str, Any]:
-        """Convert to a dictionary suitable for prompt templating."""
-        return {
-            "task": self.task,
-            "current_prediction": self.current_prediction or "(none)",
-            "current_explanation": self.current_explanation or "(none)",
-            "status": self.status,
-            "iteration": self.iteration,
-            "recent_history": [
-                {
-                    "iteration": e.iteration,
-                    "agent_id": e.agent_id,
-                    "tag": e.tag,
-                    "prediction": e.prediction,
-                    "explanation": e.explanation,
-                    "confidence": e.confidence,
-                }
-                for e in self.recent_history
-            ],
-            "agent_id": self.agent_id,
-            "agent_role": self.agent_role,
-        }
-
-
-from ai_project.blackboard.models import HistoryEvent

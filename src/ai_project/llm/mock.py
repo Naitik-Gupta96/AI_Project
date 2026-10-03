@@ -1,166 +1,241 @@
-import json
-import hashlib
-from typing import Any, Dict, List, Optional
+"""
+Deterministic mock provider: explicit role rules standing in for a model.
 
-from ai_project.llm.base import LLMProvider, ProviderUnavailableError
+This is not a language model. It reads the structured ``AgentContext`` (the
+same information the prompt contains) and applies the rules below. Each
+output is a pure function of the context: no randomness, no hashing, no
+hidden state. The same board therefore always yields the same message, in
+any process.
+
+Notation: P is the standing proposal; "acceptable" means the agent's own
+evidence has no objection; candidates are ranked by the agent's own scores,
+ties broken by option order.
+
+Forward rules (first match wins):
+
+    analyst     no P               -> RATIFY best acceptable option not yet refuted
+                                      (REJECT if there is none)
+                P not acceptable   -> REFUTE P, citing the reason
+                otherwise          -> RATIFY P
+    critic      no P               -> RATIFY best acceptable option
+                P not acceptable   -> REFUTE P, citing the constraint it breaks.
+                                      The critic reports violations only; it does
+                                      not volunteer an alternative.
+                otherwise          -> RATIFY P
+    specialist  latest message objects to P and names an acceptable
+                alternative X      -> REVISE to X
+                no P               -> RATIFY best acceptable option
+                P not acceptable   -> REFUTE P, citing the domain limit
+                otherwise          -> RATIFY P
+
+Counterfactual reflection: after a deadlock, an agent is shown the whole
+run and one of its own past messages, and asked what it would have said
+instead. It may use what the run made public (which options were refuted)
+plus its own evidence, never other agents' private evidence. Y is its best
+acceptable option that nobody refuted in the run.
+
+    analyst     own opening proposal X was later refuted -> RATIFY Y instead
+    critic      own REFUTE X named no alternative        -> same REFUTE X, naming Y
+    specialist  own REFUTE X / RATIFY X, X was refuted   -> REVISE to Y instead
+    otherwise / no Y                                     -> no change
+
+Confidence values are fixed per rule (they label the rule, they are not
+calibrated probabilities).
+"""
+
+import json
+from typing import Any
+
+from ai_project.agents.models import ALTERNATIVE_KEY, AgentContext
+from ai_project.blackboard.models import HistoryEvent
+from ai_project.llm.base import LLMProvider, LLMRequest, LLMResponse
 from ai_project.protocol.pxp import PXPTag
-from ai_project.agents.models import AgentDecision
+
+RATIFY, REVISE, REFUTE, REJECT = (t.value for t in PXPTag)
 
 
 class MockLLMProvider(LLMProvider):
-    """
-    Deterministic mock LLM provider for testing and demos.
+    """Rule-based deterministic provider (see module docstring for the rules)."""
 
-    Produces role-appropriate responses based on the prompt content.
-    Uses prompt hashing for deterministic output.
-    """
+    name = "deterministic-mock"
+    deterministic = True
 
-    def __init__(self, seed: int = 42):
-        self._seed = seed
-        self._call_count = 0
-
-    def generate(self, prompt: str, **kwargs: Any) -> str:
-        """Generate a deterministic mock response."""
-        self._call_count += 1
-
-        # Extract role from prompt
-        role = self._extract_role(prompt)
-
-        # Create deterministic response based on role and prompt
-        decision = self._create_decision(role, prompt)
-
-        return json.dumps(decision.to_dict(), ensure_ascii=False)
-
-    def _extract_role(self, prompt: str) -> str:
-        """Extract agent role from prompt."""
-        prompt_lower = prompt.lower()
-        if "analyst" in prompt_lower:
-            return "analyst"
-        elif "critic" in prompt_lower:
-            return "critic"
-        elif "specialist" in prompt_lower:
-            return "specialist"
-        return "analyst"
-
-    def _create_decision(self, role: str, prompt: str) -> AgentDecision:
-        """Create a role-appropriate decision deterministically."""
-        # Hash prompt for deterministic variation
-        prompt_hash = int(hashlib.md5(prompt.encode()).hexdigest()[:8], 16)
-
-        # Extract current prediction from prompt
-        current_pred = self._extract_current_prediction(prompt)
-
-        if role == "analyst":
-            return self._analyst_decision(current_pred, prompt_hash)
-        elif role == "critic":
-            return self._critic_decision(current_pred, prompt_hash)
-        elif role == "specialist":
-            return self._specialist_decision(current_pred, prompt_hash)
+    def generate(self, request: LLMRequest) -> LLMResponse:
+        ctx = request.context
+        if ctx.is_reflection:
+            output = _reflect(ctx)
         else:
-            return self._analyst_decision(current_pred, prompt_hash)
+            output = _ROLE_RULES.get(ctx.role, _generic)(ctx)
+        output.setdefault("metadata", {})
+        return LLMResponse(text=json.dumps(output, ensure_ascii=False), usage=None)
 
-    def _extract_current_prediction(self, prompt: str) -> Optional[str]:
-        """Extract current prediction from prompt context."""
-        import re
-        # Look for "current_prediction" in the prompt
-        match = re.search(r'current_prediction[:\s]+"?([^"\n]+)"?', prompt, re.IGNORECASE)
-        if match:
-            return match.group(1).strip()
-        return None
 
-    def _analyst_decision(self, current_pred: Optional[str], seed: int) -> AgentDecision:
-        """Analyst generates initial or independent prediction."""
-        options = ["Option A", "Option B", "Option C", "Option D"]
-        pred = options[seed % len(options)]
+# ---------------------------------------------------------------- helpers
 
-        explanations = [
-            f"Based on the task requirements, {pred} provides the best balance of feasibility and impact.",
-            f"Analysis of the constraints suggests {pred} is the most viable approach.",
-            f"{pred} aligns well with the stated objectives and available evidence.",
-        ]
-        exp = explanations[seed % len(explanations)]
 
-        return AgentDecision(
-            tag=PXPTag.RATIFY,
-            prediction=pred,
-            explanation=exp,
-            confidence=0.75 + (seed % 20) / 100.0,
-            metadata={"role": "analyst", "seed": seed},
+def _decision(tag: str, prediction: str, explanation: str, confidence: float, rule: str,
+              **metadata: Any) -> dict[str, Any]:
+    return {
+        "tag": tag,
+        "prediction": prediction,
+        "explanation": explanation,
+        "confidence": confidence,
+        "metadata": {"rule": rule, **metadata},
+    }
+
+
+def _refuted(history: tuple[HistoryEvent, ...]) -> set[str]:
+    """Options refuted on the board so far."""
+    return {e.prediction for e in history if e.tag == REFUTE}
+
+
+def _ranked(ctx: AgentContext, exclude: set[str]) -> list[str]:
+    """Acceptable options not in ``exclude``, best first by own score, then option order."""
+    scores = ctx.evidence.scores
+    candidates = [o for o in ctx.options if o not in ctx.evidence.objections and o not in exclude]
+    return sorted(candidates, key=lambda o: (-scores.get(o, 0.0), ctx.options.index(o)))
+
+
+def _score_note(ctx: AgentContext, option: str) -> str:
+    score = ctx.evidence.scores.get(option)
+    return f" (estimated benefit {score:.2f})" if score is not None else ""
+
+
+def _open(ctx: AgentContext, rule: str = "open") -> dict[str, Any]:
+    ranked = _ranked(ctx, _refuted(ctx.history))
+    if not ranked:
+        return _decision(
+            REJECT,
+            "No acceptable option",
+            "Every option is either ruled out by my evidence or already refuted.",
+            0.8,
+            rule,
         )
+    choice = ranked[0]
+    return _decision(
+        RATIFY,
+        choice,
+        f"Opening proposal: {choice}{_score_note(ctx, choice)} is the best option "
+        f"I can accept for this task.",
+        0.8,
+        rule,
+    )
 
-    def _critic_decision(self, current_pred: Optional[str], seed: int) -> AgentDecision:
-        """Critic challenges or refines the current prediction."""
-        if not current_pred or current_pred == "(none)":
-            # No prediction yet - critic acts as initial reviewer
-            return AgentDecision(
-                tag=PXPTag.REVISE,
-                prediction="Need more information",
-                explanation="Cannot evaluate without an existing prediction to critique.",
-                confidence=0.5,
-                metadata={"role": "critic", "seed": seed},
+
+def _refute(ctx: AgentContext, proposal: str) -> dict[str, Any]:
+    reason = ctx.evidence.objections[proposal]
+    return _decision(REFUTE, proposal, f"{proposal} is unacceptable: {reason}.", 0.85, "object")
+
+
+def _endorse(ctx: AgentContext, proposal: str, note: str) -> dict[str, Any]:
+    return _decision(RATIFY, proposal, note, 0.75, "endorse")
+
+
+# ---------------------------------------------------------------- forward rules
+
+
+def _analyst(ctx: AgentContext) -> dict[str, Any]:
+    p = ctx.proposal
+    if p is None:
+        return _open(ctx)
+    if p in ctx.evidence.objections:
+        return _refute(ctx, p)
+    top = _ranked(ctx, set())
+    if top and top[0] == p:
+        note = f"{p} is my top-ranked option{_score_note(ctx, p)}."
+    else:
+        note = f"{p} is acceptable{_score_note(ctx, p)}; I have no objection to it."
+    return _endorse(ctx, p, note)
+
+
+def _critic(ctx: AgentContext) -> dict[str, Any]:
+    p = ctx.proposal
+    if p is None:
+        return _open(ctx)
+    if p in ctx.evidence.objections:
+        return _refute(ctx, p)
+    return _endorse(ctx, p, f"{p} passes all of my constraint checks.")
+
+
+def _specialist(ctx: AgentContext) -> dict[str, Any]:
+    p, latest = ctx.proposal, ctx.latest
+    if latest is not None and latest.tag in (REFUTE, REJECT):
+        alt = latest.metadata.get(ALTERNATIVE_KEY)
+        if alt and alt != p and alt in ctx.options and alt not in ctx.evidence.objections:
+            return _decision(
+                REVISE,
+                alt,
+                f"{latest.agent_id} showed {p} is flawed and named {alt}; {alt} passes my "
+                f"domain checks, so I revise the proposal to {alt}.",
+                0.8,
+                "adopt_alternative",
+                adopted_from=latest.agent_id,
             )
+    if p is None:
+        return _open(ctx)
+    if p in ctx.evidence.objections:
+        return _refute(ctx, p)
+    return _endorse(ctx, p, f"{p} raises no issue in my domain checks.")
 
-        # Deterministically decide: RATIFY, REVISE, or REFUTE
-        decision_type = seed % 3
-        confidence = 0.6 + (seed % 30) / 100.0
 
-        if decision_type == 0:
-            # RATIFY - agree with current
-            return AgentDecision(
-                tag=PXPTag.RATIFY,
-                prediction=current_pred,
-                explanation=f"The reasoning for {current_pred} is sound and well-supported.",
-                confidence=confidence,
-                metadata={"role": "critic", "seed": seed},
+def _generic(ctx: AgentContext) -> dict[str, Any]:
+    """Fallback for unknown roles: endorse what is acceptable, refute what is not."""
+    return _critic(ctx)
+
+
+_ROLE_RULES = {"analyst": _analyst, "critic": _critic, "specialist": _specialist}
+
+
+# ---------------------------------------------------------------- reflection
+
+
+def _no_change(reason: str) -> dict[str, Any]:
+    return {"no_change": True, "explanation": reason}
+
+
+def _reflect(ctx: AgentContext) -> dict[str, Any]:
+    own = ctx.reflect_on
+    assert own is not None
+    refuted = _refuted(ctx.history)
+    ranked = _ranked(ctx, refuted | {own.prediction})
+    alt = ranked[0] if ranked else None
+    refuters = sorted({e.agent_id for e in ctx.history if e.tag == REFUTE
+                       and e.prediction == own.prediction})
+    by = f" by {', '.join(refuters)}" if refuters else ""
+
+    if ctx.role == "analyst":
+        if own.tag in (RATIFY, REVISE) and own.prediction in refuted and alt:
+            return _decision(
+                RATIFY,
+                alt,
+                f"In hindsight: {own.prediction} was refuted{by} later in the run. "
+                f"Opening with {alt}{_score_note(ctx, alt)} avoids that objection.",
+                0.8,
+                "hindsight_reopen",
             )
-        elif decision_type == 1:
-            # REVISE - agree but modify
-            alt_options = ["Option A", "Option B", "Option C", "Option D"]
-            alt = alt_options[(seed + 1) % len(alt_options)]
-            return AgentDecision(
-                tag=PXPTag.REVISE,
-                prediction=alt,
-                explanation=f"While {current_pred} has merit, {alt} better addresses the constraints.",
-                confidence=confidence,
-                metadata={"role": "critic", "seed": seed},
+    elif ctx.role == "critic":
+        if own.tag == REFUTE and not own.metadata.get(ALTERNATIVE_KEY) and alt:
+            return _decision(
+                REFUTE,
+                own.prediction,
+                f"{own.explanation} {alt} passes my checks and is an acceptable alternative.",
+                own.confidence if own.confidence is not None else 0.85,
+                "hindsight_name_alternative",
+                **{ALTERNATIVE_KEY: alt},
             )
-        else:
-            # REFUTE - disagree
-            alt_options = ["Option A", "Option B", "Option C", "Option D"]
-            alt = alt_options[(seed + 2) % len(alt_options)]
-            return AgentDecision(
-                tag=PXPTag.REFUTE,
-                prediction=current_pred,
-                explanation=f"{current_pred} fails to account for key constraints. Consider {alt} instead.",
-                confidence=confidence,
-                metadata={"role": "critic", "seed": seed},
+    elif ctx.role == "specialist":
+        if own.tag in (REFUTE, RATIFY) and own.prediction in refuted and alt:
+            return _decision(
+                REVISE,
+                alt,
+                f"In hindsight: {own.prediction} was refuted{by}. Instead of "
+                f"{own.tag} {own.prediction} I propose {alt}, which passes my domain checks "
+                f"and was not refuted.",
+                0.8,
+                "hindsight_propose",
             )
-
-    def _specialist_decision(self, current_pred: Optional[str], seed: int) -> AgentDecision:
-        """Specialist provides independent perspective."""
-        options = ["Option A", "Option B", "Option C", "Option D"]
-        pred = options[(seed + 1) % len(options)]
-
-        explanations = [
-            f"From a specialized perspective, {pred} offers unique advantages not previously considered.",
-            f"Domain analysis indicates {pred} is more robust under edge cases.",
-            f"Specialized evaluation favors {pred} due to secondary criteria.",
-        ]
-        exp = explanations[seed % len(explanations)]
-
-        # Sometimes ratify, sometimes revise/refute
-        if seed % 2 == 0:
-            tag = PXPTag.RATIFY
-        else:
-            tag = PXPTag.REVISE if seed % 3 != 0 else PXPTag.REFUTE
-
-        return AgentDecision(
-            tag=tag,
-            prediction=pred,
-            explanation=exp,
-            confidence=0.7 + (seed % 25) / 100.0,
-            metadata={"role": "specialist", "seed": seed},
-        )
-
-    def is_available(self) -> bool:
-        return True
+    if alt is None:
+        return _no_change("No acceptable option was left unrefuted, so a different message "
+                          "would not have helped.")
+    return _no_change(f"My {own.tag} {own.prediction} at step {own.iteration} is not one "
+                      f"my reflection rules would change.")

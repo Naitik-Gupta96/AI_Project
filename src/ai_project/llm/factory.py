@@ -2,8 +2,8 @@
 Build a provider from a short spec string (CLI flags, experiment configs).
 
     mock                       deterministic rules (tests, offline demo)
-    ollama:<model>             Ollama native API ($OLLAMA_HOST, default localhost:11434)
-    vllm:<model>               vLLM OpenAI server ($VLLM_BASE_URL, default localhost:8000/v1)
+    ollama:<model>             Ollama native API ($OLLAMA_HOST, default 127.0.0.1:11434)
+    vllm:<model>               vLLM OpenAI server ($VLLM_BASE_URL, default 127.0.0.1:8000/v1)
     openai:<model>@<base_url>  any OpenAI-compatible server ($OPENAI_API_KEY if set)
     hf:<model>                 in-process transformers, dynamic batching
 
@@ -37,13 +37,13 @@ def make_provider(
         from ai_project.llm.providers.ollama import OllamaProvider
         provider = OllamaProvider(
             model=rest or "qwen2.5:7b-instruct",
-            host=os.environ.get("OLLAMA_HOST", "http://localhost:11434"),
+            host=os.environ.get("OLLAMA_HOST", "http://127.0.0.1:11434"),
             temperature=temperature, seed=seed,
         )
     elif kind in ("vllm", "openai"):
         from ai_project.llm.providers.openai_compat import OpenAICompatibleProvider
         model, _, url = rest.partition("@")
-        default_url = (os.environ.get("VLLM_BASE_URL", "http://localhost:8000/v1")
+        default_url = (os.environ.get("VLLM_BASE_URL", "http://127.0.0.1:8000/v1")
                        if kind == "vllm" else "https://api.openai.com/v1")
         provider = OpenAICompatibleProvider(
             model=model or "Qwen/Qwen2.5-7B-Instruct",

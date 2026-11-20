@@ -27,7 +27,13 @@ from ai_project.llm.usage import UsageMeter
 from ai_project.protocol.grammar import PXPGrammar
 from ai_project.protocol.intelligibility import classify
 from ai_project.scheduler.arbiter import PriorityArbiter
-from ai_project.scheduler.scheduler import Scheduler, SchedulerConfig, SchedulerResult, epoch_start
+from ai_project.scheduler.scheduler import (
+    RunControl,
+    Scheduler,
+    SchedulerConfig,
+    SchedulerResult,
+    epoch_start,
+)
 
 Listener = Callable[[str, dict[str, Any]], None]
 
@@ -116,8 +122,8 @@ class SessionResult:
 
 class Session:
     """
-    A runnable session. ``scheduler`` is the live scheduler while ``run`` is
-    active, so a UI can pause, step or stop it.
+    A runnable session. ``control`` pauses, steps or stops it from another
+    thread; it applies to every scheduler the session starts.
 
     Args:
         task: The task
@@ -156,16 +162,16 @@ class Session:
             session_id=session_id or f"{task.task_id}-{uuid.uuid4().hex[:8]}",
             grammar=PXPGrammar(self.config.reject_after),
         )
-        self.board.initialize_task(task.question, task.board_metadata(), agents=ids)
+        self.board.initialize_task(task.question,
+                                   {**task.board_metadata(), "cf_agents": list(self.cf_agents)},
+                                   agents=ids)
         self.arbiter = PriorityArbiter()
+        self.control = RunControl()
         self.scheduler: Scheduler | None = None
         self.interventions: list[Intervention] = []
-        self._stopped = False
 
     def stop(self) -> None:
-        self._stopped = True
-        if self.scheduler is not None:
-            self.scheduler.stop()
+        self.control.stop()
 
     def run(self) -> SessionResult:
         start = time.perf_counter()
@@ -175,12 +181,12 @@ class Session:
         rounds = collisions = 0
         while True:
             self.scheduler = Scheduler(self.board, self.agents, self.arbiter,
-                                       self.config.scheduler, pending)
+                                       self.config.scheduler, pending, self.control)
             result = self.scheduler.run()
             rounds += result.rounds
             collisions += result.collisions
             applied = sum(1 for i in self.interventions if i.applied)
-            if (self._stopped or not result.deadlocked or not self.cf_agents
+            if (self.control.stopped or not result.deadlocked or not self.cf_agents
                     or applied >= self.config.counterfactual.max_interventions):
                 break
             intervention = resolver.intervene(self.board, self.agents, self.cf_agents)

@@ -19,6 +19,10 @@ classifiers = [
 dependencies = []
 
 [project.optional-dependencies]
+server = [
+    "fastapi>=0.110",
+    "uvicorn[standard]>=0.29",
+]
 redis = ["redis>=5.0"]
 hf = [
     "torch>=2.2",
@@ -30,6 +34,8 @@ hf = [
 dev = [
     "pytest>=7.4.0",
     "ruff>=0.1.0",
+    "httpx>=0.27",
+    "ai-project[server]",
 ]
 
 [project.scripts]

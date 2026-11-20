@@ -25,7 +25,7 @@ The commit in step 5 emits a message event, which wakes the next round.
 
 import queue
 import threading
-from collections.abc import Collection, Sequence
+from collections.abc import Callable, Collection, Sequence
 from concurrent.futures import ThreadPoolExecutor
 from dataclasses import dataclass, field
 from typing import Any, Protocol
@@ -79,6 +79,7 @@ class SchedulerConfig:
         consensus: Consensus rule
         deadlock: Deadlock rules
         max_failed_turns: Turns without a grammatical message before an agent fails the session
+        pace: Seconds to wait before each round (0 for experiments; >0 to watch a session live)
     """
 
     max_messages: int = 12
@@ -86,6 +87,7 @@ class SchedulerConfig:
     consensus: ConsensusConfig = field(default_factory=ConsensusConfig)
     deadlock: DeadlockConfig = field(default_factory=DeadlockConfig)
     max_failed_turns: int = 3
+    pace: float = 0.0
 
     def __post_init__(self) -> None:
         if self.max_messages < 1:
@@ -100,6 +102,7 @@ class SchedulerConfig:
             "consensus": self.consensus.to_dict(),
             "deadlock": self.deadlock.to_dict(),
             "max_failed_turns": self.max_failed_turns,
+            "pace": self.pace,
         }
 
 
@@ -150,6 +153,80 @@ def epoch_start(events: Sequence[BoardEvent]) -> int:
     return start
 
 
+class RunControl:
+    """
+    Pause / step / stop for a running session, shared by every scheduler the
+    session creates (a session starts a new scheduler after each intervention).
+    """
+
+    def __init__(self) -> None:
+        self._lock = threading.Lock()
+        self._resume = threading.Event()
+        self._resume.set()
+        self._stopped = threading.Event()
+        self._step_budget: int | None = None
+        self._listeners: list[Callable[[], None]] = []
+
+    def pause(self) -> None:
+        self._resume.clear()
+
+    def resume(self) -> None:
+        with self._lock:
+            self._step_budget = None
+        self._resume.set()
+
+    def step(self) -> None:
+        """While paused, allow exactly one more round."""
+        with self._lock:
+            self._step_budget = 1
+        self._resume.set()
+
+    def stop(self) -> None:
+        self._stopped.set()
+        self._resume.set()
+        with self._lock:
+            listeners = list(self._listeners)
+        for wake in listeners:
+            wake()
+
+    @property
+    def paused(self) -> bool:
+        return not self._resume.is_set()
+
+    @property
+    def stopped(self) -> bool:
+        return self._stopped.is_set()
+
+    def sleep(self, seconds: float) -> None:
+        """Wait ``seconds``, returning early if the run is stopped."""
+        if seconds > 0:
+            self._stopped.wait(seconds)
+
+    def wait_turn(self) -> bool:
+        """Block until the next round may run. False if the run was stopped."""
+        self._resume.wait()
+        if self.stopped:
+            return False
+        with self._lock:
+            if self._step_budget is not None:
+                self._step_budget -= 1
+                if self._step_budget <= 0:
+                    self._resume.clear()
+                    self._step_budget = None
+        return True
+
+    def on_stop(self, wake: Callable[[], None]) -> Callable[[], None]:
+        with self._lock:
+            self._listeners.append(wake)
+
+        def remove() -> None:
+            with self._lock:
+                if wake in self._listeners:
+                    self._listeners.remove(wake)
+
+        return remove
+
+
 class Scheduler:
     """
     Args:
@@ -158,6 +235,7 @@ class Scheduler:
         arbiter: Priority arbiter (default: ``PriorityArbiter()``)
         config: Scheduler configuration
         pending: Agents with a pending counterfactual intervention (they post next)
+        control: Pause / step / stop (default: a private one)
     """
 
     def __init__(
@@ -167,6 +245,7 @@ class Scheduler:
         arbiter: PriorityArbiter | None = None,
         config: SchedulerConfig | None = None,
         pending: Collection[str] = (),
+        control: RunControl | None = None,
     ) -> None:
         if not agents:
             raise SchedulerError("The scheduler needs at least one agent")
@@ -180,40 +259,33 @@ class Scheduler:
         self.config = config or SchedulerConfig()
         self.detector = DeadlockDetector(self.config.deadlock)
         self.pending = set(pending)
+        self.control = control or RunControl()
         self.rounds = 0
         self.collisions = 0
         self.failed_turns: dict[str, int] = dict.fromkeys(ids, 0)
         self.queue: list[Activation] = []
         self._inbox: queue.Queue[str] = queue.Queue()
-        self._resume = threading.Event()
-        self._resume.set()
-        self._stopped = False
-        self._step_budget: int | None = None
         self._stop_reason: str | None = None
         self._error: str | None = None
 
     # ------------------------------------------------------------------ control
 
     def pause(self) -> None:
-        self._resume.clear()
+        self.control.pause()
 
     def resume(self) -> None:
-        self._step_budget = None
-        self._resume.set()
+        self.control.resume()
 
     def step(self) -> None:
         """While paused, allow exactly one more round."""
-        self._step_budget = 1
-        self._resume.set()
+        self.control.step()
 
     def stop(self) -> None:
-        self._stopped = True
-        self._resume.set()
-        self._inbox.put(_STOP)
+        self.control.stop()
 
     @property
     def paused(self) -> bool:
-        return not self._resume.is_set()
+        return self.control.paused
 
     # ------------------------------------------------------------------ checks
 
@@ -235,6 +307,7 @@ class Scheduler:
     def run(self) -> SchedulerResult:
         """Run rounds until the session is terminal, the budget is spent, or ``stop()``."""
         unsubscribe = self.board.subscribe(self._on_event)
+        remove_stop = self.control.on_stop(lambda: self._inbox.put(_STOP))
         self._inbox.put(_WAKE)
         # Hard stop even if every turn fails: each message may cost a few failed rounds
         attempts_per_message = (self.config.max_failed_turns + 1) * len(self.agents)
@@ -245,22 +318,18 @@ class Scheduler:
                 while not self._inbox.empty():  # coalesce bursts of events
                     if self._inbox.get_nowait() == _STOP:
                         token = _STOP
-                if token == _STOP or self._stopped:
+                if token == _STOP or not self.control.wait_turn():
                     self._stop_reason = self._stop_reason or STOP_STOPPED
                     break
-                self._resume.wait()
-                if self._stopped:
+                self.control.sleep(self.config.pace)
+                if self.control.stopped:
                     self._stop_reason = STOP_STOPPED
                     break
-                if self._step_budget is not None:
-                    self._step_budget -= 1
-                    if self._step_budget <= 0:
-                        self._resume.clear()
-                        self._step_budget = None
                 if not self._round() or self.rounds >= max_rounds:
                     break
         finally:
             unsubscribe()
+            remove_stop()
         return self.result()
 
     def _on_event(self, event: BoardEvent) -> None:

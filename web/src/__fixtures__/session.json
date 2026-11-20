@@ -1,0 +1,2052 @@
+{
+ "events": [
+  {
+   "seq": 1,
+   "kind": "task",
+   "data": {
+    "task": "Choose the architecture for the reasoning service: Option A (single in-process service with a shared cache) or Option B (queue-backed worker pool).",
+    "metadata": {
+     "task_id": "architecture",
+     "benchmark": "synthetic",
+     "domain": "synthetic",
+     "options": [
+      "Option A",
+      "Option B"
+     ],
+     "context": {},
+     "cf_agents": [
+      "analyst"
+     ]
+    },
+    "agents": [
+     "analyst",
+     "critic",
+     "specialist"
+    ],
+    "weights": {}
+   },
+   "timestamp": "2026-11-20T19:45:39.860579Z"
+  },
+  {
+   "seq": 2,
+   "kind": "activation",
+   "data": {
+    "round": 1,
+    "ranking": [
+     {
+      "agent_id": "analyst",
+      "score": 3.0,
+      "eligible": true,
+      "reasons": [
+       "has not posted yet (+3)"
+      ]
+     },
+     {
+      "agent_id": "critic",
+      "score": 3.0,
+      "eligible": true,
+      "reasons": [
+       "has not posted yet (+3)"
+      ]
+     },
+     {
+      "agent_id": "specialist",
+      "score": 3.0,
+      "eligible": true,
+      "reasons": [
+       "has not posted yet (+3)"
+      ]
+     }
+    ],
+    "selected": [
+     "analyst"
+    ]
+   },
+   "timestamp": "2026-11-20T19:45:39.860731Z"
+  },
+  {
+   "seq": 3,
+   "kind": "message",
+   "data": {
+    "message": {
+     "iteration": 1,
+     "message_id": "msg_ff3a13cc7c",
+     "agent_id": "analyst",
+     "tag": "INIT",
+     "prediction": "Option A",
+     "explanation": "Option A has the highest benefit among the options I can accept. My benefit estimate for Option A is 0.82.",
+     "confidence": 0.8,
+     "judgment": null,
+     "in_reply_to": null,
+     "timestamp": "2026-11-20T19:45:39.861325Z",
+     "metadata": {
+      "claims": {
+       "supports": "Option A",
+       "objects": {}
+      },
+      "rule": "best_score",
+      "role": "analyst",
+      "provider": "deterministic-mock"
+     }
+    }
+   },
+   "timestamp": "2026-11-20T19:45:39.861391Z"
+  },
+  {
+   "seq": 4,
+   "kind": "activation",
+   "data": {
+    "round": 2,
+    "ranking": [
+     {
+      "agent_id": "critic",
+      "score": 3.5,
+      "eligible": true,
+      "reasons": [
+       "has not posted yet (+3)",
+       "critic answers INIT (+0.5)"
+      ]
+     },
+     {
+      "agent_id": "specialist",
+      "score": 3.0,
+      "eligible": true,
+      "reasons": [
+       "has not posted yet (+3)"
+      ]
+     },
+     {
+      "agent_id": "analyst",
+      "score": 1.0,
+      "eligible": false,
+      "reasons": [
+       "its latest tag is INIT (+1)",
+       "authored the latest message"
+      ]
+     }
+    ],
+    "selected": [
+     "critic"
+    ]
+   },
+   "timestamp": "2026-11-20T19:45:39.861535Z"
+  },
+  {
+   "seq": 5,
+   "kind": "message",
+   "data": {
+    "message": {
+     "iteration": 2,
+     "message_id": "msg_6c3ec21aeb",
+     "agent_id": "critic",
+     "tag": "REFUTE",
+     "prediction": "Option B",
+     "explanation": "Option A fails my checks; Option B passes them. Option A is ruled out: the shared cache makes runs depend on request order, which violates constraint C3 (runs must be reproducible).",
+     "confidence": 0.8,
+     "judgment": {
+      "prediction_matches": false,
+      "explanation_agrees": false,
+      "changed": false
+     },
+     "in_reply_to": "msg_ff3a13cc7c",
+     "timestamp": "2026-11-20T19:45:39.861699Z",
+     "metadata": {
+      "claims": {
+       "supports": "Option B",
+       "objects": {
+        "Option A": "the shared cache makes runs depend on request order, which violates constraint C3 (runs must be reproducible)"
+       }
+      },
+      "rule": "best_open",
+      "role": "critic",
+      "provider": "deterministic-mock"
+     }
+    }
+   },
+   "timestamp": "2026-11-20T19:45:39.861747Z"
+  },
+  {
+   "seq": 6,
+   "kind": "activation",
+   "data": {
+    "round": 3,
+    "ranking": [
+     {
+      "agent_id": "specialist",
+      "score": 3.5,
+      "eligible": true,
+      "reasons": [
+       "has not posted yet (+3)",
+       "specialist answers REFUTE (+0.5)"
+      ]
+     },
+     {
+      "agent_id": "analyst",
+      "score": 3.0,
+      "eligible": true,
+      "reasons": [
+       "new messages since its last post (+2)",
+       "its latest tag is INIT (+1)"
+      ]
+     },
+     {
+      "agent_id": "critic",
+      "score": 1.0,
+      "eligible": false,
+      "reasons": [
+       "its latest tag is REFUTE (+1)",
+       "authored the latest message"
+      ]
+     }
+    ],
+    "selected": [
+     "specialist"
+    ]
+   },
+   "timestamp": "2026-11-20T19:45:39.861864Z"
+  },
+  {
+   "seq": 7,
+   "kind": "message",
+   "data": {
+    "message": {
+     "iteration": 3,
+     "message_id": "msg_7143e68439",
+     "agent_id": "specialist",
+     "tag": "RATIFY",
+     "prediction": "Option B",
+     "explanation": "I agree with critic on Option B and its reasons. Option A is ruled out: it cannot meet the 200 ms latency budget at peak load.",
+     "confidence": 0.8,
+     "judgment": {
+      "prediction_matches": true,
+      "explanation_agrees": true,
+      "changed": false
+     },
+     "in_reply_to": "msg_6c3ec21aeb",
+     "timestamp": "2026-11-20T19:45:39.861992Z",
+     "metadata": {
+      "claims": {
+       "supports": "Option B",
+       "objects": {
+        "Option A": "it cannot meet the 200 ms latency budget at peak load"
+       }
+      },
+      "rule": "ratify",
+      "role": "specialist",
+      "provider": "deterministic-mock"
+     }
+    }
+   },
+   "timestamp": "2026-11-20T19:45:39.862031Z"
+  },
+  {
+   "seq": 8,
+   "kind": "activation",
+   "data": {
+    "round": 4,
+    "ranking": [
+     {
+      "agent_id": "analyst",
+      "score": 3.0,
+      "eligible": true,
+      "reasons": [
+       "new messages since its last post (+2)",
+       "its latest tag is INIT (+1)"
+      ]
+     },
+     {
+      "agent_id": "critic",
+      "score": 3.0,
+      "eligible": true,
+      "reasons": [
+       "new messages since its last post (+2)",
+       "its latest tag is REFUTE (+1)"
+      ]
+     },
+     {
+      "agent_id": "specialist",
+      "score": 0.0,
+      "eligible": false,
+      "reasons": [
+       "authored the latest message"
+      ]
+     }
+    ],
+    "selected": [
+     "analyst"
+    ]
+   },
+   "timestamp": "2026-11-20T19:45:39.862150Z"
+  },
+  {
+   "seq": 9,
+   "kind": "message",
+   "data": {
+    "message": {
+     "iteration": 4,
+     "message_id": "msg_cff03c26e4",
+     "agent_id": "analyst",
+     "tag": "REJECT",
+     "prediction": "Option A",
+     "explanation": "Option A has the highest benefit among the options I can accept. My benefit estimate for Option A is 0.82.",
+     "confidence": 0.8,
+     "judgment": {
+      "prediction_matches": false,
+      "explanation_agrees": false,
+      "changed": false
+     },
+     "in_reply_to": "msg_7143e68439",
+     "timestamp": "2026-11-20T19:45:39.862279Z",
+     "metadata": {
+      "claims": {
+       "supports": "Option A",
+       "objects": {}
+      },
+      "rule": "best_score",
+      "role": "analyst",
+      "provider": "deterministic-mock"
+     }
+    }
+   },
+   "timestamp": "2026-11-20T19:45:39.862313Z"
+  },
+  {
+   "seq": 10,
+   "kind": "status",
+   "data": {
+    "status": "DEADLOCK",
+    "previous": "RUNNING",
+    "reason": "analyst sent REJECT at message 4: it disagrees with both the prediction and the explanation it answered",
+    "details": {
+     "deadlock": {
+      "deadlocked": true,
+      "rule": "reject",
+      "reason": "analyst sent REJECT at message 4: it disagrees with both the prediction and the explanation it answered",
+      "positions": {
+       "analyst": "Option A",
+       "critic": "Option B",
+       "specialist": "Option B"
+      },
+      "objectors": [
+       "analyst",
+       "critic"
+      ]
+     }
+    }
+   },
+   "timestamp": "2026-11-20T19:45:39.862409Z"
+  },
+  {
+   "seq": 11,
+   "kind": "intervention",
+   "data": {
+    "applied": true,
+    "agent_id": "analyst",
+    "chosen_branch": "fixture-cf2",
+    "credit": 0.6667,
+    "lesson": "Options other agents ruled out in this session: Option A (by critic). Prefer Option B, which no one ruled out.",
+    "proximity_before": 0.3333,
+    "weight_before": 1.0,
+    "weight_after": 0.6667,
+    "branches": [
+     {
+      "branch_id": "fixture-cf1",
+      "agent_id": "analyst",
+      "target": {
+       "iteration": 4,
+       "message_id": "msg_cff03c26e4",
+       "agent_id": "analyst",
+       "tag": "REJECT",
+       "prediction": "Option A",
+       "explanation": "Option A has the highest benefit among the options I can accept. My benefit estimate for Option A is 0.82.",
+       "confidence": 0.8,
+       "judgment": {
+        "prediction_matches": false,
+        "explanation_agrees": false,
+        "changed": false
+       },
+       "in_reply_to": "msg_7143e68439",
+       "timestamp": "2026-11-20T19:45:39.862279Z",
+       "metadata": {
+        "claims": {
+         "supports": "Option A",
+         "objects": {}
+        },
+        "rule": "best_score",
+        "role": "analyst",
+        "provider": "deterministic-mock"
+       }
+      },
+      "candidate": {
+       "tag": "REJECT",
+       "prediction": "Option B",
+       "explanation": "In hindsight: Option A was ruled out by critic later in the run, and Option B was not. My benefit estimate for Option B is 0.71.",
+       "confidence": 0.8,
+       "judgment": {
+        "prediction_matches": false,
+        "explanation_agrees": false,
+        "changed": true
+       },
+       "rationale": "Replace REJECT Option A at message 4 with Option B."
+      },
+      "lesson": "Options other agents ruled out in this session: Option A (by critic). Prefer Option B, which no one ruled out.",
+      "status": "DEADLOCK",
+      "final_prediction": null,
+      "proximity": 0.3333,
+      "credit": 0.0,
+      "messages": [
+       {
+        "iteration": 4,
+        "message_id": "msg_464d72796f",
+        "agent_id": "analyst",
+        "tag": "REJECT",
+        "prediction": "Option B",
+        "explanation": "In hindsight: Option A was ruled out by critic later in the run, and Option B was not. My benefit estimate for Option B is 0.71.",
+        "confidence": 0.8,
+        "judgment": {
+         "prediction_matches": false,
+         "explanation_agrees": false,
+         "changed": true
+        },
+        "in_reply_to": "msg_7143e68439",
+        "timestamp": "2026-11-20T19:45:39.863328Z",
+        "metadata": {
+         "claims": {
+          "supports": "Option B",
+          "objects": {}
+         },
+         "rule": "hindsight",
+         "counterfactual": true,
+         "replaces": "msg_cff03c26e4"
+        }
+       }
+      ]
+     },
+     {
+      "branch_id": "fixture-cf2",
+      "agent_id": "analyst",
+      "target": {
+       "iteration": 1,
+       "message_id": "msg_ff3a13cc7c",
+       "agent_id": "analyst",
+       "tag": "INIT",
+       "prediction": "Option A",
+       "explanation": "Option A has the highest benefit among the options I can accept. My benefit estimate for Option A is 0.82.",
+       "confidence": 0.8,
+       "judgment": null,
+       "in_reply_to": null,
+       "timestamp": "2026-11-20T19:45:39.861325Z",
+       "metadata": {
+        "claims": {
+         "supports": "Option A",
+         "objects": {}
+        },
+        "rule": "best_score",
+        "role": "analyst",
+        "provider": "deterministic-mock"
+       }
+      },
+      "candidate": {
+       "tag": "INIT",
+       "prediction": "Option B",
+       "explanation": "In hindsight: Option A was ruled out by critic later in the run, and Option B was not. My benefit estimate for Option B is 0.71.",
+       "confidence": 0.8,
+       "judgment": null,
+       "rationale": "Replace INIT Option A at message 1 with Option B."
+      },
+      "lesson": "Options other agents ruled out in this session: Option A (by critic). Prefer Option B, which no one ruled out.",
+      "status": "CONSENSUS",
+      "final_prediction": "Option B",
+      "proximity": 1.0,
+      "credit": 0.6667,
+      "messages": [
+       {
+        "iteration": 1,
+        "message_id": "msg_c15f3f7674",
+        "agent_id": "analyst",
+        "tag": "INIT",
+        "prediction": "Option B",
+        "explanation": "In hindsight: Option A was ruled out by critic later in the run, and Option B was not. My benefit estimate for Option B is 0.71.",
+        "confidence": 0.8,
+        "judgment": null,
+        "in_reply_to": null,
+        "timestamp": "2026-11-20T19:45:39.863938Z",
+        "metadata": {
+         "claims": {
+          "supports": "Option B",
+          "objects": {}
+         },
+         "rule": "hindsight",
+         "counterfactual": true,
+         "replaces": "msg_ff3a13cc7c"
+        }
+       },
+       {
+        "iteration": 2,
+        "message_id": "msg_f6d29dc53f",
+        "agent_id": "critic",
+        "tag": "RATIFY",
+        "prediction": "Option B",
+        "explanation": "I agree with analyst on Option B and its reasons. Option A is ruled out: the shared cache makes runs depend on request order, which violates constraint C3 (runs must be reproducible).",
+        "confidence": 0.8,
+        "judgment": {
+         "prediction_matches": true,
+         "explanation_agrees": true,
+         "changed": false
+        },
+        "in_reply_to": "msg_c15f3f7674",
+        "timestamp": "2026-11-20T19:45:39.864256Z",
+        "metadata": {
+         "claims": {
+          "supports": "Option B",
+          "objects": {
+           "Option A": "the shared cache makes runs depend on request order, which violates constraint C3 (runs must be reproducible)"
+          }
+         },
+         "rule": "ratify",
+         "role": "critic",
+         "provider": "deterministic-mock"
+        }
+       },
+       {
+        "iteration": 3,
+        "message_id": "msg_f20b88ab96",
+        "agent_id": "analyst",
+        "tag": "RATIFY",
+        "prediction": "Option B",
+        "explanation": "I agree with critic on Option B and its reasons. My benefit estimate for Option B is 0.71.",
+        "confidence": 0.8,
+        "judgment": {
+         "prediction_matches": true,
+         "explanation_agrees": true,
+         "changed": false
+        },
+        "in_reply_to": "msg_f6d29dc53f",
+        "timestamp": "2026-11-20T19:45:39.864524Z",
+        "metadata": {
+         "claims": {
+          "supports": "Option B",
+          "objects": {}
+         },
+         "rule": "ratify",
+         "role": "analyst",
+         "provider": "deterministic-mock"
+        }
+       },
+       {
+        "iteration": 4,
+        "message_id": "msg_b878602b86",
+        "agent_id": "specialist",
+        "tag": "RATIFY",
+        "prediction": "Option B",
+        "explanation": "I agree with analyst on Option B and its reasons. Option A is ruled out: it cannot meet the 200 ms latency budget at peak load.",
+        "confidence": 0.8,
+        "judgment": {
+         "prediction_matches": true,
+         "explanation_agrees": true,
+         "changed": false
+        },
+        "in_reply_to": "msg_f20b88ab96",
+        "timestamp": "2026-11-20T19:45:39.864770Z",
+        "metadata": {
+         "claims": {
+          "supports": "Option B",
+          "objects": {
+           "Option A": "it cannot meet the 200 ms latency budget at peak load"
+          }
+         },
+         "rule": "ratify",
+         "role": "specialist",
+         "provider": "deterministic-mock"
+        }
+       }
+      ]
+     }
+    ],
+    "reflections": [
+     {
+      "agent_id": "analyst",
+      "target": 4,
+      "candidates": 1,
+      "rejected": [],
+      "lesson": "Options other agents ruled out in this session: Option A (by critic). Prefer Option B, which no one ruled out."
+     },
+     {
+      "agent_id": "analyst",
+      "target": 1,
+      "candidates": 1,
+      "rejected": [],
+      "lesson": "Options other agents ruled out in this session: Option A (by critic). Prefer Option B, which no one ruled out."
+     }
+    ],
+    "reason": "analyst's message 1 (INIT Option A) gets credit +0.67: INIT Option B would have ended CONSENSUS",
+    "apply": "both",
+    "at_iteration": 4
+   },
+   "timestamp": "2026-11-20T19:45:39.865180Z"
+  },
+  {
+   "seq": 12,
+   "kind": "context_revision",
+   "data": {
+    "agent_id": "analyst",
+    "prediction": "Option B",
+    "explanation": "In hindsight: Option A was ruled out by critic later in the run, and Option B was not. My benefit estimate for Option B is 0.71.",
+    "previous": {
+     "prediction": "Option A",
+     "explanation": "Option A has the highest benefit among the options I can accept. My benefit estimate for Option A is 0.82.",
+     "source": "msg_cff03c26e4"
+    },
+    "reason": "counterfactual intervention (fixture-cf2)"
+   },
+   "timestamp": "2026-11-20T19:45:39.865192Z"
+  },
+  {
+   "seq": 13,
+   "kind": "weight",
+   "data": {
+    "agent_id": "analyst",
+    "weight": 0.6667,
+    "previous": 1.0,
+    "reason": "credit +0.67 from fixture-cf2"
+   },
+   "timestamp": "2026-11-20T19:45:39.865200Z"
+  },
+  {
+   "seq": 14,
+   "kind": "status",
+   "data": {
+    "status": "RUNNING",
+    "previous": "DEADLOCK",
+    "reason": "resumed after analyst's intervention",
+    "details": {}
+   },
+   "timestamp": "2026-11-20T19:45:39.865208Z"
+  },
+  {
+   "seq": 15,
+   "kind": "activation",
+   "data": {
+    "round": 1,
+    "ranking": [
+     {
+      "agent_id": "analyst",
+      "score": 11.0,
+      "eligible": true,
+      "reasons": [
+       "counterfactual intervention pending (+10)",
+       "its latest tag is REJECT (+1)"
+      ]
+     },
+     {
+      "agent_id": "critic",
+      "score": 3.0,
+      "eligible": true,
+      "reasons": [
+       "new messages since its last post (+2)",
+       "its latest tag is REFUTE (+1)"
+      ]
+     },
+     {
+      "agent_id": "specialist",
+      "score": 2.5,
+      "eligible": true,
+      "reasons": [
+       "new messages since its last post (+2)",
+       "specialist answers REJECT (+0.5)"
+      ]
+     }
+    ],
+    "selected": [
+     "analyst"
+    ]
+   },
+   "timestamp": "2026-11-20T19:45:39.865375Z"
+  },
+  {
+   "seq": 16,
+   "kind": "message",
+   "data": {
+    "message": {
+     "iteration": 5,
+     "message_id": "msg_fbb16d7bf7",
+     "agent_id": "analyst",
+     "tag": "RATIFY",
+     "prediction": "Option B",
+     "explanation": "I agree with specialist on Option B and its reasons. My benefit estimate for Option B is 0.71.",
+     "confidence": 0.8,
+     "judgment": {
+      "prediction_matches": true,
+      "explanation_agrees": true,
+      "changed": false
+     },
+     "in_reply_to": "msg_7143e68439",
+     "timestamp": "2026-11-20T19:45:39.865505Z",
+     "metadata": {
+      "claims": {
+       "supports": "Option B",
+       "objects": {}
+      },
+      "rule": "ratify",
+      "role": "analyst",
+      "provider": "deterministic-mock"
+     }
+    }
+   },
+   "timestamp": "2026-11-20T19:45:39.865542Z"
+  },
+  {
+   "seq": 17,
+   "kind": "activation",
+   "data": {
+    "round": 2,
+    "ranking": [
+     {
+      "agent_id": "critic",
+      "score": 3.0,
+      "eligible": true,
+      "reasons": [
+       "new messages since its last post (+2)",
+       "its latest tag is REFUTE (+1)"
+      ]
+     },
+     {
+      "agent_id": "specialist",
+      "score": 2.0,
+      "eligible": true,
+      "reasons": [
+       "new messages since its last post (+2)"
+      ]
+     },
+     {
+      "agent_id": "analyst",
+      "score": 0.0,
+      "eligible": false,
+      "reasons": [
+       "authored the latest message"
+      ]
+     }
+    ],
+    "selected": [
+     "critic"
+    ]
+   },
+   "timestamp": "2026-11-20T19:45:39.865650Z"
+  },
+  {
+   "seq": 18,
+   "kind": "message",
+   "data": {
+    "message": {
+     "iteration": 6,
+     "message_id": "msg_4cee1a22c9",
+     "agent_id": "critic",
+     "tag": "RATIFY",
+     "prediction": "Option B",
+     "explanation": "I agree with analyst on Option B and its reasons. Option A is ruled out: the shared cache makes runs depend on request order, which violates constraint C3 (runs must be reproducible).",
+     "confidence": 0.8,
+     "judgment": {
+      "prediction_matches": true,
+      "explanation_agrees": true,
+      "changed": false
+     },
+     "in_reply_to": "msg_fbb16d7bf7",
+     "timestamp": "2026-11-20T19:45:39.865773Z",
+     "metadata": {
+      "claims": {
+       "supports": "Option B",
+       "objects": {
+        "Option A": "the shared cache makes runs depend on request order, which violates constraint C3 (runs must be reproducible)"
+       }
+      },
+      "rule": "ratify",
+      "role": "critic",
+      "provider": "deterministic-mock"
+     }
+    }
+   },
+   "timestamp": "2026-11-20T19:45:39.865807Z"
+  },
+  {
+   "seq": 19,
+   "kind": "status",
+   "data": {
+    "status": "CONSENSUS",
+    "previous": "RUNNING",
+    "reason": "analyst, critic, specialist ratify 'Option B' (weighted share 1.00 >= 0.75)",
+    "details": {
+     "consensus": {
+      "reached": true,
+      "prediction": "Option B",
+      "anchor_id": "msg_6c3ec21aeb",
+      "supporters": [
+       "analyst",
+       "critic",
+       "specialist"
+      ],
+      "share": 1.0,
+      "proximity": 1.0,
+      "reason": "analyst, critic, specialist ratify 'Option B' (weighted share 1.00 >= 0.75)"
+     }
+    }
+   },
+   "timestamp": "2026-11-20T19:45:39.865893Z"
+  }
+ ],
+ "states": [
+  {
+   "task": "",
+   "status": "INITIALIZED",
+   "version": 0,
+   "iteration": 0,
+   "agents": [],
+   "weights": {},
+   "positions": {},
+   "latest_message": null,
+   "metadata": {}
+  },
+  {
+   "task": "Choose the architecture for the reasoning service: Option A (single in-process service with a shared cache) or Option B (queue-backed worker pool).",
+   "status": "INITIALIZED",
+   "version": 1,
+   "iteration": 0,
+   "agents": [
+    "analyst",
+    "critic",
+    "specialist"
+   ],
+   "weights": {
+    "analyst": 1.0,
+    "critic": 1.0,
+    "specialist": 1.0
+   },
+   "positions": {},
+   "latest_message": null,
+   "metadata": {
+    "task_id": "architecture",
+    "benchmark": "synthetic",
+    "domain": "synthetic",
+    "options": [
+     "Option A",
+     "Option B"
+    ],
+    "context": {},
+    "cf_agents": [
+     "analyst"
+    ]
+   }
+  },
+  {
+   "task": "Choose the architecture for the reasoning service: Option A (single in-process service with a shared cache) or Option B (queue-backed worker pool).",
+   "status": "INITIALIZED",
+   "version": 2,
+   "iteration": 0,
+   "agents": [
+    "analyst",
+    "critic",
+    "specialist"
+   ],
+   "weights": {
+    "analyst": 1.0,
+    "critic": 1.0,
+    "specialist": 1.0
+   },
+   "positions": {},
+   "latest_message": null,
+   "metadata": {
+    "task_id": "architecture",
+    "benchmark": "synthetic",
+    "domain": "synthetic",
+    "options": [
+     "Option A",
+     "Option B"
+    ],
+    "context": {},
+    "cf_agents": [
+     "analyst"
+    ]
+   }
+  },
+  {
+   "task": "Choose the architecture for the reasoning service: Option A (single in-process service with a shared cache) or Option B (queue-backed worker pool).",
+   "status": "RUNNING",
+   "version": 3,
+   "iteration": 1,
+   "agents": [
+    "analyst",
+    "critic",
+    "specialist"
+   ],
+   "weights": {
+    "analyst": 1.0,
+    "critic": 1.0,
+    "specialist": 1.0
+   },
+   "positions": {
+    "analyst": {
+     "prediction": "Option A",
+     "explanation": "Option A has the highest benefit among the options I can accept. My benefit estimate for Option A is 0.82.",
+     "source": "msg_ff3a13cc7c"
+    }
+   },
+   "latest_message": {
+    "iteration": 1,
+    "message_id": "msg_ff3a13cc7c",
+    "agent_id": "analyst",
+    "tag": "INIT",
+    "prediction": "Option A",
+    "explanation": "Option A has the highest benefit among the options I can accept. My benefit estimate for Option A is 0.82.",
+    "confidence": 0.8,
+    "judgment": null,
+    "in_reply_to": null,
+    "timestamp": "2026-11-20T19:45:39.861325Z",
+    "metadata": {
+     "claims": {
+      "supports": "Option A",
+      "objects": {}
+     },
+     "rule": "best_score",
+     "role": "analyst",
+     "provider": "deterministic-mock"
+    }
+   },
+   "metadata": {
+    "task_id": "architecture",
+    "benchmark": "synthetic",
+    "domain": "synthetic",
+    "options": [
+     "Option A",
+     "Option B"
+    ],
+    "context": {},
+    "cf_agents": [
+     "analyst"
+    ]
+   }
+  },
+  {
+   "task": "Choose the architecture for the reasoning service: Option A (single in-process service with a shared cache) or Option B (queue-backed worker pool).",
+   "status": "RUNNING",
+   "version": 4,
+   "iteration": 1,
+   "agents": [
+    "analyst",
+    "critic",
+    "specialist"
+   ],
+   "weights": {
+    "analyst": 1.0,
+    "critic": 1.0,
+    "specialist": 1.0
+   },
+   "positions": {
+    "analyst": {
+     "prediction": "Option A",
+     "explanation": "Option A has the highest benefit among the options I can accept. My benefit estimate for Option A is 0.82.",
+     "source": "msg_ff3a13cc7c"
+    }
+   },
+   "latest_message": {
+    "iteration": 1,
+    "message_id": "msg_ff3a13cc7c",
+    "agent_id": "analyst",
+    "tag": "INIT",
+    "prediction": "Option A",
+    "explanation": "Option A has the highest benefit among the options I can accept. My benefit estimate for Option A is 0.82.",
+    "confidence": 0.8,
+    "judgment": null,
+    "in_reply_to": null,
+    "timestamp": "2026-11-20T19:45:39.861325Z",
+    "metadata": {
+     "claims": {
+      "supports": "Option A",
+      "objects": {}
+     },
+     "rule": "best_score",
+     "role": "analyst",
+     "provider": "deterministic-mock"
+    }
+   },
+   "metadata": {
+    "task_id": "architecture",
+    "benchmark": "synthetic",
+    "domain": "synthetic",
+    "options": [
+     "Option A",
+     "Option B"
+    ],
+    "context": {},
+    "cf_agents": [
+     "analyst"
+    ]
+   }
+  },
+  {
+   "task": "Choose the architecture for the reasoning service: Option A (single in-process service with a shared cache) or Option B (queue-backed worker pool).",
+   "status": "RUNNING",
+   "version": 5,
+   "iteration": 2,
+   "agents": [
+    "analyst",
+    "critic",
+    "specialist"
+   ],
+   "weights": {
+    "analyst": 1.0,
+    "critic": 1.0,
+    "specialist": 1.0
+   },
+   "positions": {
+    "analyst": {
+     "prediction": "Option A",
+     "explanation": "Option A has the highest benefit among the options I can accept. My benefit estimate for Option A is 0.82.",
+     "source": "msg_ff3a13cc7c"
+    },
+    "critic": {
+     "prediction": "Option B",
+     "explanation": "Option A fails my checks; Option B passes them. Option A is ruled out: the shared cache makes runs depend on request order, which violates constraint C3 (runs must be reproducible).",
+     "source": "msg_6c3ec21aeb"
+    }
+   },
+   "latest_message": {
+    "iteration": 2,
+    "message_id": "msg_6c3ec21aeb",
+    "agent_id": "critic",
+    "tag": "REFUTE",
+    "prediction": "Option B",
+    "explanation": "Option A fails my checks; Option B passes them. Option A is ruled out: the shared cache makes runs depend on request order, which violates constraint C3 (runs must be reproducible).",
+    "confidence": 0.8,
+    "judgment": {
+     "prediction_matches": false,
+     "explanation_agrees": false,
+     "changed": false
+    },
+    "in_reply_to": "msg_ff3a13cc7c",
+    "timestamp": "2026-11-20T19:45:39.861699Z",
+    "metadata": {
+     "claims": {
+      "supports": "Option B",
+      "objects": {
+       "Option A": "the shared cache makes runs depend on request order, which violates constraint C3 (runs must be reproducible)"
+      }
+     },
+     "rule": "best_open",
+     "role": "critic",
+     "provider": "deterministic-mock"
+    }
+   },
+   "metadata": {
+    "task_id": "architecture",
+    "benchmark": "synthetic",
+    "domain": "synthetic",
+    "options": [
+     "Option A",
+     "Option B"
+    ],
+    "context": {},
+    "cf_agents": [
+     "analyst"
+    ]
+   }
+  },
+  {
+   "task": "Choose the architecture for the reasoning service: Option A (single in-process service with a shared cache) or Option B (queue-backed worker pool).",
+   "status": "RUNNING",
+   "version": 6,
+   "iteration": 2,
+   "agents": [
+    "analyst",
+    "critic",
+    "specialist"
+   ],
+   "weights": {
+    "analyst": 1.0,
+    "critic": 1.0,
+    "specialist": 1.0
+   },
+   "positions": {
+    "analyst": {
+     "prediction": "Option A",
+     "explanation": "Option A has the highest benefit among the options I can accept. My benefit estimate for Option A is 0.82.",
+     "source": "msg_ff3a13cc7c"
+    },
+    "critic": {
+     "prediction": "Option B",
+     "explanation": "Option A fails my checks; Option B passes them. Option A is ruled out: the shared cache makes runs depend on request order, which violates constraint C3 (runs must be reproducible).",
+     "source": "msg_6c3ec21aeb"
+    }
+   },
+   "latest_message": {
+    "iteration": 2,
+    "message_id": "msg_6c3ec21aeb",
+    "agent_id": "critic",
+    "tag": "REFUTE",
+    "prediction": "Option B",
+    "explanation": "Option A fails my checks; Option B passes them. Option A is ruled out: the shared cache makes runs depend on request order, which violates constraint C3 (runs must be reproducible).",
+    "confidence": 0.8,
+    "judgment": {
+     "prediction_matches": false,
+     "explanation_agrees": false,
+     "changed": false
+    },
+    "in_reply_to": "msg_ff3a13cc7c",
+    "timestamp": "2026-11-20T19:45:39.861699Z",
+    "metadata": {
+     "claims": {
+      "supports": "Option B",
+      "objects": {
+       "Option A": "the shared cache makes runs depend on request order, which violates constraint C3 (runs must be reproducible)"
+      }
+     },
+     "rule": "best_open",
+     "role": "critic",
+     "provider": "deterministic-mock"
+    }
+   },
+   "metadata": {
+    "task_id": "architecture",
+    "benchmark": "synthetic",
+    "domain": "synthetic",
+    "options": [
+     "Option A",
+     "Option B"
+    ],
+    "context": {},
+    "cf_agents": [
+     "analyst"
+    ]
+   }
+  },
+  {
+   "task": "Choose the architecture for the reasoning service: Option A (single in-process service with a shared cache) or Option B (queue-backed worker pool).",
+   "status": "RUNNING",
+   "version": 7,
+   "iteration": 3,
+   "agents": [
+    "analyst",
+    "critic",
+    "specialist"
+   ],
+   "weights": {
+    "analyst": 1.0,
+    "critic": 1.0,
+    "specialist": 1.0
+   },
+   "positions": {
+    "analyst": {
+     "prediction": "Option A",
+     "explanation": "Option A has the highest benefit among the options I can accept. My benefit estimate for Option A is 0.82.",
+     "source": "msg_ff3a13cc7c"
+    },
+    "critic": {
+     "prediction": "Option B",
+     "explanation": "Option A fails my checks; Option B passes them. Option A is ruled out: the shared cache makes runs depend on request order, which violates constraint C3 (runs must be reproducible).",
+     "source": "msg_6c3ec21aeb"
+    },
+    "specialist": {
+     "prediction": "Option B",
+     "explanation": "I agree with critic on Option B and its reasons. Option A is ruled out: it cannot meet the 200 ms latency budget at peak load.",
+     "source": "msg_7143e68439"
+    }
+   },
+   "latest_message": {
+    "iteration": 3,
+    "message_id": "msg_7143e68439",
+    "agent_id": "specialist",
+    "tag": "RATIFY",
+    "prediction": "Option B",
+    "explanation": "I agree with critic on Option B and its reasons. Option A is ruled out: it cannot meet the 200 ms latency budget at peak load.",
+    "confidence": 0.8,
+    "judgment": {
+     "prediction_matches": true,
+     "explanation_agrees": true,
+     "changed": false
+    },
+    "in_reply_to": "msg_6c3ec21aeb",
+    "timestamp": "2026-11-20T19:45:39.861992Z",
+    "metadata": {
+     "claims": {
+      "supports": "Option B",
+      "objects": {
+       "Option A": "it cannot meet the 200 ms latency budget at peak load"
+      }
+     },
+     "rule": "ratify",
+     "role": "specialist",
+     "provider": "deterministic-mock"
+    }
+   },
+   "metadata": {
+    "task_id": "architecture",
+    "benchmark": "synthetic",
+    "domain": "synthetic",
+    "options": [
+     "Option A",
+     "Option B"
+    ],
+    "context": {},
+    "cf_agents": [
+     "analyst"
+    ]
+   }
+  },
+  {
+   "task": "Choose the architecture for the reasoning service: Option A (single in-process service with a shared cache) or Option B (queue-backed worker pool).",
+   "status": "RUNNING",
+   "version": 8,
+   "iteration": 3,
+   "agents": [
+    "analyst",
+    "critic",
+    "specialist"
+   ],
+   "weights": {
+    "analyst": 1.0,
+    "critic": 1.0,
+    "specialist": 1.0
+   },
+   "positions": {
+    "analyst": {
+     "prediction": "Option A",
+     "explanation": "Option A has the highest benefit among the options I can accept. My benefit estimate for Option A is 0.82.",
+     "source": "msg_ff3a13cc7c"
+    },
+    "critic": {
+     "prediction": "Option B",
+     "explanation": "Option A fails my checks; Option B passes them. Option A is ruled out: the shared cache makes runs depend on request order, which violates constraint C3 (runs must be reproducible).",
+     "source": "msg_6c3ec21aeb"
+    },
+    "specialist": {
+     "prediction": "Option B",
+     "explanation": "I agree with critic on Option B and its reasons. Option A is ruled out: it cannot meet the 200 ms latency budget at peak load.",
+     "source": "msg_7143e68439"
+    }
+   },
+   "latest_message": {
+    "iteration": 3,
+    "message_id": "msg_7143e68439",
+    "agent_id": "specialist",
+    "tag": "RATIFY",
+    "prediction": "Option B",
+    "explanation": "I agree with critic on Option B and its reasons. Option A is ruled out: it cannot meet the 200 ms latency budget at peak load.",
+    "confidence": 0.8,
+    "judgment": {
+     "prediction_matches": true,
+     "explanation_agrees": true,
+     "changed": false
+    },
+    "in_reply_to": "msg_6c3ec21aeb",
+    "timestamp": "2026-11-20T19:45:39.861992Z",
+    "metadata": {
+     "claims": {
+      "supports": "Option B",
+      "objects": {
+       "Option A": "it cannot meet the 200 ms latency budget at peak load"
+      }
+     },
+     "rule": "ratify",
+     "role": "specialist",
+     "provider": "deterministic-mock"
+    }
+   },
+   "metadata": {
+    "task_id": "architecture",
+    "benchmark": "synthetic",
+    "domain": "synthetic",
+    "options": [
+     "Option A",
+     "Option B"
+    ],
+    "context": {},
+    "cf_agents": [
+     "analyst"
+    ]
+   }
+  },
+  {
+   "task": "Choose the architecture for the reasoning service: Option A (single in-process service with a shared cache) or Option B (queue-backed worker pool).",
+   "status": "RUNNING",
+   "version": 9,
+   "iteration": 4,
+   "agents": [
+    "analyst",
+    "critic",
+    "specialist"
+   ],
+   "weights": {
+    "analyst": 1.0,
+    "critic": 1.0,
+    "specialist": 1.0
+   },
+   "positions": {
+    "analyst": {
+     "prediction": "Option A",
+     "explanation": "Option A has the highest benefit among the options I can accept. My benefit estimate for Option A is 0.82.",
+     "source": "msg_cff03c26e4"
+    },
+    "critic": {
+     "prediction": "Option B",
+     "explanation": "Option A fails my checks; Option B passes them. Option A is ruled out: the shared cache makes runs depend on request order, which violates constraint C3 (runs must be reproducible).",
+     "source": "msg_6c3ec21aeb"
+    },
+    "specialist": {
+     "prediction": "Option B",
+     "explanation": "I agree with critic on Option B and its reasons. Option A is ruled out: it cannot meet the 200 ms latency budget at peak load.",
+     "source": "msg_7143e68439"
+    }
+   },
+   "latest_message": {
+    "iteration": 4,
+    "message_id": "msg_cff03c26e4",
+    "agent_id": "analyst",
+    "tag": "REJECT",
+    "prediction": "Option A",
+    "explanation": "Option A has the highest benefit among the options I can accept. My benefit estimate for Option A is 0.82.",
+    "confidence": 0.8,
+    "judgment": {
+     "prediction_matches": false,
+     "explanation_agrees": false,
+     "changed": false
+    },
+    "in_reply_to": "msg_7143e68439",
+    "timestamp": "2026-11-20T19:45:39.862279Z",
+    "metadata": {
+     "claims": {
+      "supports": "Option A",
+      "objects": {}
+     },
+     "rule": "best_score",
+     "role": "analyst",
+     "provider": "deterministic-mock"
+    }
+   },
+   "metadata": {
+    "task_id": "architecture",
+    "benchmark": "synthetic",
+    "domain": "synthetic",
+    "options": [
+     "Option A",
+     "Option B"
+    ],
+    "context": {},
+    "cf_agents": [
+     "analyst"
+    ]
+   }
+  },
+  {
+   "task": "Choose the architecture for the reasoning service: Option A (single in-process service with a shared cache) or Option B (queue-backed worker pool).",
+   "status": "DEADLOCK",
+   "version": 10,
+   "iteration": 4,
+   "agents": [
+    "analyst",
+    "critic",
+    "specialist"
+   ],
+   "weights": {
+    "analyst": 1.0,
+    "critic": 1.0,
+    "specialist": 1.0
+   },
+   "positions": {
+    "analyst": {
+     "prediction": "Option A",
+     "explanation": "Option A has the highest benefit among the options I can accept. My benefit estimate for Option A is 0.82.",
+     "source": "msg_cff03c26e4"
+    },
+    "critic": {
+     "prediction": "Option B",
+     "explanation": "Option A fails my checks; Option B passes them. Option A is ruled out: the shared cache makes runs depend on request order, which violates constraint C3 (runs must be reproducible).",
+     "source": "msg_6c3ec21aeb"
+    },
+    "specialist": {
+     "prediction": "Option B",
+     "explanation": "I agree with critic on Option B and its reasons. Option A is ruled out: it cannot meet the 200 ms latency budget at peak load.",
+     "source": "msg_7143e68439"
+    }
+   },
+   "latest_message": {
+    "iteration": 4,
+    "message_id": "msg_cff03c26e4",
+    "agent_id": "analyst",
+    "tag": "REJECT",
+    "prediction": "Option A",
+    "explanation": "Option A has the highest benefit among the options I can accept. My benefit estimate for Option A is 0.82.",
+    "confidence": 0.8,
+    "judgment": {
+     "prediction_matches": false,
+     "explanation_agrees": false,
+     "changed": false
+    },
+    "in_reply_to": "msg_7143e68439",
+    "timestamp": "2026-11-20T19:45:39.862279Z",
+    "metadata": {
+     "claims": {
+      "supports": "Option A",
+      "objects": {}
+     },
+     "rule": "best_score",
+     "role": "analyst",
+     "provider": "deterministic-mock"
+    }
+   },
+   "metadata": {
+    "task_id": "architecture",
+    "benchmark": "synthetic",
+    "domain": "synthetic",
+    "options": [
+     "Option A",
+     "Option B"
+    ],
+    "context": {},
+    "cf_agents": [
+     "analyst"
+    ]
+   }
+  },
+  {
+   "task": "Choose the architecture for the reasoning service: Option A (single in-process service with a shared cache) or Option B (queue-backed worker pool).",
+   "status": "DEADLOCK",
+   "version": 11,
+   "iteration": 4,
+   "agents": [
+    "analyst",
+    "critic",
+    "specialist"
+   ],
+   "weights": {
+    "analyst": 1.0,
+    "critic": 1.0,
+    "specialist": 1.0
+   },
+   "positions": {
+    "analyst": {
+     "prediction": "Option A",
+     "explanation": "Option A has the highest benefit among the options I can accept. My benefit estimate for Option A is 0.82.",
+     "source": "msg_cff03c26e4"
+    },
+    "critic": {
+     "prediction": "Option B",
+     "explanation": "Option A fails my checks; Option B passes them. Option A is ruled out: the shared cache makes runs depend on request order, which violates constraint C3 (runs must be reproducible).",
+     "source": "msg_6c3ec21aeb"
+    },
+    "specialist": {
+     "prediction": "Option B",
+     "explanation": "I agree with critic on Option B and its reasons. Option A is ruled out: it cannot meet the 200 ms latency budget at peak load.",
+     "source": "msg_7143e68439"
+    }
+   },
+   "latest_message": {
+    "iteration": 4,
+    "message_id": "msg_cff03c26e4",
+    "agent_id": "analyst",
+    "tag": "REJECT",
+    "prediction": "Option A",
+    "explanation": "Option A has the highest benefit among the options I can accept. My benefit estimate for Option A is 0.82.",
+    "confidence": 0.8,
+    "judgment": {
+     "prediction_matches": false,
+     "explanation_agrees": false,
+     "changed": false
+    },
+    "in_reply_to": "msg_7143e68439",
+    "timestamp": "2026-11-20T19:45:39.862279Z",
+    "metadata": {
+     "claims": {
+      "supports": "Option A",
+      "objects": {}
+     },
+     "rule": "best_score",
+     "role": "analyst",
+     "provider": "deterministic-mock"
+    }
+   },
+   "metadata": {
+    "task_id": "architecture",
+    "benchmark": "synthetic",
+    "domain": "synthetic",
+    "options": [
+     "Option A",
+     "Option B"
+    ],
+    "context": {},
+    "cf_agents": [
+     "analyst"
+    ]
+   }
+  },
+  {
+   "task": "Choose the architecture for the reasoning service: Option A (single in-process service with a shared cache) or Option B (queue-backed worker pool).",
+   "status": "DEADLOCK",
+   "version": 12,
+   "iteration": 4,
+   "agents": [
+    "analyst",
+    "critic",
+    "specialist"
+   ],
+   "weights": {
+    "analyst": 1.0,
+    "critic": 1.0,
+    "specialist": 1.0
+   },
+   "positions": {
+    "analyst": {
+     "prediction": "Option B",
+     "explanation": "In hindsight: Option A was ruled out by critic later in the run, and Option B was not. My benefit estimate for Option B is 0.71.",
+     "source": "revision@12"
+    },
+    "critic": {
+     "prediction": "Option B",
+     "explanation": "Option A fails my checks; Option B passes them. Option A is ruled out: the shared cache makes runs depend on request order, which violates constraint C3 (runs must be reproducible).",
+     "source": "msg_6c3ec21aeb"
+    },
+    "specialist": {
+     "prediction": "Option B",
+     "explanation": "I agree with critic on Option B and its reasons. Option A is ruled out: it cannot meet the 200 ms latency budget at peak load.",
+     "source": "msg_7143e68439"
+    }
+   },
+   "latest_message": {
+    "iteration": 4,
+    "message_id": "msg_cff03c26e4",
+    "agent_id": "analyst",
+    "tag": "REJECT",
+    "prediction": "Option A",
+    "explanation": "Option A has the highest benefit among the options I can accept. My benefit estimate for Option A is 0.82.",
+    "confidence": 0.8,
+    "judgment": {
+     "prediction_matches": false,
+     "explanation_agrees": false,
+     "changed": false
+    },
+    "in_reply_to": "msg_7143e68439",
+    "timestamp": "2026-11-20T19:45:39.862279Z",
+    "metadata": {
+     "claims": {
+      "supports": "Option A",
+      "objects": {}
+     },
+     "rule": "best_score",
+     "role": "analyst",
+     "provider": "deterministic-mock"
+    }
+   },
+   "metadata": {
+    "task_id": "architecture",
+    "benchmark": "synthetic",
+    "domain": "synthetic",
+    "options": [
+     "Option A",
+     "Option B"
+    ],
+    "context": {},
+    "cf_agents": [
+     "analyst"
+    ]
+   }
+  },
+  {
+   "task": "Choose the architecture for the reasoning service: Option A (single in-process service with a shared cache) or Option B (queue-backed worker pool).",
+   "status": "DEADLOCK",
+   "version": 13,
+   "iteration": 4,
+   "agents": [
+    "analyst",
+    "critic",
+    "specialist"
+   ],
+   "weights": {
+    "analyst": 0.6667,
+    "critic": 1.0,
+    "specialist": 1.0
+   },
+   "positions": {
+    "analyst": {
+     "prediction": "Option B",
+     "explanation": "In hindsight: Option A was ruled out by critic later in the run, and Option B was not. My benefit estimate for Option B is 0.71.",
+     "source": "revision@12"
+    },
+    "critic": {
+     "prediction": "Option B",
+     "explanation": "Option A fails my checks; Option B passes them. Option A is ruled out: the shared cache makes runs depend on request order, which violates constraint C3 (runs must be reproducible).",
+     "source": "msg_6c3ec21aeb"
+    },
+    "specialist": {
+     "prediction": "Option B",
+     "explanation": "I agree with critic on Option B and its reasons. Option A is ruled out: it cannot meet the 200 ms latency budget at peak load.",
+     "source": "msg_7143e68439"
+    }
+   },
+   "latest_message": {
+    "iteration": 4,
+    "message_id": "msg_cff03c26e4",
+    "agent_id": "analyst",
+    "tag": "REJECT",
+    "prediction": "Option A",
+    "explanation": "Option A has the highest benefit among the options I can accept. My benefit estimate for Option A is 0.82.",
+    "confidence": 0.8,
+    "judgment": {
+     "prediction_matches": false,
+     "explanation_agrees": false,
+     "changed": false
+    },
+    "in_reply_to": "msg_7143e68439",
+    "timestamp": "2026-11-20T19:45:39.862279Z",
+    "metadata": {
+     "claims": {
+      "supports": "Option A",
+      "objects": {}
+     },
+     "rule": "best_score",
+     "role": "analyst",
+     "provider": "deterministic-mock"
+    }
+   },
+   "metadata": {
+    "task_id": "architecture",
+    "benchmark": "synthetic",
+    "domain": "synthetic",
+    "options": [
+     "Option A",
+     "Option B"
+    ],
+    "context": {},
+    "cf_agents": [
+     "analyst"
+    ]
+   }
+  },
+  {
+   "task": "Choose the architecture for the reasoning service: Option A (single in-process service with a shared cache) or Option B (queue-backed worker pool).",
+   "status": "RUNNING",
+   "version": 14,
+   "iteration": 4,
+   "agents": [
+    "analyst",
+    "critic",
+    "specialist"
+   ],
+   "weights": {
+    "analyst": 0.6667,
+    "critic": 1.0,
+    "specialist": 1.0
+   },
+   "positions": {
+    "analyst": {
+     "prediction": "Option B",
+     "explanation": "In hindsight: Option A was ruled out by critic later in the run, and Option B was not. My benefit estimate for Option B is 0.71.",
+     "source": "revision@12"
+    },
+    "critic": {
+     "prediction": "Option B",
+     "explanation": "Option A fails my checks; Option B passes them. Option A is ruled out: the shared cache makes runs depend on request order, which violates constraint C3 (runs must be reproducible).",
+     "source": "msg_6c3ec21aeb"
+    },
+    "specialist": {
+     "prediction": "Option B",
+     "explanation": "I agree with critic on Option B and its reasons. Option A is ruled out: it cannot meet the 200 ms latency budget at peak load.",
+     "source": "msg_7143e68439"
+    }
+   },
+   "latest_message": {
+    "iteration": 4,
+    "message_id": "msg_cff03c26e4",
+    "agent_id": "analyst",
+    "tag": "REJECT",
+    "prediction": "Option A",
+    "explanation": "Option A has the highest benefit among the options I can accept. My benefit estimate for Option A is 0.82.",
+    "confidence": 0.8,
+    "judgment": {
+     "prediction_matches": false,
+     "explanation_agrees": false,
+     "changed": false
+    },
+    "in_reply_to": "msg_7143e68439",
+    "timestamp": "2026-11-20T19:45:39.862279Z",
+    "metadata": {
+     "claims": {
+      "supports": "Option A",
+      "objects": {}
+     },
+     "rule": "best_score",
+     "role": "analyst",
+     "provider": "deterministic-mock"
+    }
+   },
+   "metadata": {
+    "task_id": "architecture",
+    "benchmark": "synthetic",
+    "domain": "synthetic",
+    "options": [
+     "Option A",
+     "Option B"
+    ],
+    "context": {},
+    "cf_agents": [
+     "analyst"
+    ]
+   }
+  },
+  {
+   "task": "Choose the architecture for the reasoning service: Option A (single in-process service with a shared cache) or Option B (queue-backed worker pool).",
+   "status": "RUNNING",
+   "version": 15,
+   "iteration": 4,
+   "agents": [
+    "analyst",
+    "critic",
+    "specialist"
+   ],
+   "weights": {
+    "analyst": 0.6667,
+    "critic": 1.0,
+    "specialist": 1.0
+   },
+   "positions": {
+    "analyst": {
+     "prediction": "Option B",
+     "explanation": "In hindsight: Option A was ruled out by critic later in the run, and Option B was not. My benefit estimate for Option B is 0.71.",
+     "source": "revision@12"
+    },
+    "critic": {
+     "prediction": "Option B",
+     "explanation": "Option A fails my checks; Option B passes them. Option A is ruled out: the shared cache makes runs depend on request order, which violates constraint C3 (runs must be reproducible).",
+     "source": "msg_6c3ec21aeb"
+    },
+    "specialist": {
+     "prediction": "Option B",
+     "explanation": "I agree with critic on Option B and its reasons. Option A is ruled out: it cannot meet the 200 ms latency budget at peak load.",
+     "source": "msg_7143e68439"
+    }
+   },
+   "latest_message": {
+    "iteration": 4,
+    "message_id": "msg_cff03c26e4",
+    "agent_id": "analyst",
+    "tag": "REJECT",
+    "prediction": "Option A",
+    "explanation": "Option A has the highest benefit among the options I can accept. My benefit estimate for Option A is 0.82.",
+    "confidence": 0.8,
+    "judgment": {
+     "prediction_matches": false,
+     "explanation_agrees": false,
+     "changed": false
+    },
+    "in_reply_to": "msg_7143e68439",
+    "timestamp": "2026-11-20T19:45:39.862279Z",
+    "metadata": {
+     "claims": {
+      "supports": "Option A",
+      "objects": {}
+     },
+     "rule": "best_score",
+     "role": "analyst",
+     "provider": "deterministic-mock"
+    }
+   },
+   "metadata": {
+    "task_id": "architecture",
+    "benchmark": "synthetic",
+    "domain": "synthetic",
+    "options": [
+     "Option A",
+     "Option B"
+    ],
+    "context": {},
+    "cf_agents": [
+     "analyst"
+    ]
+   }
+  },
+  {
+   "task": "Choose the architecture for the reasoning service: Option A (single in-process service with a shared cache) or Option B (queue-backed worker pool).",
+   "status": "RUNNING",
+   "version": 16,
+   "iteration": 5,
+   "agents": [
+    "analyst",
+    "critic",
+    "specialist"
+   ],
+   "weights": {
+    "analyst": 0.6667,
+    "critic": 1.0,
+    "specialist": 1.0
+   },
+   "positions": {
+    "analyst": {
+     "prediction": "Option B",
+     "explanation": "I agree with specialist on Option B and its reasons. My benefit estimate for Option B is 0.71.",
+     "source": "msg_fbb16d7bf7"
+    },
+    "critic": {
+     "prediction": "Option B",
+     "explanation": "Option A fails my checks; Option B passes them. Option A is ruled out: the shared cache makes runs depend on request order, which violates constraint C3 (runs must be reproducible).",
+     "source": "msg_6c3ec21aeb"
+    },
+    "specialist": {
+     "prediction": "Option B",
+     "explanation": "I agree with critic on Option B and its reasons. Option A is ruled out: it cannot meet the 200 ms latency budget at peak load.",
+     "source": "msg_7143e68439"
+    }
+   },
+   "latest_message": {
+    "iteration": 5,
+    "message_id": "msg_fbb16d7bf7",
+    "agent_id": "analyst",
+    "tag": "RATIFY",
+    "prediction": "Option B",
+    "explanation": "I agree with specialist on Option B and its reasons. My benefit estimate for Option B is 0.71.",
+    "confidence": 0.8,
+    "judgment": {
+     "prediction_matches": true,
+     "explanation_agrees": true,
+     "changed": false
+    },
+    "in_reply_to": "msg_7143e68439",
+    "timestamp": "2026-11-20T19:45:39.865505Z",
+    "metadata": {
+     "claims": {
+      "supports": "Option B",
+      "objects": {}
+     },
+     "rule": "ratify",
+     "role": "analyst",
+     "provider": "deterministic-mock"
+    }
+   },
+   "metadata": {
+    "task_id": "architecture",
+    "benchmark": "synthetic",
+    "domain": "synthetic",
+    "options": [
+     "Option A",
+     "Option B"
+    ],
+    "context": {},
+    "cf_agents": [
+     "analyst"
+    ]
+   }
+  },
+  {
+   "task": "Choose the architecture for the reasoning service: Option A (single in-process service with a shared cache) or Option B (queue-backed worker pool).",
+   "status": "RUNNING",
+   "version": 17,
+   "iteration": 5,
+   "agents": [
+    "analyst",
+    "critic",
+    "specialist"
+   ],
+   "weights": {
+    "analyst": 0.6667,
+    "critic": 1.0,
+    "specialist": 1.0
+   },
+   "positions": {
+    "analyst": {
+     "prediction": "Option B",
+     "explanation": "I agree with specialist on Option B and its reasons. My benefit estimate for Option B is 0.71.",
+     "source": "msg_fbb16d7bf7"
+    },
+    "critic": {
+     "prediction": "Option B",
+     "explanation": "Option A fails my checks; Option B passes them. Option A is ruled out: the shared cache makes runs depend on request order, which violates constraint C3 (runs must be reproducible).",
+     "source": "msg_6c3ec21aeb"
+    },
+    "specialist": {
+     "prediction": "Option B",
+     "explanation": "I agree with critic on Option B and its reasons. Option A is ruled out: it cannot meet the 200 ms latency budget at peak load.",
+     "source": "msg_7143e68439"
+    }
+   },
+   "latest_message": {
+    "iteration": 5,
+    "message_id": "msg_fbb16d7bf7",
+    "agent_id": "analyst",
+    "tag": "RATIFY",
+    "prediction": "Option B",
+    "explanation": "I agree with specialist on Option B and its reasons. My benefit estimate for Option B is 0.71.",
+    "confidence": 0.8,
+    "judgment": {
+     "prediction_matches": true,
+     "explanation_agrees": true,
+     "changed": false
+    },
+    "in_reply_to": "msg_7143e68439",
+    "timestamp": "2026-11-20T19:45:39.865505Z",
+    "metadata": {
+     "claims": {
+      "supports": "Option B",
+      "objects": {}
+     },
+     "rule": "ratify",
+     "role": "analyst",
+     "provider": "deterministic-mock"
+    }
+   },
+   "metadata": {
+    "task_id": "architecture",
+    "benchmark": "synthetic",
+    "domain": "synthetic",
+    "options": [
+     "Option A",
+     "Option B"
+    ],
+    "context": {},
+    "cf_agents": [
+     "analyst"
+    ]
+   }
+  },
+  {
+   "task": "Choose the architecture for the reasoning service: Option A (single in-process service with a shared cache) or Option B (queue-backed worker pool).",
+   "status": "RUNNING",
+   "version": 18,
+   "iteration": 6,
+   "agents": [
+    "analyst",
+    "critic",
+    "specialist"
+   ],
+   "weights": {
+    "analyst": 0.6667,
+    "critic": 1.0,
+    "specialist": 1.0
+   },
+   "positions": {
+    "analyst": {
+     "prediction": "Option B",
+     "explanation": "I agree with specialist on Option B and its reasons. My benefit estimate for Option B is 0.71.",
+     "source": "msg_fbb16d7bf7"
+    },
+    "critic": {
+     "prediction": "Option B",
+     "explanation": "I agree with analyst on Option B and its reasons. Option A is ruled out: the shared cache makes runs depend on request order, which violates constraint C3 (runs must be reproducible).",
+     "source": "msg_4cee1a22c9"
+    },
+    "specialist": {
+     "prediction": "Option B",
+     "explanation": "I agree with critic on Option B and its reasons. Option A is ruled out: it cannot meet the 200 ms latency budget at peak load.",
+     "source": "msg_7143e68439"
+    }
+   },
+   "latest_message": {
+    "iteration": 6,
+    "message_id": "msg_4cee1a22c9",
+    "agent_id": "critic",
+    "tag": "RATIFY",
+    "prediction": "Option B",
+    "explanation": "I agree with analyst on Option B and its reasons. Option A is ruled out: the shared cache makes runs depend on request order, which violates constraint C3 (runs must be reproducible).",
+    "confidence": 0.8,
+    "judgment": {
+     "prediction_matches": true,
+     "explanation_agrees": true,
+     "changed": false
+    },
+    "in_reply_to": "msg_fbb16d7bf7",
+    "timestamp": "2026-11-20T19:45:39.865773Z",
+    "metadata": {
+     "claims": {
+      "supports": "Option B",
+      "objects": {
+       "Option A": "the shared cache makes runs depend on request order, which violates constraint C3 (runs must be reproducible)"
+      }
+     },
+     "rule": "ratify",
+     "role": "critic",
+     "provider": "deterministic-mock"
+    }
+   },
+   "metadata": {
+    "task_id": "architecture",
+    "benchmark": "synthetic",
+    "domain": "synthetic",
+    "options": [
+     "Option A",
+     "Option B"
+    ],
+    "context": {},
+    "cf_agents": [
+     "analyst"
+    ]
+   }
+  },
+  {
+   "task": "Choose the architecture for the reasoning service: Option A (single in-process service with a shared cache) or Option B (queue-backed worker pool).",
+   "status": "CONSENSUS",
+   "version": 19,
+   "iteration": 6,
+   "agents": [
+    "analyst",
+    "critic",
+    "specialist"
+   ],
+   "weights": {
+    "analyst": 0.6667,
+    "critic": 1.0,
+    "specialist": 1.0
+   },
+   "positions": {
+    "analyst": {
+     "prediction": "Option B",
+     "explanation": "I agree with specialist on Option B and its reasons. My benefit estimate for Option B is 0.71.",
+     "source": "msg_fbb16d7bf7"
+    },
+    "critic": {
+     "prediction": "Option B",
+     "explanation": "I agree with analyst on Option B and its reasons. Option A is ruled out: the shared cache makes runs depend on request order, which violates constraint C3 (runs must be reproducible).",
+     "source": "msg_4cee1a22c9"
+    },
+    "specialist": {
+     "prediction": "Option B",
+     "explanation": "I agree with critic on Option B and its reasons. Option A is ruled out: it cannot meet the 200 ms latency budget at peak load.",
+     "source": "msg_7143e68439"
+    }
+   },
+   "latest_message": {
+    "iteration": 6,
+    "message_id": "msg_4cee1a22c9",
+    "agent_id": "critic",
+    "tag": "RATIFY",
+    "prediction": "Option B",
+    "explanation": "I agree with analyst on Option B and its reasons. Option A is ruled out: the shared cache makes runs depend on request order, which violates constraint C3 (runs must be reproducible).",
+    "confidence": 0.8,
+    "judgment": {
+     "prediction_matches": true,
+     "explanation_agrees": true,
+     "changed": false
+    },
+    "in_reply_to": "msg_fbb16d7bf7",
+    "timestamp": "2026-11-20T19:45:39.865773Z",
+    "metadata": {
+     "claims": {
+      "supports": "Option B",
+      "objects": {
+       "Option A": "the shared cache makes runs depend on request order, which violates constraint C3 (runs must be reproducible)"
+      }
+     },
+     "rule": "ratify",
+     "role": "critic",
+     "provider": "deterministic-mock"
+    }
+   },
+   "metadata": {
+    "task_id": "architecture",
+    "benchmark": "synthetic",
+    "domain": "synthetic",
+    "options": [
+     "Option A",
+     "Option B"
+    ],
+    "context": {},
+    "cf_agents": [
+     "analyst"
+    ]
+   }
+  }
+ ]
+}

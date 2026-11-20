@@ -37,7 +37,7 @@ def test_health_and_catalog(client):
     synthetic = next(b for b in catalog["benchmarks"] if b["name"] == "synthetic")
     assert synthetic["tasks"][0]["task_id"] == "architecture"
     assert synthetic["tasks"][0]["roles"] == ["analyst", "critic", "specialist"]
-    assert catalog["providers"][0]["spec"] == "mock"
+    assert client.get("/api/providers").json()[0]["spec"] == "mock"
 
 
 def test_session_runs_and_exposes_events_and_states(client):

@@ -162,7 +162,9 @@ class Session:
             session_id=session_id or f"{task.task_id}-{uuid.uuid4().hex[:8]}",
             grammar=PXPGrammar(self.config.reject_after),
         )
-        self.board.initialize_task(task.question, task.board_metadata(), agents=ids)
+        self.board.initialize_task(task.question,
+                                   {**task.board_metadata(), "cf_agents": list(self.cf_agents)},
+                                   agents=ids)
         self.arbiter = PriorityArbiter()
         self.control = RunControl()
         self.scheduler: Scheduler | None = None

@@ -11,7 +11,7 @@ Start vLLM on the GPU machine with, for example:
 
     vllm serve Qwen/Qwen2.5-7B-Instruct --max-model-len 8192 --port 8000
 
-and use ``base_url="http://localhost:8000/v1"``.
+and use ``base_url="http://127.0.0.1:8000/v1"``.
 """
 
 from typing import Any
@@ -38,7 +38,7 @@ class OpenAICompatibleProvider(LLMProvider):
     def __init__(
         self,
         model: str,
-        base_url: str = "http://localhost:8000/v1",
+        base_url: str = "http://127.0.0.1:8000/v1",
         api_key: str | None = None,
         temperature: float = 0.0,
         seed: int | None = 0,

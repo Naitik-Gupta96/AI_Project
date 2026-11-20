@@ -23,7 +23,7 @@ class OllamaProvider(LLMProvider):
     def __init__(
         self,
         model: str = "qwen2.5:7b-instruct",
-        host: str = "http://localhost:11434",
+        host: str = "http://127.0.0.1:11434",
         seed: int = 0,
         temperature: float = 0.0,
         num_ctx: int = 8192,

@@ -2,7 +2,8 @@
 HTTP and WebSocket API for the web UI.
 
     GET  /api/health
-    GET  /api/catalog                         benchmarks, their tasks, available providers
+    GET  /api/catalog                         benchmarks and their tasks
+    GET  /api/providers                       model providers reachable right now
     POST /api/sessions                        start a live session
     GET  /api/sessions                        live sessions, then stored ones
     GET  /api/sessions/{id}                   summary (live or stored)
@@ -17,7 +18,9 @@ it is served at ``/``.
 """
 
 import asyncio
+import contextlib
 import os
+from concurrent.futures import ThreadPoolExecutor
 from pathlib import Path
 from typing import Any
 
@@ -57,22 +60,24 @@ class Control(BaseModel):
 
 
 def _model_providers() -> list[dict[str, Any]]:
-    """Providers the machine can reach right now (mock is always available)."""
-    found = [{"spec": "mock", "label": "Deterministic mock (rules, no model)"}]
-    host = os.environ.get("OLLAMA_HOST", "http://localhost:11434").rstrip("/")
-    try:
-        for m in get_json(f"{host}/api/tags", timeout=1.5).get("models", []):
-            found.append({"spec": f"ollama:{m['name']}", "label": f"Ollama · {m['name']}"})
-    except LLMProviderError:
-        pass
-    vllm = os.environ.get("VLLM_BASE_URL", "http://localhost:8000/v1").rstrip("/")
-    try:
-        for m in get_json(f"{vllm}/models", timeout=1.5).get("data", []):
-            found.append({"spec": f"vllm:{m['id']}", "label": f"vLLM · {m['id']}"})
-    except LLMProviderError:
-        pass
-    return found
+    """Providers reachable right now (mock always). The two probes run in parallel."""
+    host = os.environ.get("OLLAMA_HOST", "http://127.0.0.1:11434").rstrip("/")
+    vllm = os.environ.get("VLLM_BASE_URL", "http://127.0.0.1:8000/v1").rstrip("/")
 
+    def ollama() -> list[dict[str, str]]:
+        models = get_json(f"{host}/api/tags", timeout=1.0).get("models", [])
+        return [{"spec": f"ollama:{m['name']}", "label": f"Ollama · {m['name']}"} for m in models]
+
+    def vllm_models() -> list[dict[str, str]]:
+        models = get_json(f"{vllm}/models", timeout=1.0).get("data", [])
+        return [{"spec": f"vllm:{m['id']}", "label": f"vLLM · {m['id']}"} for m in models]
+
+    found = [{"spec": "mock", "label": "Deterministic mock (rules, no model)"}]
+    with ThreadPoolExecutor(max_workers=2) as pool:
+        for future in [pool.submit(vllm_models), pool.submit(ollama)]:
+            with contextlib.suppress(LLMProviderError):  # not running: not offered
+                found += future.result()
+    return found
 
 def create_app(runs_dir: str | Path = "runs", catalog_size: int = 20,
                web_dir: str | Path | None = None) -> FastAPI:
@@ -112,7 +117,11 @@ def create_app(runs_dir: str | Path = "runs", catalog_size: int = 20,
                            "roles": [r.role for r in prompts.roles(t.domain)]}
                           for t in tasks],
             })
-        return {"benchmarks": benchmarks, "providers": _model_providers()}
+        return {"benchmarks": benchmarks}
+
+    @app.get("/api/providers")
+    def list_providers() -> list[dict[str, Any]]:
+        return _model_providers()
 
     @app.post("/api/sessions", status_code=201)
     def start_session(body: StartSession) -> dict[str, Any]:

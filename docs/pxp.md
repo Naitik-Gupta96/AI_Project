@@ -39,10 +39,28 @@ changed            = not MATCH(y, y'') or not AGREE(e, e'')
 `k` (`reject_after`, default 3) is the message number after which `REJECT` may be sent. The
 spec lists four tags; the paper also has `INIT` for the opening message, and we keep it.
 
+## Who decides what
+
+Algorithm 1 is a procedure, and so is our agent (`agents/procedure.py`). The model (or the
+mock) answers one turn with what needs understanding:
+- its prediction and explanation;
+- `explanation_agrees`;
+- `changed` for its reasoning;
+- `prediction_matches`, only for free-form answers.
+
+The procedure then:
+1. computes MATCH itself when the task lists options (string equality);
+2. sets `changed` when the prediction moved;
+3. assigns the tag from the table above.
+
+A first live run with a 4B model showed why. Asked to apply the tag table itself, the model
+tagged RATIFY while judging that it disagreed with the peer's explanation.
+
 ## What the grammar checks
 
-`PXPGrammar.check` runs on every commit; a failing message is rejected and never repaired.
-The agent gets the violations back and may retry once.
+`PXPGrammar.check` runs on every commit. A failing message is rejected, never repaired. The
+agent gets the violations back in its prompt and may retry once. The agent procedure always
+produces grammatical messages; the grammar is the board's guarantee against any other writer.
 
 1. **Structure.** Agent id, prediction and explanation are non-empty, and confidence is in [0, 1].
 2. **Position in the session.** `INIT` is message 1 and only message 1. A reply needs a peer

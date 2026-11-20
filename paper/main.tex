@@ -1,0 +1,99 @@
+\documentclass[11pt]{article}
+\usepackage[margin=1in]{geometry}
+\usepackage{booktabs,graphicx,amsmath,hyperref,xcolor}
+\usepackage[numbers]{natbib}
+\IfFileExists{svg.sty}{\usepackage{svg}}{}
+
+% Results: run `bb report runs/experiments/<run>` on the GPU machine, then copy that run's
+% figures/ and tables/ directories next to this file. \result falls back to a visible note.
+\newcommand{\result}[2]{\IfFileExists{#1}{#2}{\fbox{\parbox{0.9\linewidth}{\small Missing #1: run \texttt{bb report} and copy its output here.}}}}
+
+\title{Intelligible Blackboard Architecture with Counterfactual Agents}
+\author{Team (see docs/team.md)}
+\date{}
+
+\begin{document}
+\maketitle
+
+\begin{abstract}
+Agents that pass text down a chain lose context and compound each other's errors. We let three
+language-model agents coordinate only through a shared blackboard on which every message follows
+the Two-Way Intelligibility Protocol (PXP): a prediction, an explanation, and a tag derived from
+the sender's judgments of the message it answers. When the board deadlocks, agents with
+counterfactual capability replay the session in an isolated sandbox with alternatives to their
+own past messages, assign credit by how much closer each alternative brings the team to
+consensus, and apply the best one to the live board through a lesson in their prompt, a revised
+position and a lower voting weight. We vary the share of counterfactual-capable agents (0, 33,
+67, 100\%) over 500 tasks from MSCoRe, KramaBench and MedAgentBench and report convergence
+success, intelligibility depth and token cost.
+\end{abstract}
+
+\section{Introduction}
+% Motivation: chains vs a shared structured state; PXP; deadlocks; counterfactual credit.
+
+\section{PXP on a blackboard}
+\label{sec:pxp}
+Every message carries the sender's prediction $y$ and explanation $e$. Following Algorithm~1 of
+\citet{mestha2025}, the sender compares the peer message $(y', e')$ (the latest message from
+another agent) with its own previous position $(y'', e'')$ and its new output with that position:
+\[
+\textsc{match} = \mathrm{MATCH}(y', y''),\quad \textsc{agree} = \mathrm{AGREE}(e', e''),\quad
+\textsc{changed} = \neg\mathrm{MATCH}(y, y'') \lor \neg\mathrm{AGREE}(e, e'').
+\]
+Message 1 is \textsc{init}; \textsc{match}$\land$\textsc{agree} gives \textsc{ratify}; exactly
+one of them gives \textsc{revise} if \textsc{changed} and \textsc{refute} otherwise; neither gives
+\textsc{reject} after message $k$ and \textsc{revise}/\textsc{refute} before. The model supplies
+the judgments that need understanding; the agent's procedure computes MATCH over listed options
+and the tag; a grammar checks every message on commit and rejects (never repairs) invalid ones.
+Session intelligibility follows Definitions~1--2 of \citet{mestha2025}, taking the weakest level
+over agents (Section~\ref{sec:metrics}).
+
+\section{Architecture}
+% Four layers (docs/architecture.md): event-sourced blackboard with optimistic versioning;
+% event-driven scheduler with a priority arbiter and weighted consensus over RATIFY chains;
+% agents and providers (vLLM, constrained decoding); counterfactual layer; UI.
+
+\section{Counterfactual credit assignment}
+On a deadlock, each capable agent reflects on its last three messages, proposes up to three
+grammatical alternatives per message, and replays the session from each in a sandbox rebuilt from
+the event log. The credit of an alternative is the gain in consensus proximity (the weighted
+share of the largest agreeing group) between the live board at the deadlock and the end of the
+replay. The best alternative with positive credit is applied: its lesson joins the agent's system
+prompt, the agent's position is revised, and its weight becomes $\max(0.25,\, w(1-0.5\cdot
+\mathrm{credit}))$; the session resumes with the agent posting next.
+
+\section{Experimental setup}
+\label{sec:metrics}
+% Copy from docs/experiments.md: groups, benchmarks and their adaptation, model, metrics.
+
+\section{Results}
+\begin{table}[h]
+\centering\small
+\result{tables/groups.tex}{\input{tables/groups.tex}}
+\caption{Results per group and benchmark. Convergence success with 95\% Wilson intervals.}
+\end{table}
+
+\begin{figure}[h]
+\centering
+\result{figures/convergence.png}{\includegraphics[width=0.75\linewidth]{figures/convergence.png}}
+\caption{Convergence success against the share of counterfactual-capable agents.}
+\end{figure}
+
+\begin{figure}[h]
+\centering
+\result{figures/intelligibility.png}{\includegraphics[width=0.75\linewidth]{figures/intelligibility.png}}
+\caption{Intelligibility depth of whole sessions.}
+\end{figure}
+
+\begin{figure}[h]
+\centering
+\result{figures/tokens.png}{\includegraphics[width=0.75\linewidth]{figures/tokens.png}}
+\caption{Tokens per instance on the live board and in the counterfactual sandbox.}
+\end{figure}
+
+\section{Discussion and limitations}
+% See docs/experiments.md#limitations.
+
+\bibliographystyle{plainnat}
+\bibliography{references}
+\end{document}

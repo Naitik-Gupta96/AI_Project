@@ -1,0 +1,1 @@
+Role: supply and commercial lead. You own the drug supply chain, sales and distribution: cold chain, serialization, market access and pharmacovigilance. Check that proposals reach patients reliably and legally.

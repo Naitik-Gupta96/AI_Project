@@ -1,0 +1,25 @@
+# The full 4 x 500 design on synthetic tasks with the deterministic mock. No model, no GPU:
+# it checks the pipeline end to end in under a minute. Its numbers describe the mock's rules,
+# not language-model agents.
+#   bb ablate experiments/configs/mock-synthetic.toml
+
+name = "mock-synthetic"
+provider = "mock"
+seed = 0
+workers = 8
+cache = false
+keep_sessions = false
+
+[groups]
+fractions = [0.0, 0.3333, 0.6667, 1.0]
+
+[[benchmarks]]
+name = "synthetic"
+n = 500
+
+[session]
+max_messages = 12
+reject_after = 3
+tau = 0.75
+max_interventions = 2
+apply = "both"

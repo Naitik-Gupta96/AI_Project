@@ -1,0 +1,33 @@
+# A few trials of everything with the real model: run this first on the GPU machine.
+#   bb ablate experiments/configs/smoke.toml
+
+name = "smoke-qwen2.5-7b"
+provider = "vllm:Qwen/Qwen2.5-7B-Instruct"
+seed = 0
+workers = 8
+max_in_flight = 16
+cache = true
+
+[groups]
+fractions = [0.0, 1.0]
+
+[[benchmarks]]
+name = "mscore"
+n = 4
+
+[[benchmarks]]
+name = "kramabench"
+n = 3
+options = { sandbox = "docker" }
+
+[[benchmarks]]
+name = "medagentbench"
+n = 3
+
+[session]
+max_messages = 12
+reject_after = 3
+tau = 0.75
+max_interventions = 2
+apply = "both"
+max_tool_calls = 4

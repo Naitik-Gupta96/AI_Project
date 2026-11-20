@@ -1,0 +1,43 @@
+# Services for running the experiments on a GPU machine. See scripts/gpu_runbook.md.
+#
+#   docker compose up -d vllm fhir        model server + MedAgentBench FHIR server
+#   docker compose build sandbox          image for KramaBench's python tool
+#   docker compose up -d redis            only if you use the Redis board store
+
+services:
+  vllm:
+    image: vllm/vllm-openai:latest
+    command: >
+      --model ${MODEL:-Qwen/Qwen2.5-7B-Instruct}
+      --max-model-len 16384
+      --gpu-memory-utilization 0.90
+      --max-num-seqs 64
+      --seed 0
+    ports: ["8000:8000"]
+    ipc: host
+    volumes:
+      - ${HF_HOME:-~/.cache/huggingface}:/root/.cache/huggingface
+    environment:
+      - HUGGING_FACE_HUB_TOKEN=${HUGGING_FACE_HUB_TOKEN:-}
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: all
+              capabilities: [gpu]
+
+  fhir:
+    image: jyxsu6/medagentbench:latest
+    ports: ["8080:8080"]
+
+  redis:
+    image: redis:7-alpine
+    ports: ["6379:6379"]
+
+  sandbox:
+    build:
+      context: .
+      dockerfile: docker/sandbox.Dockerfile
+    image: ai-project-sandbox
+    profiles: ["build"]

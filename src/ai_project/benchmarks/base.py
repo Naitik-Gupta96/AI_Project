@@ -50,6 +50,7 @@ class Task:
         evidence: Private evidence per role
         context: Public material shown to every agent (e.g. a patient id, file list)
         metadata: Anything else the loader wants to keep (difficulty, task type, ...)
+        answer_format: How a free-form answer must be written (shown to agents)
     """
 
     task_id: str
@@ -61,6 +62,7 @@ class Task:
     evidence: Mapping[str, Evidence] = field(default_factory=dict)
     context: Mapping[str, Any] = field(default_factory=dict)
     metadata: Mapping[str, Any] = field(default_factory=dict)
+    answer_format: str = ""
 
     def evidence_for(self, role: str) -> Evidence:
         return self.evidence.get(role, Evidence())
@@ -86,6 +88,7 @@ class Task:
             "evidence": {r: e.to_dict() for r, e in self.evidence.items()},
             "context": dict(self.context),
             "metadata": dict(self.metadata),
+            "answer_format": self.answer_format,
         }
 
     @classmethod
@@ -100,6 +103,7 @@ class Task:
             evidence={r: Evidence.from_dict(e) for r, e in (data.get("evidence") or {}).items()},
             context=dict(data.get("context") or {}),
             metadata=dict(data.get("metadata") or {}),
+            answer_format=data.get("answer_format", ""),
         )
 
 

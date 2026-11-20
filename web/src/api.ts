@@ -138,5 +138,5 @@ export interface ExperimentDetail {
   name: string;
   meta: Record<string, any>;
   groups: GroupRow[];
-  tests: { comparison: string; benchmark: string; b: number; c: number; p_value: number }[];
+  tests: { comparison: string; benchmark: string; pairs: number; b: number; c: number; p_value: number }[];
 }

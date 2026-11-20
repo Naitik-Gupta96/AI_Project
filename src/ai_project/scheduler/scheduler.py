@@ -1,123 +1,119 @@
 """
-Scheduler: the event loop that turns agents + a Blackboard into a process.
+Event-driven scheduler.
 
-Each ``step()``:
+The scheduler subscribes to the Blackboard. Every state-changing event
+(message, status, weight, context revision) wakes it; bursts of events are
+coalesced into one *round*:
 
-1. Stop if the board is already terminal (CONSENSUS / DEADLOCK / FAILED).
-2. Move the board to RUNNING if it is still INITIALIZED.
-3. Check consensus, then deadlock; if either holds, set the status and stop.
-4. Ask the policy which agent acts next.
-5. Invoke ``agent.act(board)`` and publish the returned PXP message
-   (the Blackboard validates it).
-6. Record a trace entry, then check consensus and deadlock again.
+1. Stop if the session is terminal, or the message budget is spent.
+2. Check consensus, then deadlock; if either holds, set the status and stop.
+3. Rank all agents (``PriorityArbiter``) and record the ranking as an
+   ``activation`` event.
+4. Let the top ``max_concurrent_agents`` eligible agents draft in parallel,
+   all reading board version v.
+5. Commit the drafts in rank order with ``expected_version=v``. The first
+   commit moves the board on, so later drafts raise ``VersionConflict``:
+   they are discarded and recorded as ``collision`` events, and those agents
+   are ranked again next round. With one agent per round (the default) there
+   are no collisions and runs are deterministic.
+6. Record tool calls and rejected attempts; an agent that fails
+   ``max_failed_turns`` turns fails the session.
 
-Only the Blackboard's public API is used.
+The commit in step 5 emits a message event, which wakes the next round.
+``pause``, ``resume``, ``step`` and ``stop`` let a UI drive a live session.
 """
 
+import queue
+import threading
+from collections.abc import Collection, Sequence
+from concurrent.futures import ThreadPoolExecutor
 from dataclasses import dataclass, field
-from typing import Any
+from typing import Any, Protocol
 
-from ai_project.blackboard import Blackboard, BlackboardStatus
-from ai_project.deadlock import DeadlockConfig, DeadlockDetector, DeadlockReport, current_proposal
-from ai_project.scheduler.consensus import ConsensusConfig, ConsensusResult, detect_consensus
-from ai_project.scheduler.policies import RoundRobinPolicy, SchedulingContext, SchedulingPolicy
-from ai_project.scheduler.registry import AgentRegistry, AgentsInput
-from ai_project.scheduler.trace import (
-    KIND_ACTION,
-    KIND_CONSENSUS,
-    KIND_DEADLOCK,
-    KIND_ERROR,
-    KIND_MAX_STEPS,
-    TraceEntry,
-    diff_fields,
+from ai_project.agents.models import Draft
+from ai_project.blackboard import Blackboard, BlackboardStatus, VersionConflict
+from ai_project.blackboard.models import (
+    ACTIVATION,
+    COLLISION,
+    CONTEXT_REVISION,
+    FORMAT_ERROR,
+    INTERVENTION,
+    MESSAGE,
+    STATUS,
+    TOOL,
+    WEIGHT,
+    BoardEvent,
 )
+from ai_project.deadlock import DeadlockConfig, DeadlockDetector, DeadlockReport
+from ai_project.scheduler.arbiter import Activation, PriorityArbiter
+from ai_project.scheduler.consensus import ConsensusConfig, ConsensusResult, evaluate_consensus
 
 STOP_CONSENSUS = "consensus"
 STOP_DEADLOCK = "deadlock"
-STOP_ERROR = "error"
-STOP_MAX_STEPS = "max_steps"
+STOP_FAILED = "failed"
+STOP_MAX_MESSAGES = "max_messages"
+STOP_STOPPED = "stopped"
 
-TERMINAL_STATUSES = {
-    BlackboardStatus.CONSENSUS: STOP_CONSENSUS,
-    BlackboardStatus.DEADLOCK: STOP_DEADLOCK,
-    BlackboardStatus.FAILED: STOP_ERROR,
-}
+TERMINAL = (BlackboardStatus.CONSENSUS, BlackboardStatus.DEADLOCK, BlackboardStatus.FAILED)
+_WAKE_KINDS = {MESSAGE, STATUS, WEIGHT, CONTEXT_REVISION}
+_WAKE, _STOP = "wake", "stop"
+
+
+class SchedulableAgent(Protocol):
+    agent_id: str
+    role: str
+
+    def act(self, board: Blackboard) -> Draft: ...
 
 
 class SchedulerError(Exception):
-    """Raised for scheduler misconfiguration or contract violations."""
+    """Misconfiguration (no agents, duplicate ids)."""
 
 
 @dataclass(frozen=True)
 class SchedulerConfig:
     """
-    Scheduler configuration. Recorded with every result for reproducibility.
-
     Attributes:
-        max_steps: Default agent-action budget for ``run()``
-        consensus: Consensus thresholds
-        deadlock: Deadlock thresholds
-        seed: Recorded with results; the built-in policies and mock agents are
-            deterministic and do not consume it
-        raise_on_agent_error: If True, agent/publish exceptions propagate instead
-            of setting the board to FAILED
+        max_messages: Message budget for the session (n in the paper's interaction procedure)
+        max_concurrent_agents: Agents drafting in parallel per round
+        consensus: Consensus rule
+        deadlock: Deadlock rules
+        max_failed_turns: Turns without a grammatical message before an agent fails the session
     """
 
-    max_steps: int = 20
+    max_messages: int = 12
+    max_concurrent_agents: int = 1
     consensus: ConsensusConfig = field(default_factory=ConsensusConfig)
     deadlock: DeadlockConfig = field(default_factory=DeadlockConfig)
-    seed: int | None = None
-    raise_on_agent_error: bool = False
+    max_failed_turns: int = 3
 
     def __post_init__(self) -> None:
-        if self.max_steps < 0:
-            raise ValueError("max_steps must be >= 0")
+        if self.max_messages < 1:
+            raise ValueError("max_messages must be >= 1")
+        if self.max_concurrent_agents < 1:
+            raise ValueError("max_concurrent_agents must be >= 1")
 
     def to_dict(self) -> dict[str, Any]:
-        """Convert to JSON-serializable dictionary."""
         return {
-            "max_steps": self.max_steps,
+            "max_messages": self.max_messages,
+            "max_concurrent_agents": self.max_concurrent_agents,
             "consensus": self.consensus.to_dict(),
             "deadlock": self.deadlock.to_dict(),
-            "seed": self.seed,
-            "raise_on_agent_error": self.raise_on_agent_error,
+            "max_failed_turns": self.max_failed_turns,
         }
 
 
 @dataclass
 class SchedulerResult:
-    """
-    Structured outcome of a scheduler run.
-
-    Attributes:
-        status: Final board status value
-        stop_reason: consensus / deadlock / error / max_steps (None if still running)
-        final_prediction: Standing proposal at the end (the agreed prediction on
-            consensus, the contested one on deadlock)
-        iterations: Board iteration at the end
-        steps: Agent actions performed by this scheduler
-        consensus: Last consensus check
-        deadlock: Last deadlock check
-        trace: Scheduler trace entries
-        state: Final board state (serialized)
-        history: Final board history (serialized)
-        config: Scheduler configuration (serialized)
-        policy: Policy description
-        error: Error message if the run failed
-    """
-
     status: str
     stop_reason: str | None
     final_prediction: str | None
-    iterations: int
-    steps: int
+    messages: int
+    rounds: int
+    collisions: int
+    failed_turns: dict[str, int]
     consensus: ConsensusResult
     deadlock: DeadlockReport
-    trace: list[TraceEntry]
-    state: dict[str, Any]
-    history: list[dict[str, Any]]
-    config: dict[str, Any]
-    policy: dict[str, Any]
     error: str | None = None
 
     @property
@@ -129,357 +125,266 @@ class SchedulerResult:
         return self.status == BlackboardStatus.DEADLOCK.value
 
     def to_dict(self) -> dict[str, Any]:
-        """Convert to JSON-serializable dictionary."""
         return {
             "status": self.status,
             "stop_reason": self.stop_reason,
             "final_prediction": self.final_prediction,
-            "iterations": self.iterations,
-            "steps": self.steps,
-            "consensus_reached": self.consensus_reached,
-            "deadlocked": self.deadlocked,
+            "messages": self.messages,
+            "rounds": self.rounds,
+            "collisions": self.collisions,
+            "failed_turns": dict(self.failed_turns),
             "consensus": self.consensus.to_dict(),
             "deadlock": self.deadlock.to_dict(),
-            "trace": [entry.to_dict() for entry in self.trace],
-            "state": self.state,
-            "history": self.history,
-            "config": self.config,
-            "policy": self.policy,
             "error": self.error,
         }
 
 
+def epoch_start(events: Sequence[BoardEvent]) -> int:
+    """Message number at the last applied counterfactual intervention (0 if none)."""
+    iteration, start = 0, 0
+    for event in events:
+        if event.kind == MESSAGE:
+            iteration = event.data["message"]["iteration"]
+        elif event.kind == INTERVENTION and event.data.get("applied"):
+            start = iteration
+    return start
+
+
 class Scheduler:
     """
-    Drives registered agents against a Blackboard until consensus, deadlock,
-    failure, or the step budget.
-
-    Example:
-        board = Blackboard()
-        board.initialize_task("Choose an option")
-        scheduler = Scheduler(board, {"analyst": analyst, "critic": critic})
-        result = scheduler.run(max_steps=10)
-        result.status        # "CONSENSUS" / "DEADLOCK" / ...
-        scheduler.get_trace()  # list of dicts for the UI
+    Args:
+        board: Blackboard with the task initialized
+        agents: The team, in registration order
+        arbiter: Priority arbiter (default: ``PriorityArbiter()``)
+        config: Scheduler configuration
+        pending: Agents with a pending counterfactual intervention (they post next)
     """
 
     def __init__(
         self,
         board: Blackboard,
-        agents: AgentsInput,
-        policy: SchedulingPolicy | None = None,
+        agents: Sequence[SchedulableAgent],
+        arbiter: PriorityArbiter | None = None,
         config: SchedulerConfig | None = None,
+        pending: Collection[str] = (),
     ) -> None:
-        """
-        Args:
-            board: Initialized Blackboard (raises BlackboardNotInitializedError otherwise)
-            agents: AgentRegistry, {agent_id: agent} mapping, or iterable of agents
-            policy: Selection policy (defaults to RoundRobinPolicy)
-            config: Scheduler configuration (defaults to SchedulerConfig())
-
-        Raises:
-            SchedulerError: If no agents are given
-        """
-        board.get_state()  # fail fast if the board is not initialized
-        self._board = board
-        self._registry = AgentRegistry.from_input(agents)
-        if len(self._registry) == 0:
-            raise SchedulerError("Scheduler needs at least one agent")
-        self._policy = policy or RoundRobinPolicy()
-        self._config = config or SchedulerConfig()
-        self._detector = DeadlockDetector(self._config.deadlock)
-        self._trace: list[TraceEntry] = []
-        self._steps = 0
-        self._budget_exhausted = False
+        if not agents:
+            raise SchedulerError("The scheduler needs at least one agent")
+        ids = [a.agent_id for a in agents]
+        if len(set(ids)) != len(ids):
+            raise SchedulerError(f"Duplicate agent ids: {ids}")
+        board.get_state()  # fails fast if no task
+        self.board = board
+        self.agents = {a.agent_id: a for a in agents}
+        self.arbiter = arbiter or PriorityArbiter()
+        self.config = config or SchedulerConfig()
+        self.detector = DeadlockDetector(self.config.deadlock)
+        self.pending = set(pending)
+        self.rounds = 0
+        self.collisions = 0
+        self.failed_turns: dict[str, int] = dict.fromkeys(ids, 0)
+        self.queue: list[Activation] = []
+        self._inbox: queue.Queue[str] = queue.Queue()
+        self._resume = threading.Event()
+        self._resume.set()
+        self._stopped = False
+        self._step_budget: int | None = None
+        self._stop_reason: str | None = None
         self._error: str | None = None
 
-    # ------------------------------------------------------------------ properties
+    # ------------------------------------------------------------------ control
+
+    def pause(self) -> None:
+        self._resume.clear()
+
+    def resume(self) -> None:
+        self._step_budget = None
+        self._resume.set()
+
+    def step(self) -> None:
+        """While paused, allow exactly one more round."""
+        self._step_budget = 1
+        self._resume.set()
+
+    def stop(self) -> None:
+        self._stopped = True
+        self._resume.set()
+        self._inbox.put(_STOP)
 
     @property
-    def board(self) -> Blackboard:
-        return self._board
-
-    @property
-    def registry(self) -> AgentRegistry:
-        return self._registry
-
-    @property
-    def policy(self) -> SchedulingPolicy:
-        return self._policy
-
-    @property
-    def config(self) -> SchedulerConfig:
-        return self._config
-
-    @property
-    def steps(self) -> int:
-        """Agent actions performed by this scheduler."""
-        return self._steps
-
-    @property
-    def finished(self) -> bool:
-        """True once the board is CONSENSUS, DEADLOCK or FAILED."""
-        return self._board.get_state().status in TERMINAL_STATUSES
-
-    @property
-    def stop_reason(self) -> str | None:
-        """consensus / deadlock / error when finished, max_steps after a budget stop, else None."""
-        status = self._board.get_state().status
-        if status in TERMINAL_STATUSES:
-            return TERMINAL_STATUSES[status]
-        return STOP_MAX_STEPS if self._budget_exhausted else None
+    def paused(self) -> bool:
+        return not self._resume.is_set()
 
     # ------------------------------------------------------------------ checks
 
     def check_consensus(self) -> ConsensusResult:
-        """Evaluate the consensus rule against the board without changing it."""
-        return detect_consensus(
-            self._board.get_state(),
-            self._board.get_history(),
-            self._config.consensus,
-            self._registry.agent_ids,
-        )
+        state = self.board.get_state()
+        return evaluate_consensus(self.board.get_messages(), state.agents or list(self.agents),
+                                  state.weights, self.config.consensus)
 
     def check_deadlock(self) -> DeadlockReport:
-        """Evaluate the deadlock rules against the board without changing it."""
-        return self._detector.detect(self._board.get_history())
+        return self.detector.detect(self.board.get_messages(),
+                                    epoch_start(self.board.get_events()))
 
-    # ------------------------------------------------------------------ execution
+    @property
+    def finished(self) -> bool:
+        return self.board.status in TERMINAL
 
-    def step(self) -> TraceEntry | None:
-        """
-        Perform one scheduling step.
+    # ------------------------------------------------------------------ run loop
 
-        Returns:
-            The trace entry produced (agent action, or the consensus/deadlock/error
-            entry that ended the run), or None if the board was already terminal.
-        """
-        if self.finished:
-            return None
-        self._budget_exhausted = False
-        before = self._state_view()  # captured first so the trace includes INITIALIZED -> RUNNING
-        self._ensure_running()
-
-        terminal = self._evaluate_termination()
-        if terminal is not None:
-            return terminal
-
-        state = self._board.get_state()
-        context = SchedulingContext(
-            state=state,
-            history=tuple(self._board.get_history()),
-            agent_ids=self._registry.agent_ids,
-            step=self._steps,
-        )
-        selection = self._policy.select(context)
-        if selection.agent_id not in self._registry:
-            raise SchedulerError(
-                f"Policy '{self._policy.name}' selected unknown agent '{selection.agent_id}'"
-            )
-        agent = self._registry.get(selection.agent_id)
-
+    def run(self) -> SchedulerResult:
+        """Run rounds until the session is terminal, the budget is spent, or ``stop()``."""
+        unsubscribe = self.board.subscribe(self._on_event)
+        self._inbox.put(_WAKE)
+        # Hard stop even if every turn fails: each message may cost a few failed rounds
+        attempts_per_message = (self.config.max_failed_turns + 1) * len(self.agents)
+        max_rounds = self.config.max_messages * attempts_per_message
         try:
-            message = agent.act(self._board)
-            if message.agent_id != agent.agent_id:
-                raise SchedulerError(
-                    f"Agent '{agent.agent_id}' returned a message signed by '{message.agent_id}'"
-                )
-            self._board.publish_message(message)
-        except Exception as exc:
-            if self._config.raise_on_agent_error:
-                raise
-            return self._fail(selection.agent_id, selection.reason, exc, before)
+            while True:
+                token = self._inbox.get()
+                while not self._inbox.empty():  # coalesce bursts of events
+                    if self._inbox.get_nowait() == _STOP:
+                        token = _STOP
+                if token == _STOP or self._stopped:
+                    self._stop_reason = self._stop_reason or STOP_STOPPED
+                    break
+                self._resume.wait()
+                if self._stopped:
+                    self._stop_reason = STOP_STOPPED
+                    break
+                if self._step_budget is not None:
+                    self._step_budget -= 1
+                    if self._step_budget <= 0:
+                        self._resume.clear()
+                        self._step_budget = None
+                if not self._round() or self.rounds >= max_rounds:
+                    break
+        finally:
+            unsubscribe()
+        return self.result()
 
-        self._steps += 1
-        after = self._state_view()
-        entry = TraceEntry(
-            step=after["iteration"],
-            kind=KIND_ACTION,
-            event=message.tag.value,
-            agent=agent.agent_id,
-            prediction=message.prediction,
-            explanation=message.explanation,
-            confidence=message.confidence,
-            message_id=message.message_id,
-            reason=selection.reason,
-            policy=self._policy.name,
-            status=after["status"],
-            changes=diff_fields(before, after),
-            details={"rule": selection.rule},
-        )
-        self._trace.append(entry)
-        self._evaluate_termination()
-        return entry
+    def _on_event(self, event: BoardEvent) -> None:
+        if event.kind in _WAKE_KINDS:
+            self._inbox.put(_WAKE)
 
-    def run(self, max_steps: int | None = None) -> SchedulerResult:
-        """
-        Step until the board is terminal or the action budget is spent.
+    def _round(self) -> bool:
+        """One scheduling round. Returns False when the run is over."""
+        if self.finished:
+            self._stop_reason = self._terminal_reason()
+            return False
+        if self._evaluate_termination():
+            return False
+        if self.board.iteration >= self.config.max_messages:
+            self._stop_reason = STOP_MAX_MESSAGES
+            return False
 
-        Args:
-            max_steps: Agent actions allowed in this call (defaults to config.max_steps)
+        self.rounds += 1
+        agents = [(a.agent_id, a.role) for a in self.agents.values()]
+        self.queue = self.arbiter.rank(agents, self.board.get_messages(), self.pending)
+        selected = [a for a in self.queue if a.eligible][: self.config.max_concurrent_agents]
+        if not selected:
+            self._stop_reason = "idle"
+            return False
+        self.board.record(ACTIVATION, {
+            "round": self.rounds,
+            "ranking": [a.to_dict() for a in self.queue],
+            "selected": [a.agent_id for a in selected],
+        })
 
-        Returns:
-            SchedulerResult. If the budget ran out the board stays RUNNING,
-            ``stop_reason`` is "max_steps", and ``run()`` can be called again.
-        """
-        budget = self._config.max_steps if max_steps is None else max_steps
-        actions = 0
-        while not self.finished and actions < budget:
-            entry = self.step()
-            if entry is None:
-                break
-            if entry.kind == KIND_ACTION:
-                actions += 1
+        version = self.board.version
+        drafts = self._draft([a.agent_id for a in selected])
+        committed = False
+        for agent_id, draft in drafts:
+            if draft.message is None:
+                self._record_failure(agent_id, draft)
+                continue
+            try:
+                record = self.board.commit(draft.message, expected_version=version)
+            except VersionConflict as exc:
+                self.collisions += 1
+                self.board.record(COLLISION, {
+                    "agent_id": agent_id, "expected_version": exc.expected,
+                    "actual_version": exc.actual, "draft": draft.message.to_dict(),
+                })
+                continue
+            committed = True
+            self.pending.discard(agent_id)
+            self.failed_turns[agent_id] = 0
+            for call in draft.tool_calls:
+                self.board.record(TOOL, {"agent_id": agent_id, "message_id": record.message_id,
+                                         **call})
+            if draft.rejected:
+                self.board.record(FORMAT_ERROR, {"agent_id": agent_id, "recovered": True,
+                                                 "rejected": draft.rejected})
+        if self.board.status == BlackboardStatus.FAILED:
+            self._stop_reason = STOP_FAILED
+            return False
+        if not committed:
+            self._inbox.put(_WAKE)  # nothing changed on the board, so wake ourselves
+        return True
 
-        if not self.finished:
-            self._budget_exhausted = True
-            state = self._board.get_state()
-            self._trace.append(
-                TraceEntry(
-                    step=state.iteration,
-                    kind=KIND_MAX_STEPS,
-                    event="MAX_STEPS",
-                    prediction=current_proposal(self._board.get_history()),
-                    reason=f"Step budget of {budget} agent action(s) reached without "
-                    f"consensus or deadlock",
-                    policy=self._policy.name,
-                    status=state.status.value,
-                )
-            )
-        return self.get_result()
+    def _draft(self, agent_ids: list[str]) -> list[tuple[str, Draft]]:
+        if len(agent_ids) == 1:
+            return [(agent_ids[0], self._safe_act(agent_ids[0]))]
+        with ThreadPoolExecutor(max_workers=len(agent_ids)) as pool:
+            futures = [(a, pool.submit(self._safe_act, a)) for a in agent_ids]
+            return [(a, f.result()) for a, f in futures]
+
+    def _safe_act(self, agent_id: str) -> Draft:
+        try:
+            return self.agents[agent_id].act(self.board)
+        except Exception as exc:  # an agent crash is a failed turn, not a crashed session
+            return Draft(None, error=f"{type(exc).__name__}: {exc}")
+
+    def _record_failure(self, agent_id: str, draft: Draft) -> None:
+        self.failed_turns[agent_id] += 1
+        self.board.record(FORMAT_ERROR, {
+            "agent_id": agent_id, "recovered": False, "error": draft.error,
+            "rejected": draft.rejected,
+        })
+        if self.failed_turns[agent_id] >= self.config.max_failed_turns:
+            self._error = (f"{agent_id} produced no grammatical message in "
+                           f"{self.failed_turns[agent_id]} consecutive turns: {draft.error}")
+            self.board.set_status(BlackboardStatus.FAILED, self._error)
+
+    def _evaluate_termination(self) -> bool:
+        if not self.board.get_messages():
+            return False
+        consensus = self.check_consensus()
+        if consensus.reached:
+            self.board.set_status(BlackboardStatus.CONSENSUS, consensus.reason,
+                                  {"consensus": consensus.to_dict()})
+            self._stop_reason = STOP_CONSENSUS
+            return True
+        deadlock = self.check_deadlock()
+        if deadlock.deadlocked:
+            self.board.set_status(BlackboardStatus.DEADLOCK, deadlock.reason,
+                                  {"deadlock": deadlock.to_dict()})
+            self._stop_reason = STOP_DEADLOCK
+            return True
+        return False
+
+    def _terminal_reason(self) -> str:
+        return {
+            BlackboardStatus.CONSENSUS: STOP_CONSENSUS,
+            BlackboardStatus.DEADLOCK: STOP_DEADLOCK,
+            BlackboardStatus.FAILED: STOP_FAILED,
+        }[self.board.status]
 
     # ------------------------------------------------------------------ reporting
 
-    def get_trace_entries(self) -> list[TraceEntry]:
-        """Trace as TraceEntry objects."""
-        return list(self._trace)
-
-    def get_trace(self) -> list[dict[str, Any]]:
-        """Trace as JSON-serializable dicts (for the UI)."""
-        return [entry.to_dict() for entry in self._trace]
-
-    def get_status(self) -> dict[str, Any]:
-        """Current scheduler/board status as a JSON-serializable dict."""
-        state = self._board.get_state()
-        history = self._board.get_history()
-        return {
-            "status": state.status.value,
-            "finished": self.finished,
-            "stop_reason": self.stop_reason,
-            "iteration": state.iteration,
-            "steps": self._steps,
-            "current_prediction": state.current_prediction,
-            "current_proposal": current_proposal(history),
-            "last_agent": history[-1].agent_id if history else None,
-            "agents": list(self._registry.agent_ids),
-            "policy": self._policy.describe(),
-            "consensus": self.check_consensus().to_dict(),
-            "deadlock": self.check_deadlock().to_dict(),
-            "error": self._error,
-        }
-
-    def get_result(self) -> SchedulerResult:
-        """Structured result reflecting the board right now."""
-        state = self._board.get_state()
-        history = self._board.get_history()
+    def result(self) -> SchedulerResult:
+        consensus = self.check_consensus()
+        state = self.board.get_state()
         return SchedulerResult(
             status=state.status.value,
-            stop_reason=self.stop_reason,
-            final_prediction=current_proposal(history),
-            iterations=state.iteration,
-            steps=self._steps,
-            consensus=self.check_consensus(),
+            stop_reason=self._stop_reason,
+            final_prediction=consensus.prediction if consensus.reached else None,
+            messages=state.iteration,
+            rounds=self.rounds,
+            collisions=self.collisions,
+            failed_turns=dict(self.failed_turns),
+            consensus=consensus,
             deadlock=self.check_deadlock(),
-            trace=list(self._trace),
-            state=state.to_dict(),
-            history=[event.to_dict() for event in history],
-            config=self._config.to_dict(),
-            policy=self._policy.describe(),
             error=self._error,
         )
-
-    # ------------------------------------------------------------------ internals
-
-    def _state_view(self) -> dict[str, Any]:
-        state = self._board.get_state()
-        return {
-            "iteration": state.iteration,
-            "status": state.status.value,
-            "current_prediction": state.current_prediction,
-            "proposal": current_proposal(self._board.get_history()),
-        }
-
-    def _ensure_running(self) -> None:
-        if self._board.get_state().status == BlackboardStatus.INITIALIZED:
-            self._board.set_status(BlackboardStatus.RUNNING)
-
-    def _evaluate_termination(self) -> TraceEntry | None:
-        """Set CONSENSUS or DEADLOCK if a rule holds; return the recorded entry."""
-        if not self._board.get_history():
-            return None
-
-        consensus = self.check_consensus()
-        if consensus.reached:
-            return self._set_terminal(
-                BlackboardStatus.CONSENSUS,
-                KIND_CONSENSUS,
-                consensus.prediction,
-                consensus.reason,
-                {"consensus": consensus.to_dict()},
-            )
-
-        deadlock = self.check_deadlock()
-        if deadlock.deadlocked:
-            return self._set_terminal(
-                BlackboardStatus.DEADLOCK,
-                KIND_DEADLOCK,
-                deadlock.contested_prediction,
-                deadlock.reason,
-                {"deadlock": deadlock.to_dict()},
-            )
-        return None
-
-    def _set_terminal(
-        self,
-        status: BlackboardStatus,
-        kind: str,
-        prediction: str | None,
-        reason: str,
-        details: dict[str, Any],
-    ) -> TraceEntry:
-        before = self._state_view()
-        self._board.set_status(status)
-        after = self._state_view()
-        entry = TraceEntry(
-            step=after["iteration"],
-            kind=kind,
-            event=status.value,
-            prediction=prediction,
-            reason=reason,
-            policy=self._policy.name,
-            status=after["status"],
-            changes=diff_fields(before, after),
-            details=details,
-        )
-        self._trace.append(entry)
-        return entry
-
-    def _fail(
-        self, agent_id: str, selection_reason: str, exc: Exception, before: dict[str, Any]
-    ) -> TraceEntry:
-        self._error = f"{type(exc).__name__}: {exc}"
-        self._board.set_status(BlackboardStatus.FAILED)
-        after = self._state_view()
-        entry = TraceEntry(
-            step=after["iteration"],
-            kind=KIND_ERROR,
-            event="ERROR",
-            agent=agent_id,
-            reason=f"{agent_id} failed: {self._error}",
-            policy=self._policy.name,
-            status=after["status"],
-            changes=diff_fields(before, after),
-            details={"selection_reason": selection_reason},
-        )
-        self._trace.append(entry)
-        return entry

@@ -1,140 +1,123 @@
 """
-Consensus detection.
+Weighted consensus.
 
-Criterion (``detect_consensus``):
+A RATIFY agrees with the peer message it answered (``in_reply_to``). If that
+message is itself a RATIFY, the agreement carries on to what it answered, and
+so on, until a non-RATIFY message: the *anchor*, whose prediction is what the
+chain agrees on. In the paper's two-agent protocol a session stops when both
+agents' latest tags are RATIFY; with n agents and voting weights:
 
-    Let X = the Blackboard's current prediction.
-    Consensus on X holds iff
-      1. X is non-empty,
-      2. every participant's latest message supports X (RATIFY X or REVISE X),
-         so no participant has an unresolved REFUTE/REJECT or backs a
-         different prediction, and
-      3. at least ``min_supporters`` distinct agents support X.
+    supporters(a) = agents whose latest message is a RATIFY with anchor a
+    share(a)      = sum of supporters' weights / sum of all agents' weights
 
-    Participants are the registered agents when ``agent_ids`` is given (the
-    Scheduler always passes its registry, so every registered agent must
-    agree), otherwise every agent that appears in history.
+Consensus holds for the anchor with the largest share when that share is at
+least ``tau`` and at least ``min_supporters`` agents support it. The largest
+share is also reported as ``proximity`` (1.0 at consensus), which the
+counterfactual layer uses as its measure of how close a board is to agreement.
 
-Because the Blackboard sets its current prediction to the prediction of the
-latest message, an objection as the latest message (REFUTE X sets the
-prediction to X but the objector does not support X) can never be consensus.
+With equal weights and tau = 0.75, three agents must all agree. If a
+counterfactual intervention lowers one agent's weight to w, the other two
+carry the decision once 2 / (2 + w) >= tau.
 """
 
-from collections.abc import Sequence
+from collections.abc import Mapping, Sequence
 from dataclasses import dataclass
 from typing import Any
 
-from ai_project.blackboard.models import BlackboardState, HistoryEvent
-from ai_project.deadlock.stances import latest_stances, supports
+from ai_project.blackboard.models import MessageRecord
+from ai_project.protocol.pxp import PXPTag
+
+RATIFY = PXPTag.RATIFY.value
 
 
 @dataclass(frozen=True)
 class ConsensusConfig:
-    """
-    Consensus thresholds.
-
-    Attributes:
-        min_supporters: Minimum number of distinct agents that must support
-            the prediction
-    """
-
+    tau: float = 0.75
     min_supporters: int = 2
 
     def __post_init__(self) -> None:
+        if not 0.0 < self.tau <= 1.0:
+            raise ValueError("tau must be in (0, 1]")
         if self.min_supporters < 1:
             raise ValueError("min_supporters must be >= 1")
 
     def to_dict(self) -> dict[str, Any]:
-        """Convert to JSON-serializable dictionary."""
-        return {"min_supporters": self.min_supporters}
+        return {"tau": self.tau, "min_supporters": self.min_supporters}
 
 
 @dataclass(frozen=True)
 class ConsensusResult:
-    """
-    Result of a consensus check.
-
-    Attributes:
-        reached: Whether consensus holds
-        prediction: The candidate prediction that was checked
-        supporters: Participants whose latest stance supports the candidate
-        blockers: Participants that do not (silent agents included)
-        reason: Human-readable explanation
-    """
-
     reached: bool
     prediction: str | None
+    anchor_id: str | None
     supporters: tuple[str, ...]
-    blockers: tuple[str, ...]
+    share: float
     reason: str
 
+    @property
+    def proximity(self) -> float:
+        return 1.0 if self.reached else self.share
+
     def to_dict(self) -> dict[str, Any]:
-        """Convert to JSON-serializable dictionary."""
         return {
             "reached": self.reached,
             "prediction": self.prediction,
+            "anchor_id": self.anchor_id,
             "supporters": list(self.supporters),
-            "blockers": list(self.blockers),
+            "share": round(self.share, 4),
+            "proximity": round(self.proximity, 4),
             "reason": self.reason,
         }
 
 
-def detect_consensus(
-    state: BlackboardState,
-    history: Sequence[HistoryEvent],
+def anchor_of(record: MessageRecord, by_id: Mapping[str, MessageRecord]) -> MessageRecord:
+    """Follow ``in_reply_to`` through RATIFY messages to the message they agree with."""
+    current = record
+    while current.tag == RATIFY and current.in_reply_to in by_id:
+        current = by_id[current.in_reply_to]
+    return current
+
+
+def evaluate_consensus(
+    messages: Sequence[MessageRecord],
+    agents: Sequence[str],
+    weights: Mapping[str, float],
     config: ConsensusConfig | None = None,
-    agent_ids: Sequence[str] | None = None,
 ) -> ConsensusResult:
-    """
-    Check whether the Blackboard has reached consensus.
-
-    Args:
-        state: Current state, e.g. ``board.get_state()``
-        history: Chronological history, e.g. ``board.get_history()``
-        config: Thresholds (defaults to ``ConsensusConfig()``)
-        agent_ids: Participants that must all agree; defaults to agents in history
-
-    Returns:
-        ConsensusResult (see module docstring for the exact criterion)
-    """
     config = config or ConsensusConfig()
-    candidate = state.current_prediction or None
-    stances = latest_stances(history)
-    participants = tuple(agent_ids) if agent_ids is not None else tuple(stances)
+    agent_ids = list(agents) or list(dict.fromkeys(m.agent_id for m in messages))
+    total = sum(weights.get(a, 1.0) for a in agent_ids)
+    if not messages or total <= 0:
+        return ConsensusResult(False, None, None, (), 0.0, "No messages yet")
 
-    if candidate is None:
-        return ConsensusResult(False, None, (), participants, "No prediction on the board yet")
+    by_id = {m.message_id: m for m in messages}
+    latest: dict[str, MessageRecord] = {}
+    for m in messages:
+        latest[m.agent_id] = m
 
-    supporters = tuple(a for a in participants if a in stances and supports(stances[a], candidate))
-    blockers = tuple(a for a in participants if a not in supporters)
+    groups: dict[str, list[str]] = {}
+    for agent in agent_ids:
+        m = latest.get(agent)
+        if m is not None and m.tag == RATIFY:
+            groups.setdefault(anchor_of(m, by_id).message_id, []).append(agent)
+    if not groups:
+        return ConsensusResult(False, None, None, (), 0.0, "No agent's latest message is RATIFY")
 
-    if blockers:
-        details = ", ".join(
-            f"{a} ({stances[a].tag} {stances[a].prediction})" if a in stances else f"{a} (silent)"
-            for a in blockers
-        )
-        return ConsensusResult(
-            False,
-            candidate,
-            supporters,
-            blockers,
-            f"Not all agents support '{candidate}': {details}",
-        )
+    def group_key(item: tuple[str, list[str]]) -> tuple[float, int]:
+        anchor_id, members = item
+        return (sum(weights.get(a, 1.0) for a in members), by_id[anchor_id].iteration)
 
-    if len(supporters) < config.min_supporters:
-        return ConsensusResult(
-            False,
-            candidate,
-            supporters,
-            blockers,
-            f"Only {len(supporters)} supporter(s) for '{candidate}' "
-            f"(need {config.min_supporters})",
-        )
-
-    return ConsensusResult(
-        True,
-        candidate,
-        supporters,
-        blockers,
-        f"All {len(supporters)} agents support '{candidate}': {', '.join(supporters)}",
-    )
+    anchor_id, members = max(groups.items(), key=group_key)
+    anchor = by_id[anchor_id]
+    share = sum(weights.get(a, 1.0) for a in members) / total
+    supporters = tuple(members)
+    reached = share >= config.tau - 1e-9 and len(supporters) >= config.min_supporters
+    if reached:
+        reason = (f"{', '.join(supporters)} ratify '{anchor.prediction}' "
+                  f"(weighted share {share:.2f} >= {config.tau:.2f})")
+    else:
+        reason = (f"Largest agreeing group {', '.join(supporters)} on '{anchor.prediction}' has "
+                  f"weighted share {share:.2f} < {config.tau:.2f}"
+                  if share < config.tau - 1e-9 else
+                  f"Only {len(supporters)} supporter(s); {config.min_supporters} required")
+    return ConsensusResult(reached, anchor.prediction, anchor_id, supporters, share, reason)

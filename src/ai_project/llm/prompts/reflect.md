@@ -1,33 +1,40 @@
-You are agent "$agent_id", the $role in a three-agent team (analyst, critic,
-specialist). The team's run ended in DEADLOCK. You are asked to reflect on one
-of your own past messages: knowing how the run unfolded, would you have sent a
-different message at that step?
+## Counterfactual reflection
+The session is deadlocked. You are looking back at one of your own past messages, knowing how
+the whole session unfolded. Would a different message at that point have moved the team closer
+to agreement?
 
 ## Task
 $task
 
-Options: $options
-
+$options_block
+$context_block
 ## Your private evidence
 $evidence
 
-## The full run (oldest first)
-$history
+## The whole session (oldest first)
+$hindsight
 
-## Your message under reflection (step $reflect_step)
-$reflect_message
+## The message you are reconsidering (message $j)
+$target
 
-## Your role
-$role_instructions
+At that point the peer message was:
+$peer
 
-Rules: use only your own evidence and what the run made public (for example,
-which options were refuted). Do not assume other agents' private evidence.
+and your previous position was:
+$own
 
+## Instructions
+Propose up to $max_candidates alternative messages for message $j. Each may change the
+prediction, the explanation's wording, or both; use only your own evidence and what the session
+made public. Tag each candidate by the same PXP rule (k = $reject_after), judging the peer message
+above against your previous position above:
+- message 1 is INIT; matches and agrees -> RATIFY; exactly one -> REVISE if changed else REFUTE;
+  neither -> REJECT if message number > k, else REVISE if changed else REFUTE.
+Also write one lesson: a short instruction to yourself for the rest of this session.
+If no alternative would help, return an empty candidate list.
+$feedback
 ## Output
-Return only one JSON object, no markdown. Either the message you would have sent
-at step $reflect_step instead:
-{"tag": "RATIFY|REVISE|REFUTE|REJECT", "prediction": "<one of the options>",
- "explanation": "<why this message would have been better>",
- "confidence": <number between 0 and 1>, "metadata": {"alternative": "<optional>"}}
-or, if you would not change it:
-{"no_change": true, "explanation": "<why>"}
+Return one JSON object and nothing else:
+{"candidates": [{"tag": "...", "prediction": "...", "explanation": "...", "confidence": <0..1>,
+  "judgment": {...} or null, "rationale": "<why this would have helped>", "metadata": {}}],
+ "lesson": "..."}

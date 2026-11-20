@@ -1,14 +1,14 @@
 """
 Provider interface: the single path every agent decision goes through.
 
-An agent renders a prompt from its ``AgentContext`` and sends both to
-``LLMProvider.generate``. A model-backed provider reads the prompt; the
-deterministic mock reads the structured context the prompt was rendered
-from. Both return the same JSON schema, which the agent parses.
+An agent renders a prompt from its ``AgentContext`` and sends both, with the
+name of the JSON schema the answer must follow, to ``LLMProvider.generate``.
+A model-backed provider reads the prompt (and constrains its output to the
+schema where it can); the deterministic mock reads the structured context.
 """
 
 from abc import ABC, abstractmethod
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from typing import TYPE_CHECKING, Any
 
 if TYPE_CHECKING:
@@ -17,45 +17,52 @@ if TYPE_CHECKING:
 
 @dataclass(frozen=True)
 class LLMRequest:
-    """A rendered prompt plus the structured context it was rendered from."""
+    """
+    Attributes:
+        prompt: Rendered user prompt
+        context: Structured context the prompt was rendered from
+        schema: Name of the output JSON schema ("pxp_message" or "reflection")
+        system: System prompt (persona and lessons)
+        phase: "live" or "sandbox", for token accounting
+    """
 
     prompt: str
     context: "AgentContext"
+    schema: str = "pxp_message"
+    system: str = ""
+    phase: str = "live"
 
 
 @dataclass(frozen=True)
 class LLMResponse:
     """
-    Raw provider output.
-
     Attributes:
-        text: Raw text (expected to contain the decision JSON)
-        usage: Token counts reported by the provider
-            ({"prompt_tokens", "completion_tokens"}), or None if it reports none
+        text: Raw text (expected to contain one JSON object)
+        usage: {"prompt_tokens", "completion_tokens"} as reported by the provider, or None
+        cached: True if served from the response cache
     """
 
     text: str
     usage: dict[str, int] | None = None
+    cached: bool = False
+    meta: dict[str, Any] = field(default_factory=dict)
 
 
 class LLMProvider(ABC):
-    """Base class for decision providers."""
-
-    #: Short identifier recorded with every message and experiment result
+    #: Short identifier recorded with every message and result
     name: str = "provider"
     #: True if the same request always yields the same response
     deterministic: bool = False
 
     @abstractmethod
     def generate(self, request: LLMRequest) -> LLMResponse:
-        """Produce a response for one decision request."""
+        """Produce a response for one request."""
 
     def is_available(self) -> bool:
-        """Whether the provider can currently serve requests."""
         return True
 
     def describe(self) -> dict[str, Any]:
-        """Serializable provider configuration (recorded for reproducibility)."""
+        """Serializable configuration (recorded for reproducibility)."""
         return {"name": self.name, "deterministic": self.deterministic}
 
 
@@ -64,8 +71,8 @@ class LLMProviderError(Exception):
 
 
 class ProviderUnavailableError(LLMProviderError):
-    """Raised when the provider cannot be reached."""
+    """The provider cannot be reached."""
 
 
 class ProviderTimeoutError(LLMProviderError):
-    """Raised when a provider request times out."""
+    """A request timed out."""

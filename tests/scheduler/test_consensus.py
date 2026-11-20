@@ -1,88 +1,78 @@
-import json
-
 import pytest
 
-from ai_project.blackboard import Blackboard
-from ai_project.protocol import PXPMessage, PXPTag
-from ai_project.scheduler import ConsensusConfig, detect_consensus
+from ai_project.scheduler import ConsensusConfig, anchor_of, evaluate_consensus
+from tests.helpers import msg
+
+AGENTS = ["a1", "a2", "a3"]
+EQUAL = dict.fromkeys(AGENTS, 1.0)
 
 
-def board_with(*messages):
-    """Board after publishing (agent_id, tag, prediction) messages."""
-    board = Blackboard()
-    board.initialize_task("Pick an option")
-    for agent, tag, prediction in messages:
-        board.publish_message(PXPMessage.create(agent, tag, prediction, f"{agent} says {tag}"))
+def flash(options_board):
+    """INIT A, REFUTE B, RATIFY B: the analyst's A is opposed, two agents back B."""
+    board = options_board()
+    board.commit(msg("a1", "INIT", "A"))
+    board.commit(msg("a2", "REFUTE", "B", judgment=(False, False, False)))
+    board.commit(msg("a3", "RATIFY", "B", judgment=(True, True, False)))
     return board
 
 
-def check(board, **kwargs):
-    return detect_consensus(board.get_state(), board.get_history(), **kwargs)
+def test_ratify_chain_leads_to_its_anchor(options_board):
+    board = flash(options_board)
+    board.revise_context("a1", "B", "fine")
+    board.commit(msg("a1", "RATIFY", "B", judgment=(True, True, False)))
+    messages = board.get_messages()
+    by_id = {m.message_id: m for m in messages}
+    assert anchor_of(messages[3], by_id).iteration == 2  # a1 -> a3 -> a2's REFUTE B
+    assert anchor_of(messages[1], by_id).iteration == 2  # a non-RATIFY is its own anchor
 
 
-class TestConsensus:
-    def test_clear_agreement(self):
-        board = board_with(("a", PXPTag.RATIFY, "B"), ("b", PXPTag.RATIFY, "B"))
-        result = check(board)
-        assert result.reached
-        assert result.prediction == "B"
-        assert result.supporters == ("a", "b")
-        assert result.blockers == ()
+def test_needs_every_agent_with_equal_weights(options_board):
+    board = flash(options_board)
+    result = evaluate_consensus(board.get_messages(), AGENTS, EQUAL)
+    assert not result.reached
+    assert result.supporters == ("a3",)
+    assert result.share == pytest.approx(1 / 3)
+    assert result.proximity == pytest.approx(1 / 3)
 
-    def test_revise_counts_as_support(self):
-        board = board_with(("a", PXPTag.REVISE, "B"), ("b", PXPTag.RATIFY, "B"))
-        assert check(board).reached
 
-    def test_unresolved_refute_prevents_consensus(self):
-        board = board_with(
-            ("a", PXPTag.RATIFY, "A"), ("b", PXPTag.RATIFY, "A"), ("c", PXPTag.REFUTE, "A")
-        )
-        result = check(board)
-        assert not result.reached
-        assert result.blockers == ("c",)
+def test_full_agreement(options_board):
+    board = flash(options_board)
+    board.revise_context("a1", "B", "fine")
+    board.commit(msg("a1", "RATIFY", "B", judgment=(True, True, False)))
+    board.commit(msg("a2", "RATIFY", "B", judgment=(True, True, False)))
+    result = evaluate_consensus(board.get_messages(), AGENTS, EQUAL)
+    assert result.reached
+    assert result.prediction == "B"
+    assert set(result.supporters) == set(AGENTS)
+    assert result.proximity == 1.0
 
-    def test_earlier_refute_resolved_by_later_ratify(self):
-        board = board_with(
-            ("a", PXPTag.RATIFY, "A"),
-            ("b", PXPTag.REFUTE, "A"),
-            ("b", PXPTag.RATIFY, "A"),
-        )
-        assert check(board).reached
 
-    def test_reject_prevents_consensus(self):
-        board = board_with(
-            ("a", PXPTag.RATIFY, "A"), ("b", PXPTag.REJECT, "task"), ("c", PXPTag.RATIFY, "A")
-        )
-        result = check(board)
-        assert not result.reached
-        assert "b" in result.blockers
+def test_lowered_weight_lets_the_majority_decide(options_board):
+    board = flash(options_board)
+    board.revise_context("a1", "B", "fine")
+    board.commit(msg("a1", "RATIFY", "B", judgment=(True, True, False)))
+    weights = {"a1": 1.0, "a2": 0.5, "a3": 1.0}  # a2 still REFUTEs, but its weight is lowered
+    result = evaluate_consensus(board.get_messages(), AGENTS, weights)
+    assert result.share == pytest.approx(2 / 2.5)
+    assert result.reached
+    assert not evaluate_consensus(board.get_messages(), AGENTS, EQUAL).reached
 
-    def test_support_for_different_prediction_prevents_consensus(self):
-        board = board_with(("a", PXPTag.RATIFY, "A"), ("b", PXPTag.RATIFY, "B"))
-        assert not check(board).reached
 
-    def test_single_supporter_below_minimum(self):
-        board = board_with(("a", PXPTag.RATIFY, "A"))
-        assert not check(board).reached
-        assert check(board, config=ConsensusConfig(min_supporters=1)).reached
+def test_min_supporters(options_board):
+    board = options_board(agents=["a1", "a2"])
+    board.commit(msg("a1", "INIT", "A"))
+    board.commit(msg("a2", "RATIFY", "A", judgment=(True, True, False)))
+    weights = {"a1": 0.1, "a2": 1.0}
+    assert not evaluate_consensus(board.get_messages(), ["a1", "a2"], weights,
+                                  ConsensusConfig(tau=0.75, min_supporters=2)).reached
+    assert evaluate_consensus(board.get_messages(), ["a1", "a2"], weights,
+                              ConsensusConfig(tau=0.75, min_supporters=1)).reached
 
-    def test_silent_registered_agent_blocks(self):
-        board = board_with(("a", PXPTag.RATIFY, "A"), ("b", PXPTag.RATIFY, "A"))
-        result = check(board, agent_ids=["a", "b", "c"])
-        assert not result.reached
-        assert result.blockers == ("c",)
-        assert "silent" in result.reason
 
-    def test_empty_board(self):
-        board = board_with()
-        result = check(board)
-        assert not result.reached
-        assert result.prediction is None
+def test_no_messages():
+    assert not evaluate_consensus([], AGENTS, EQUAL).reached
 
-    def test_result_is_json_serializable(self):
-        board = board_with(("a", PXPTag.RATIFY, "B"), ("b", PXPTag.RATIFY, "B"))
-        assert json.loads(json.dumps(check(board).to_dict()))["reached"] is True
 
-    def test_invalid_config(self):
-        with pytest.raises(ValueError):
-            ConsensusConfig(min_supporters=0)
+def test_invalid_config():
+    with pytest.raises(ValueError):
+        ConsensusConfig(tau=0)

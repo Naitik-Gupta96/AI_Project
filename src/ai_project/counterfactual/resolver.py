@@ -215,7 +215,7 @@ class CounterfactualResolver:
             reflections=reflections,
             reason=(f"{agent.agent_id}'s message {best.target.iteration} "
                     f"({best.target.tag} {best.target.prediction}) gets credit {best.credit:+.2f}: "
-                    f"{best.candidate.output.tag.value} {best.candidate.output.prediction} "
+                    f"{best.candidate.message.tag.value} {best.candidate.message.prediction} "
                     f"would have ended {best.result.status}"),
         )
         board.record(INTERVENTION, {**result.to_dict(), "apply": mode,
@@ -223,8 +223,8 @@ class CounterfactualResolver:
         if mode in ("prompt", "both"):
             if best.lesson:
                 agent.lessons.append(best.lesson)
-            board.revise_context(agent.agent_id, best.candidate.output.prediction,
-                                 best.candidate.output.explanation,
+            board.revise_context(agent.agent_id, best.candidate.message.prediction,
+                                 best.candidate.message.explanation,
                                  reason=f"counterfactual intervention ({best.branch_id})")
         if weight_after != weight_before:
             board.set_weight(agent.agent_id, round(weight_after, 4),

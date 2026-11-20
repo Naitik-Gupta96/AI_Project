@@ -2,9 +2,10 @@
 Agent: one role in the team, with a persona, private evidence, optional tools
 and a decision provider.
 
-    act(board)      Blackboard -> AgentContext -> prompt -> provider -> parser
-                    -> grammar check -> Draft. On a parse or grammar error the
-                    agent retries with the errors in its prompt (``max_retries``).
+    act(board)      Blackboard -> AgentContext -> prompt -> provider -> Turn
+                    -> AGENT procedure (judgment, tag) -> grammar check -> Draft.
+                    On a parse, procedure or grammar error the agent retries with
+                    the errors in its prompt (``max_retries``).
     reflect(...)    the same pipeline in reflection mode: given the board as it
                     was at one of the agent's past messages and the whole run,
                     propose grammatical alternatives to that message.
@@ -19,22 +20,16 @@ import json
 from collections.abc import Mapping, Sequence
 from typing import Any, Protocol
 
-from ai_project.agents.models import (
-    ACT,
-    REFLECT,
-    AgentContext,
-    AgentOutput,
-    Candidate,
-    Draft,
-    Reflection,
-)
+from ai_project.agents.models import ACT, REFLECT, AgentContext, Candidate, Draft, Reflection
+from ai_project.agents.procedure import TurnError, assemble
 from ai_project.benchmarks.base import Evidence, Task
 from ai_project.blackboard import Blackboard
 from ai_project.blackboard.models import MessageRecord
 from ai_project.llm import prompts
 from ai_project.llm.base import LLMProvider, LLMProviderError, LLMRequest
-from ai_project.llm.parser import ParseError, extract_json, parse_output, parse_reflection
+from ai_project.llm.parser import ParseError, extract_json, parse_reflection, parse_turn
 from ai_project.llm.usage import UsageMeter
+from ai_project.protocol.pxp import PXPMessage
 
 
 class AgentError(Exception):
@@ -99,6 +94,7 @@ class Agent:
     def act(self, board: Blackboard) -> Draft:
         """Read the board and draft this agent's next message."""
         base = self.build_context(board)
+        grammar_ctx = board.grammar_context(self.agent_id)
         rejected: list[dict[str, Any]] = []
         tool_calls: list[dict[str, Any]] = []
         feedback: tuple[str, ...] = ()
@@ -106,29 +102,29 @@ class Agent:
         while attempt <= self.max_retries:
             ctx = AgentContext(**{**base.__dict__, "feedback": feedback,
                                   "tool_results": tuple(tool_calls)})
+            turn = None
             try:
-                data = extract_json(self._generate(ctx, "pxp_message"))
-                if "tool" in data and len(tool_calls) < self.max_tool_calls:
+                tools_left = len(tool_calls) < self.max_tool_calls
+                data = extract_json(self._generate(ctx, "turn", tools=tools_left))
+                if "tool" in data and tools_left:
                     tool_calls.append(self._call_tool(data))
                     continue  # tool calls do not use up attempts
-                output = parse_output(data)
-            except ParseError as exc:
-                rejected.append({"attempt": attempt, "output": None, "errors": [str(exc)]})
+                turn = parse_turn(data)
+                message = assemble(self.agent_id, turn, grammar_ctx, board.grammar.reject_after)
+            except (ParseError, TurnError) as exc:
+                rejected.append({"attempt": attempt, "output": turn.to_dict() if turn else None,
+                                 "errors": [str(exc)]})
                 feedback = (str(exc),)
                 attempt += 1
                 continue
             except LLMProviderError as exc:
                 return Draft(None, rejected, error=f"provider error: {exc}", tool_calls=tool_calls)
-            message = output.to_message(self.agent_id)
-            violations = board.grammar.check(message, board.grammar_context(self.agent_id))
+            violations = board.grammar.check(message, grammar_ctx)
             if not violations:
-                message.metadata.setdefault("role", self.role)
-                message.metadata.setdefault("provider", self.provider.name)
-                if tool_calls:
-                    message.metadata["tool_calls"] = len(tool_calls)
+                self._stamp(message, tool_calls)
                 return Draft(message, rejected, tool_calls=tool_calls)
             errors = [str(v) for v in violations]
-            rejected.append({"attempt": attempt, "output": output.to_dict(), "errors": errors})
+            rejected.append({"attempt": attempt, "output": turn.to_dict(), "errors": errors})
             feedback = tuple(errors)
             attempt += 1
         return Draft(None, rejected, error=f"no grammatical message after {attempt} attempt(s)",
@@ -170,7 +166,8 @@ class Agent:
             hindsight: Every message of the run
 
         Returns:
-            The reflection (grammatical candidates only) and the rejected ones
+            The reflection (grammatical, genuinely different candidates only)
+            and the rejected candidates with their errors
         """
         if target.agent_id != self.agent_id:
             raise AgentError(f"{self.agent_id} can only reflect on its own messages")
@@ -178,27 +175,34 @@ class Agent:
         ctx = AgentContext(**{**base.__dict__, "mode": REFLECT, "reflect_on": target,
                               "hindsight": tuple(hindsight)})
         grammar_ctx = board_at_target.grammar_context(self.agent_id)
+        k = board_at_target.grammar.reject_after
         rejected: list[dict[str, Any]] = []
         candidates: list[Candidate] = []
         lesson = ""
         for attempt in range(self.max_retries + 1):
             try:
                 raw = self._generate(ctx, "reflection", max_candidates=max_candidates)
-                parsed, lesson = parse_reflection(raw)
+                turns, lesson = parse_reflection(raw)
             except ParseError as exc:
                 rejected.append({"attempt": attempt, "output": None, "errors": [str(exc)]})
                 ctx = AgentContext(**{**ctx.__dict__, "feedback": (str(exc),)})
                 continue
             except LLMProviderError as exc:
                 raise AgentError(f"{self.agent_id}: provider error: {exc}") from exc
-            for candidate in parsed[:max_candidates]:
-                message = candidate.output.to_message(self.agent_id)
+            for turn in turns[:max_candidates]:
+                try:
+                    message = assemble(self.agent_id, turn, grammar_ctx, k)
+                except TurnError as exc:
+                    rejected.append({"attempt": attempt, "output": turn.to_dict(),
+                                     "errors": [str(exc)]})
+                    continue
                 violations = board_at_target.grammar.check(message, grammar_ctx)
                 if violations:
-                    rejected.append({"attempt": attempt, "output": candidate.to_dict(),
+                    rejected.append({"attempt": attempt, "output": turn.to_dict(),
                                      "errors": [str(v) for v in violations]})
-                elif not _same(candidate.output, target):
-                    candidates.append(candidate)
+                elif not _same(message, target) and not any(
+                        _same(message, c.message) for c in candidates):
+                    candidates.append(Candidate(message, turn.rationale))
             break
         return Reflection(target=target, candidates=tuple(candidates), lesson=lesson), rejected
 
@@ -222,12 +226,22 @@ class Agent:
             return system, prompts.render_reflect(ctx, max_candidates)
         return system, prompts.render_act(ctx)
 
-    def _generate(self, ctx: AgentContext, schema: str, max_candidates: int = 3) -> str:
+    def _stamp(self, message: PXPMessage, tool_calls: list[dict[str, Any]]) -> None:
+        message.metadata.setdefault("role", self.role)
+        message.metadata.setdefault("provider", self.provider.name)
+        if tool_calls:
+            message.metadata["tool_calls"] = len(tool_calls)
+
+    def _generate(self, ctx: AgentContext, schema: str, max_candidates: int = 3,
+                  tools: bool = False) -> str:
         system, prompt = self.render(ctx, max_candidates)
         if self.tools and ctx.mode == ACT:
             prompt += _tool_instructions(self.tools, self.max_tool_calls - len(ctx.tool_results))
-        request = LLMRequest(prompt=prompt, context=ctx, schema=schema, system=system,
-                             phase=self.phase)
+        request = LLMRequest(
+            prompt=prompt, context=ctx, schema=schema, system=system, phase=self.phase,
+            json_schema=prompts.output_schema(schema, ctx.options, max_candidates,
+                                              tools=tools and bool(self.tools)),
+        )
         response = self.provider.generate(request)
         self.usage.add(self.phase, response.usage, response.cached)
         return response.text
@@ -246,18 +260,19 @@ class Agent:
         return {"tool": name, "arguments": arguments, "result": result}
 
 
-def _same(output: AgentOutput, record: MessageRecord) -> bool:
-    return (output.tag.value == record.tag and output.prediction == record.prediction
-            and output.explanation == record.explanation)
+def _same(message: PXPMessage, other: MessageRecord | PXPMessage) -> bool:
+    tag = other.tag if isinstance(other.tag, str) else other.tag.value
+    return (message.tag.value == tag and message.prediction == other.prediction
+            and message.explanation == other.explanation)
 
 
 def _tool_instructions(tools: Mapping[str, Tool], remaining: int) -> str:
     if remaining <= 0:
-        return "\n\nYou have used all tool calls for this turn; post your PXP message now."
+        return "\n\nYou have used all tool calls for this turn; answer now."
     listing = "\n".join(f"- {t.name}: {t.description}" for t in tools.values())
     return (
         f"\n\n## Tools ({remaining} call(s) left this turn)\n{listing}\n"
-        'To call a tool instead of posting, return {"tool": "<name>", "arguments": {...}}. '
-        "Post your PXP message once you have what you need.\n"
+        'To call a tool instead of answering, return {"tool": "<name>", "arguments": {...}}. '
+        "Answer once you have what you need.\n"
         + json.dumps({"tools": sorted(tools)})
     )

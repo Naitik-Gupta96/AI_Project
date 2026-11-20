@@ -24,17 +24,18 @@ and your previous position was:
 $own
 
 ## Instructions
-Propose up to $max_candidates alternative messages for message $j. Each may change the
-prediction, the explanation's wording, or both; use only your own evidence and what the session
-made public. Tag each candidate by the same PXP rule (k = $reject_after), judging the peer message
-above against your previous position above:
-- message 1 is INIT; matches and agrees -> RATIFY; exactly one -> REVISE if changed else REFUTE;
-  neither -> REJECT if message number > k, else REVISE if changed else REFUTE.
-Also write one lesson: a short instruction to yourself for the rest of this session.
-If no alternative would help, return an empty candidate list.
+Propose up to $max_candidates alternatives to message $j. Each may change the prediction, the
+wording of the explanation, or both. Use only your own evidence and what the session made public.
+Judge each candidate against the peer message and previous position shown above (as things stood
+at message $j):
+$judgments
+
+$tag_rule
+For each candidate give a one-sentence rationale. Also write one lesson: a short instruction to
+yourself for the rest of this session. If no alternative would help, return an empty list.
 $feedback
 ## Output
 Return one JSON object and nothing else:
-{"candidates": [{"tag": "...", "prediction": "...", "explanation": "...", "confidence": <0..1>,
-  "judgment": {...} or null, "rationale": "<why this would have helped>", "metadata": {}}],
- "lesson": "..."}
+{"candidates": [{"prediction": "...", "explanation": "...", "confidence": <0..1>,
+  "explanation_agrees": true|false|null, "prediction_matches": true|false|null,
+  "changed": true|false|null, "rationale": "..."}], "lesson": "..."}

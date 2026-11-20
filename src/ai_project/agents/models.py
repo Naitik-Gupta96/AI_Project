@@ -2,7 +2,6 @@
 What an agent sees and what it produces.
 
     AgentContext     built from the Blackboard (or from a past point of it, for reflection)
-    AgentOutput      one parsed provider answer: tag, prediction, explanation, judgment
     Candidate        one alternative message proposed during counterfactual reflection
     Reflection       all candidates for one past message, plus the lesson learned
     Draft            the result of one turn: a message to commit, and the attempts
@@ -15,7 +14,7 @@ from typing import Any
 from ai_project.benchmarks.base import Evidence, Task
 from ai_project.blackboard.models import MessageRecord
 from ai_project.protocol.grammar import Position
-from ai_project.protocol.pxp import Judgment, PXPMessage, PXPTag
+from ai_project.protocol.pxp import PXPMessage
 
 ACT = "act"
 REFLECT = "reflect"
@@ -69,43 +68,22 @@ class AgentContext:
 
 
 @dataclass(frozen=True)
-class AgentOutput:
-    tag: PXPTag
-    prediction: str
-    explanation: str
-    confidence: float | None = None
-    judgment: Judgment | None = None
-    metadata: dict[str, Any] = field(default_factory=dict)
-
-    def to_message(self, agent_id: str) -> PXPMessage:
-        return PXPMessage(
-            agent_id=agent_id,
-            tag=self.tag,
-            prediction=self.prediction,
-            explanation=self.explanation,
-            confidence=self.confidence,
-            judgment=self.judgment,
-            metadata=dict(self.metadata),
-        )
-
-    def to_dict(self) -> dict[str, Any]:
-        return {
-            "tag": self.tag.value,
-            "prediction": self.prediction,
-            "explanation": self.explanation,
-            "confidence": self.confidence,
-            "judgment": self.judgment.to_dict() if self.judgment else None,
-            "metadata": dict(self.metadata),
-        }
-
-
-@dataclass(frozen=True)
 class Candidate:
-    output: AgentOutput
+    """An alternative to a past message: the assembled PXP message and why it might help."""
+
+    message: PXPMessage
     rationale: str = ""
 
     def to_dict(self) -> dict[str, Any]:
-        return {**self.output.to_dict(), "rationale": self.rationale}
+        m = self.message
+        return {
+            "tag": m.tag.value,
+            "prediction": m.prediction,
+            "explanation": m.explanation,
+            "confidence": m.confidence,
+            "judgment": m.judgment.to_dict() if m.judgment else None,
+            "rationale": self.rationale,
+        }
 
 
 @dataclass(frozen=True)

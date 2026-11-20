@@ -4,7 +4,7 @@ from ai_project.agents import build_team
 from ai_project.benchmarks import SyntheticBenchmark
 from ai_project.blackboard import Blackboard, JsonStore
 from ai_project.counterfactual import CounterfactualConfig
-from ai_project.llm.mock import MockLLMProvider
+from ai_project.llm.providers.mock import MockLLMProvider
 from ai_project.session import Session, SessionConfig, run_session
 
 

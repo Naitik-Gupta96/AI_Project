@@ -1,13 +1,14 @@
+import json
+
 import pytest
 
-from ai_project.llm.parser import ParseError, extract_json, parse_act, parse_reflection
-from ai_project.protocol import Judgment, PXPTag
-from tests.helpers import output
+from ai_project.llm.parser import ParseError, extract_json, parse_reflection, parse_turn
+from tests.helpers import turn
 
 
 def test_extracts_json_from_fences_and_prose():
-    text = 'Sure!\n```json\n{"tag": "INIT", "x": {"y": 1}}\n```\nDone.'
-    assert extract_json(text) == {"tag": "INIT", "x": {"y": 1}}
+    text = 'Sure!\n```json\n{"prediction": "A", "x": {"y": 1}}\n```\nDone.'
+    assert extract_json(text) == {"prediction": "A", "x": {"y": 1}}
 
 
 def test_skips_non_object_json():
@@ -19,33 +20,29 @@ def test_no_json():
         extract_json("nothing")
 
 
-def test_parse_act():
-    import json
-    out = parse_act(json.dumps(output("REVISE", "B", (False, True, True))))
-    assert out.tag == PXPTag.REVISE
-    assert out.judgment == Judgment(False, True, True)
+def test_parse_turn():
+    t = parse_turn(turn("B", agrees=True, changed=False, matches=None))
+    assert (t.prediction, t.explanation_agrees, t.changed, t.prediction_matches) == \
+           ("B", True, False, None)
 
 
 @pytest.mark.parametrize("broken", [
-    {"tag": "MAYBE", "prediction": "A", "explanation": "e"},
-    {"tag": "INIT", "prediction": "", "explanation": "e"},
-    {"tag": "INIT", "prediction": "A"},
-    {"tag": "INIT", "prediction": "A", "explanation": "e", "confidence": "high"},
-    {"tag": "RATIFY", "prediction": "A", "explanation": "e",
-     "judgment": {"prediction_matches": "yes", "explanation_agrees": True, "changed": False}},
-    {"tag": "RATIFY", "prediction": "A", "explanation": "e", "judgment": {"changed": False}},
+    {"prediction": "", "explanation": "e"},
+    {"prediction": "A"},
+    {"prediction": "A", "explanation": "e", "confidence": "high"},
+    {"prediction": "A", "explanation": "e", "confidence": 1.5},
+    {"prediction": "A", "explanation": "e", "explanation_agrees": "yes"},
+    {"prediction": "A", "explanation": "e", "metadata": []},
 ])
-def test_parse_act_rejects_bad_shapes(broken):
-    import json
+def test_parse_turn_rejects_bad_shapes(broken):
     with pytest.raises(ParseError):
-        parse_act(json.dumps(broken))
+        parse_turn(broken)
 
 
 def test_parse_reflection():
-    import json
-    text = json.dumps({"candidates": [{**output("INIT", "B"), "rationale": "r"}], "lesson": "L"})
+    text = json.dumps({"candidates": [turn("B", rationale="r")], "lesson": "L"})
     candidates, lesson = parse_reflection(text)
-    assert candidates[0].output.prediction == "B" and candidates[0].rationale == "r"
+    assert candidates[0].prediction == "B" and candidates[0].rationale == "r"
     assert lesson == "L"
     assert parse_reflection('{"candidates": [], "lesson": ""}') == ([], "")
     with pytest.raises(ParseError):

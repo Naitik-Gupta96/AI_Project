@@ -55,7 +55,7 @@ def test_analyst_intervention_breaks_the_deadlock(demo_task, mock_team):
 
     assert result.applied and result.agent_id == "analyst"
     assert result.branch.target.iteration == 1  # the INIT
-    assert result.branch.candidate.output.prediction == "Option B"
+    assert result.branch.candidate.message.prediction == "Option B"
     assert result.branch.result.status == "CONSENSUS"
     assert result.proximity_before == pytest.approx(1 / 3)
     assert result.branch.credit == pytest.approx(2 / 3)
@@ -121,7 +121,7 @@ def test_resolution_is_deterministic(demo_task, mock_team):
         team = mock_team(demo_task)
         board = deadlocked(demo_task, team)
         r = CounterfactualResolver().intervene(board, team, ["analyst"])
-        return [(b.target.iteration, b.candidate.output.prediction, round(b.credit, 6),
+        return [(b.target.iteration, b.candidate.message.prediction, round(b.credit, 6),
                  [(m.agent_id, m.tag, m.prediction) for m in b.messages]) for b in r.branches]
 
     assert run() == run()

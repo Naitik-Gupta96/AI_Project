@@ -10,6 +10,7 @@ that message replaced.
         -> result + every sandbox event, for credit assignment and the UI
 """
 
+import copy
 from collections.abc import Callable, Sequence
 from dataclasses import dataclass, field
 from typing import Any
@@ -111,7 +112,7 @@ def replay(
     start = board.version
     if on_event is not None:
         board.subscribe(on_event)
-    message = candidate.output.to_message(target.agent_id)
+    message = copy.deepcopy(candidate.message)
     message.metadata = {**message.metadata, "counterfactual": True, "replaces": target.message_id}
     board.commit(message)
     clones = [a.clone("sandbox") for a in agents]

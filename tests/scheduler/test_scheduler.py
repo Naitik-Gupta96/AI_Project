@@ -17,7 +17,7 @@ from ai_project.scheduler import (
     SchedulerConfig,
     SchedulerError,
 )
-from tests.helpers import ScriptedProvider, output
+from tests.helpers import ScriptedProvider, turn
 
 
 def demo_board(task, team):
@@ -82,8 +82,8 @@ def test_agent_that_never_produces_a_valid_message_fails_the_session():
 
 def test_recovered_format_error_is_recorded():
     team = scripted_team(TWO, {
-        "a": [output("RATIFY", "A"), output("INIT", "A")],  # first attempt breaks the grammar
-        "b": [output("RATIFY", "A", (True, True, False))],
+        "a": [turn("Z"), turn("A")],  # first attempt is not one of the options
+        "b": [turn("A", agrees=True)],
     })
     board = demo_board(TWO, team)
     result = Scheduler(board, team, config=SchedulerConfig(max_messages=2)).run()
@@ -151,9 +151,9 @@ def test_tool_calls_are_recorded_after_the_message():
 
     team = [
         Agent("a", "a", TWO, ScriptedProvider([{"tool": "echo", "arguments": {"text": "hi"}},
-                                               output("INIT", "A")]),
+                                               turn("A")]),
               team=("a", "b"), tools={"echo": Echo()}, max_tool_calls=2),
-        Agent("b", "b", TWO, ScriptedProvider([output("RATIFY", "A", (True, True, False))]),
+        Agent("b", "b", TWO, ScriptedProvider([turn("A", agrees=True)]),
               team=("a", "b")),
     ]
     board = demo_board(TWO, team)

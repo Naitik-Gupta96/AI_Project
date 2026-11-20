@@ -1,0 +1,37 @@
+# The spec's ablation: four groups x 500 trials on the three benchmarks, with a local 7B model.
+# Run on the GPU machine (see scripts/gpu_runbook.md):  bb ablate experiments/configs/ablation.toml
+
+name = "ablation-qwen2.5-7b"
+provider = "vllm:Qwen/Qwen2.5-7B-Instruct"
+seed = 0
+workers = 24          # sessions in parallel
+max_in_flight = 48    # model requests in flight (vLLM batches them)
+cache = true          # groups share calls up to the first deadlock; also makes reruns free
+keep_sessions = true  # full event log of every session, viewable in the UI
+
+[groups]
+# share of the three agents that are counterfactual-capable: control, A, B, C
+fractions = [0.0, 0.3333, 0.6667, 1.0]
+
+[[benchmarks]]
+name = "mscore"
+n = 300
+
+[[benchmarks]]
+name = "kramabench"
+n = 100
+options = { sandbox = "docker" }
+
+[[benchmarks]]
+name = "medagentbench"
+n = 100
+
+[session]
+max_messages = 12        # message budget (the iteration threshold)
+reject_after = 3         # k in Algorithm 1
+tau = 0.75               # weighted consensus threshold
+max_interventions = 2
+messages_per_agent = 3   # own messages each agent reconsiders on a deadlock
+max_candidates = 3
+apply = "both"           # prompt change + voting weight
+max_tool_calls = 4       # per turn (KramaBench, MedAgentBench)

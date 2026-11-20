@@ -91,12 +91,23 @@ def template(name: str) -> Template:
 # ---------------------------------------------------------------- rendering
 
 
-def format_message(m: MessageRecord) -> str:
-    return f"#{m.iteration} {m.agent_id} {m.tag} \"{m.prediction}\": {m.explanation}"
+HISTORY_CHARS = 240  # per field, for messages other than the peer and own position
+
+
+def _clip(text: str, limit: int | None) -> str:
+    if limit is None or len(text) <= limit:
+        return text
+    return text[:limit].rstrip() + " …"
+
+
+def format_message(m: MessageRecord, limit: int | None = None) -> str:
+    return (f"#{m.iteration} {m.agent_id} {m.tag} \"{_clip(m.prediction, limit)}\": "
+            f"{_clip(m.explanation, limit)}")
 
 
 def _history(messages: tuple[MessageRecord, ...]) -> str:
-    return "\n".join(format_message(m) for m in messages) or "(no messages yet)"
+    """The log, with long messages clipped (the peer message and own position are shown in full)."""
+    return "\n".join(format_message(m, HISTORY_CHARS) for m in messages) or "(no messages yet)"
 
 
 def _position(p: Position | None, first_reply_note: str) -> str:
@@ -114,7 +125,8 @@ def _evidence(ctx: AgentContext) -> str:
 def _options(ctx: AgentContext) -> str:
     if ctx.options:
         return "Your prediction must be exactly one of: " + ", ".join(ctx.options) + "\n"
-    return "The prediction is a free-form answer.\n"
+    return ("The prediction is a free-form answer. "
+            + (ctx.task.answer_format or "State it completely and concisely.") + "\n")
 
 
 def _context(ctx: AgentContext) -> str:

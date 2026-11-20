@@ -24,6 +24,8 @@ server = [
     "uvicorn[standard]>=0.29",
 ]
 redis = ["redis>=5.0"]
+bench = ["jieba>=0.42"]          # MSCoRe tokenization, as in its evaluation script
+plots = ["matplotlib>=3.8"]
 hf = [
     "torch>=2.2",
     "transformers>=4.44",
@@ -35,7 +37,7 @@ dev = [
     "pytest>=7.4.0",
     "ruff>=0.1.0",
     "httpx>=0.27",
-    "ai-project[server]",
+    "ai-project[server,plots]",
 ]
 
 [project.scripts]
@@ -65,3 +67,4 @@ select = ["E", "F", "I", "UP", "B", "C4", "SIM", "T20"]
 
 [tool.ruff.lint.per-file-ignores]
 "src/ai_project/cli.py" = ["T201"]  # the CLI prints by design
+"tests/**" = ["E501"]  # fixture data reads better unwrapped

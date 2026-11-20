@@ -128,3 +128,25 @@ def test_bad_requests(client, body, code):
 def test_unknown_session(client):
     assert client.get("/api/sessions/missing/events").status_code == 404
     assert client.post("/api/sessions/missing/control", json={"action": "pause"}).status_code == 404
+
+
+def test_experiment_endpoints(tmp_path):
+    from ai_project.experiments import ExperimentConfig, ExperimentRunner, write_report
+    from ai_project.experiments.runner import BenchmarkSpec
+
+    config = ExperimentConfig(name="mini", provider="mock", workers=2, cache=False,
+                              keep_sessions=False, fractions=(0.0, 1.0),
+                              benchmarks=(BenchmarkSpec("synthetic", 6),))
+    runner = ExperimentRunner(config, tmp_path / "exp")
+    runner.run()
+    write_report(runner.out)
+    app = create_app(tmp_path / "runs", catalog_size=1, web_dir=tmp_path / "none",
+                     experiments_root=tmp_path / "exp")
+    with TestClient(app) as c:
+        listed = c.get("/api/experiments").json()
+        assert listed == [{"name": "mini", "provider": "mock", "trials": 12,
+                           "created": listed[0]["created"]}]
+        detail = c.get("/api/experiments/mini").json()
+        assert {r["group"] for r in detail["groups"]} == {"cf0", "cf100"}
+        assert c.get("/api/experiments/nope").status_code == 404
+        assert c.get("/api/experiments/..%2F..%2Fetc").status_code == 404

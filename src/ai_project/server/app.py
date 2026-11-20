@@ -10,6 +10,8 @@ HTTP and WebSocket API for the web UI.
     GET  /api/sessions/{id}/events?since=N    board events after seq N
     GET  /api/sessions/{id}/state?at=N        board state after the first N events
     POST /api/sessions/{id}/control           {"action": "pause" | "resume" | "step" | "stop"}
+    GET  /api/experiments                     experiment runs with a summary.json
+    GET  /api/experiments/{name}              one run's summary (groups, paired tests)
     WS   /ws/sessions/{id}                    backlog, then live board / cf / end messages
 
 Every session's events are also written to ``<runs>/sessions/<id>/events.jsonl``,
@@ -19,6 +21,7 @@ it is served at ``/``.
 
 import asyncio
 import contextlib
+import json
 import os
 from concurrent.futures import ThreadPoolExecutor
 from pathlib import Path
@@ -79,8 +82,14 @@ def _model_providers() -> list[dict[str, Any]]:
                 found += future.result()
     return found
 
+def _pooled_name(summary: dict[str, Any]) -> str:
+    names = {r["benchmark"] for r in summary["groups"]}
+    return "all" if "all" in names else next(iter(names), "all")
+
+
 def create_app(runs_dir: str | Path = "runs", catalog_size: int = 20,
-               web_dir: str | Path | None = None) -> FastAPI:
+               web_dir: str | Path | None = None,
+               experiments_root: str | Path | None = None) -> FastAPI:
     app = FastAPI(title="Blackboard PXP", version="0.2.0")
     runs = Path(runs_dir)
     store = JsonStore(runs / "sessions", fsync=False)
@@ -134,7 +143,7 @@ def create_app(runs_dir: str | Path = "runs", catalog_size: int = 20,
             provider = provider_for(body.provider)
         except ValueError as exc:
             raise HTTPException(400, str(exc)) from exc
-        team = build_team(task, provider)
+        team = build_team(task, provider, tools=registry.tool_factory(bench), max_tool_calls=4)
         config = SessionConfig(
             scheduler=SchedulerConfig(max_messages=body.max_messages,
                                       max_concurrent_agents=body.max_concurrent_agents,
@@ -214,6 +223,29 @@ def create_app(runs_dir: str | Path = "runs", catalog_size: int = 20,
             raise HTTPException(404, f"No live session '{session_id}'") from exc
         live.control(body.action)
         return live.summary()
+
+    experiments_dir = Path(experiments_root) if experiments_root else runs / "experiments"
+
+    @app.get("/api/experiments")
+    def list_experiments() -> list[dict[str, Any]]:
+        out = []
+        if experiments_dir.is_dir():
+            for path in sorted(experiments_dir.glob("*/summary.json"),
+                               key=lambda p: p.stat().st_mtime, reverse=True):
+                summary = json.loads(path.read_text(encoding="utf-8"))
+                config = (summary.get("meta") or {}).get("config", {})
+                out.append({"name": path.parent.name, "provider": config.get("provider", "?"),
+                            "trials": sum(r["trials"] for r in summary["groups"]
+                                          if r["benchmark"] == _pooled_name(summary)),
+                            "created": (summary.get("meta") or {}).get("started", "")})
+        return out
+
+    @app.get("/api/experiments/{name}")
+    def experiment(name: str) -> dict[str, Any]:
+        path = (experiments_dir / name / "summary.json").resolve()
+        if not path.is_relative_to(experiments_dir.resolve()) or not path.is_file():
+            raise HTTPException(404, f"No experiment '{name}' (run bb ablate, then bb report)")
+        return json.loads(path.read_text(encoding="utf-8"))
 
     @app.websocket("/ws/sessions/{session_id}")
     async def stream(websocket: WebSocket, session_id: str) -> None:

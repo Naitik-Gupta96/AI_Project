@@ -2,9 +2,57 @@
   "synthetic": {
     "description": "Generated decision tasks with role-partitioned evidence",
     "roles": [
-      {"role": "analyst", "persona": "personas/synthetic/analyst.md", "schema": "pxp_message"},
-      {"role": "critic", "persona": "personas/synthetic/critic.md", "schema": "pxp_message"},
-      {"role": "specialist", "persona": "personas/synthetic/specialist.md", "schema": "pxp_message"}
+      {"role": "analyst", "persona": "personas/synthetic/analyst.md", "schema": "turn"},
+      {"role": "critic", "persona": "personas/synthetic/critic.md", "schema": "turn"},
+      {"role": "specialist", "persona": "personas/synthetic/specialist.md", "schema": "turn"}
+    ]
+  },
+  "mscore-automotive": {
+    "description": "MSCoRe automotive value chain: design, production, market stages",
+    "roles": [
+      {"role": "design", "persona": "personas/mscore-automotive/design.md", "schema": "turn"},
+      {"role": "production", "persona": "personas/mscore-automotive/production.md", "schema": "turn"},
+      {"role": "market", "persona": "personas/mscore-automotive/market.md", "schema": "turn"}
+    ]
+  },
+  "mscore-pharmaceutical": {
+    "description": "MSCoRe pharmaceutical value chain: development, production, distribution",
+    "roles": [
+      {"role": "development", "persona": "personas/mscore-pharmaceutical/development.md", "schema": "turn"},
+      {"role": "production", "persona": "personas/mscore-pharmaceutical/production.md", "schema": "turn"},
+      {"role": "distribution", "persona": "personas/mscore-pharmaceutical/distribution.md", "schema": "turn"}
+    ]
+  },
+  "mscore-ecommerce": {
+    "description": "MSCoRe e-commerce value chain: operations, procurement, logistics",
+    "roles": [
+      {"role": "operations", "persona": "personas/mscore-ecommerce/operations.md", "schema": "turn"},
+      {"role": "procurement", "persona": "personas/mscore-ecommerce/procurement.md", "schema": "turn"},
+      {"role": "logistics", "persona": "personas/mscore-ecommerce/logistics.md", "schema": "turn"}
+    ]
+  },
+  "mscore-automotive_energy": {
+    "description": "MSCoRe automotive-energy chain: vehicle, generation, storage and use",
+    "roles": [
+      {"role": "vehicle", "persona": "personas/mscore-automotive_energy/vehicle.md", "schema": "turn"},
+      {"role": "generation", "persona": "personas/mscore-automotive_energy/generation.md", "schema": "turn"},
+      {"role": "storage_use", "persona": "personas/mscore-automotive_energy/storage_use.md", "schema": "turn"}
+    ]
+  },
+  "kramabench": {
+    "description": "KramaBench data lakes: find data, compute, verify (tools: list_files, python)",
+    "roles": [
+      {"role": "data_engineer", "persona": "personas/kramabench/data_engineer.md", "schema": "turn"},
+      {"role": "analyst", "persona": "personas/kramabench/analyst.md", "schema": "turn"},
+      {"role": "verifier", "persona": "personas/kramabench/verifier.md", "schema": "turn"}
+    ]
+  },
+  "medagentbench": {
+    "description": "MedAgentBench FHIR tasks: retrieve, decide, review (tool: fhir_get)",
+    "roles": [
+      {"role": "retriever", "persona": "personas/medagentbench/retriever.md", "schema": "turn"},
+      {"role": "clinician", "persona": "personas/medagentbench/clinician.md", "schema": "turn"},
+      {"role": "safety_reviewer", "persona": "personas/medagentbench/safety_reviewer.md", "schema": "turn"}
     ]
   }
 }

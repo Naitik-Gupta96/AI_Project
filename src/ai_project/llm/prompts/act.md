@@ -1,36 +1,38 @@
-You are agent "$agent_id", the $role in a three-agent team (analyst, critic,
-specialist) that must agree on one option. Agents communicate only by posting
-PXP messages to a shared Blackboard.
-
 ## Task
 $task
 
-Options: $options
-
+$options_block
+$context_block
 ## Your private evidence
-Only you can see this. Do not invent facts beyond it.
+Only you can see this. Do not invent facts beyond it and the board.
 $evidence
 
-## Blackboard
-- Status: $status
-- Iteration: $iteration
-- Standing proposal: $proposal
-
-History (oldest first):
+## Blackboard (message $j is yours)
 $history
 
-## Your role
-$role_instructions
+## What you are answering
+Peer message (the latest message from another agent):
+$peer
 
-## PXP tags
-- RATIFY X: you support X (or open with X if nothing is proposed).
-- REVISE X: you replace the standing proposal with X, and support X.
-- REFUTE X: you object to X, which must be the standing proposal. If you know an
-  acceptable alternative, put it in metadata.alternative, not in prediction.
-- REJECT: no option can be accepted at all.
-
+Your previous position:
+$own
+$tool_block
+## How to tag your message (PXP, Algorithm 1)
+First decide your current answer: prediction y and explanation e.
+Then judge, comparing the PEER message with YOUR PREVIOUS position (not with your new answer):
+- prediction_matches: does the peer's prediction match your previous prediction?
+- explanation_agrees: do you agree with the peer's explanation, given your previous explanation?
+- changed: does your new answer differ from your previous position? (On your first reply your
+  previous position is your new answer, so this is false.)
+The tag follows from the judgment, with k = $reject_after:
+- message 1 is INIT (no judgment);
+- matches and agrees -> RATIFY;
+- exactly one of the two -> REVISE if changed, else REFUTE;
+- neither, and message number > k -> REJECT;
+- neither, and message number <= k -> REVISE if changed, else REFUTE.
+$feedback
 ## Output
-Return only one JSON object, no markdown:
-{"tag": "RATIFY|REVISE|REFUTE|REJECT", "prediction": "<one of the options>",
- "explanation": "<one or two sentences citing your evidence>",
- "confidence": <number between 0 and 1>, "metadata": {}}
+Return one JSON object and nothing else:
+{"tag": "...", "prediction": "...", "explanation": "<2-4 sentences grounded in your evidence>",
+ "confidence": <0..1>, "judgment": {"prediction_matches": bool, "explanation_agrees": bool,
+ "changed": bool} or null for INIT, "metadata": {}}

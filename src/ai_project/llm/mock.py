@@ -1,241 +1,201 @@
 """
-Deterministic mock provider: explicit role rules standing in for a model.
+Deterministic mock provider: explicit rules standing in for a model.
 
-This is not a language model. It reads the structured ``AgentContext`` (the
-same information the prompt contains) and applies the rules below. Each
-output is a pure function of the context: no randomness, no hashing, no
-hidden state. The same board therefore always yields the same message, in
-any process.
+Used by the tests, the synthetic benchmark and the offline demo. It reads the
+structured ``AgentContext`` and applies the rules below; the same context
+always gives the same answer, in any process.
 
-Notation: P is the standing proposal; "acceptable" means the agent's own
-evidence has no objection; candidates are ranked by the agent's own scores,
-ties broken by option order.
+Every mock message carries ``metadata["claims"]``: the option it supports and
+the options it rules out (with reasons). Claims are the mock's explanation in
+machine-readable form, and they define its judgments:
 
-Forward rules (first match wins):
+    MATCH(y1, y2)  = y1 == y2
+    AGREE(e1, e2)  = neither explanation supports an option the other rules out
+    changed        = the current prediction differs from the previous position
 
-    analyst     no P               -> RATIFY best acceptable option not yet refuted
-                                      (REJECT if there is none)
-                P not acceptable   -> REFUTE P, citing the reason
-                otherwise          -> RATIFY P
-    critic      no P               -> RATIFY best acceptable option
-                P not acceptable   -> REFUTE P, citing the constraint it breaks.
-                                      The critic reports violations only; it does
-                                      not volunteer an alternative.
-                otherwise          -> RATIFY P
-    specialist  latest message objects to P and names an acceptable
-                alternative X      -> REVISE to X
-                no P               -> RATIFY best acceptable option
-                P not acceptable   -> REFUTE P, citing the domain limit
-                otherwise          -> RATIFY P
+Beliefs (current output):
 
-Counterfactual reflection: after a deadlock, an agent is shown the whole
-run and one of its own past messages, and asked what it would have said
-instead. It may use what the run made public (which options were refuted)
-plus its own evidence, never other agents' private evidence. Y is its best
-acceptable option that nobody refuted in the run.
+    with benefit scores     the option its scores rank highest among options it
+    (the analyst)           can accept. It cannot check the other roles'
+                            objections, so it does not move in a forward run.
+    without scores          if the peer's prediction is acceptable to its own
+    (critic, specialist)    evidence, that prediction; otherwise its first
+                            acceptable option that nobody has ruled out on the
+                            board (option order).
 
-    analyst     own opening proposal X was later refuted -> RATIFY Y instead
-    critic      own REFUTE X named no alternative        -> same REFUTE X, naming Y
-    specialist  own REFUTE X / RATIFY X, X was refuted   -> REVISE to Y instead
-    otherwise / no Y                                     -> no change
+If the peer matches and agrees with the agent's previous position, the agent
+RATIFYs and its message carries the peer's prediction (RATIFY aligns with
+the board). Otherwise the message carries its belief. The tag follows from
+the judgments by Algorithm 1 (``expected_tag``), so mock messages always pass
+the grammar.
 
-Confidence values are fixed per rule (they label the rule, they are not
-calibrated probabilities).
+Reflection (counterfactual): for its own past message m, the agent may use
+everything the full run made public. Its candidate is its best acceptable
+option that nobody ruled out anywhere in the run, other than m's prediction,
+judged against the peer and position it had at m. No such option: no
+candidate. Confidence values label the rule; they are not calibrated.
 """
 
 import json
+from collections.abc import Iterable
 from typing import Any
 
-from ai_project.agents.models import ALTERNATIVE_KEY, AgentContext
-from ai_project.blackboard.models import HistoryEvent
+from ai_project.agents.models import AgentContext
+from ai_project.blackboard.models import MessageRecord
 from ai_project.llm.base import LLMProvider, LLMRequest, LLMResponse
-from ai_project.protocol.pxp import PXPTag
+from ai_project.protocol.pxp import Judgment, expected_tag
 
-RATIFY, REVISE, REFUTE, REJECT = (t.value for t in PXPTag)
+CLAIMS = "claims"
 
 
 class MockLLMProvider(LLMProvider):
-    """Rule-based deterministic provider (see module docstring for the rules)."""
-
     name = "deterministic-mock"
     deterministic = True
 
     def generate(self, request: LLMRequest) -> LLMResponse:
         ctx = request.context
-        if ctx.is_reflection:
-            output = _reflect(ctx)
-        else:
-            output = _ROLE_RULES.get(ctx.role, _generic)(ctx)
-        output.setdefault("metadata", {})
+        output = _reflect(ctx) if request.schema == "reflection" else _act(ctx)
         return LLMResponse(text=json.dumps(output, ensure_ascii=False), usage=None)
 
 
-# ---------------------------------------------------------------- helpers
+# ---------------------------------------------------------------- claims and judgments
 
 
-def _decision(tag: str, prediction: str, explanation: str, confidence: float, rule: str,
-              **metadata: Any) -> dict[str, Any]:
-    return {
-        "tag": tag,
-        "prediction": prediction,
-        "explanation": explanation,
-        "confidence": confidence,
-        "metadata": {"rule": rule, **metadata},
-    }
+def _acceptable(ctx: AgentContext) -> list[str]:
+    return [o for o in ctx.options if o not in ctx.evidence.objections]
 
 
-def _refuted(history: tuple[HistoryEvent, ...]) -> set[str]:
-    """Options refuted on the board so far."""
-    return {e.prediction for e in history if e.tag == REFUTE}
-
-
-def _ranked(ctx: AgentContext, exclude: set[str]) -> list[str]:
-    """Acceptable options not in ``exclude``, best first by own score, then option order."""
+def _ranked(ctx: AgentContext, candidates: Iterable[str]) -> list[str]:
     scores = ctx.evidence.scores
-    candidates = [o for o in ctx.options if o not in ctx.evidence.objections and o not in exclude]
     return sorted(candidates, key=lambda o: (-scores.get(o, 0.0), ctx.options.index(o)))
 
 
-def _score_note(ctx: AgentContext, option: str) -> str:
-    score = ctx.evidence.scores.get(option)
-    return f" (estimated benefit {score:.2f})" if score is not None else ""
+def _claims(ctx: AgentContext, prediction: str) -> dict[str, Any]:
+    supports = prediction if prediction in _acceptable(ctx) else None
+    return {"supports": supports, "objects": dict(ctx.evidence.objections)}
 
 
-def _open(ctx: AgentContext, rule: str = "open") -> dict[str, Any]:
-    ranked = _ranked(ctx, _refuted(ctx.history))
-    if not ranked:
-        return _decision(
-            REJECT,
-            "No acceptable option",
-            "Every option is either ruled out by my evidence or already refuted.",
-            0.8,
-            rule,
+def _claims_of(record: MessageRecord) -> dict[str, Any]:
+    claims = record.metadata.get(CLAIMS)
+    if isinstance(claims, dict):
+        return {"supports": claims.get("supports"), "objects": dict(claims.get("objects") or {})}
+    return {"supports": record.prediction, "objects": {}}
+
+
+def _agree(a: dict[str, Any], b: dict[str, Any]) -> bool:
+    return not (a["supports"] in b["objects"] or b["supports"] in a["objects"])
+
+
+def _ruled_out(messages: Iterable[MessageRecord], exclude_agent: str) -> dict[str, str]:
+    """Options other agents have ruled out on the board, with who ruled them out."""
+    out: dict[str, str] = {}
+    for m in messages:
+        if m.agent_id != exclude_agent:
+            for option in _claims_of(m)["objects"]:
+                out.setdefault(option, m.agent_id)
+    return out
+
+
+def _explain(ctx: AgentContext, prediction: str, lead: str) -> str:
+    parts = [lead]
+    score = ctx.evidence.scores.get(prediction)
+    if score is not None:
+        parts.append(f"My benefit estimate for {prediction} is {score:.2f}.")
+    for option, reason in ctx.evidence.objections.items():
+        parts.append(f"{option} is ruled out: {reason}.")
+    return " ".join(parts)
+
+
+def _decide(ctx: AgentContext, prediction: str, lead: str, confidence: float,
+            rule: str, j: int, peer: MessageRecord | None,
+            own: tuple[str, dict[str, Any]] | None) -> dict[str, Any]:
+    """Build a message for ``prediction`` judged against ``peer`` and ``own`` at message j."""
+    claims = _claims(ctx, prediction)
+    judgment = None
+    if j > 1:
+        ref_prediction, ref_claims = own if own is not None else (prediction, claims)
+        peer_claims = _claims_of(peer) if peer is not None else {"supports": None, "objects": {}}
+        judgment = Judgment(
+            prediction_matches=peer is not None and peer.prediction == ref_prediction,
+            explanation_agrees=_agree(peer_claims, ref_claims),
+            changed=own is not None and prediction != ref_prediction,
         )
-    choice = ranked[0]
-    return _decision(
-        RATIFY,
-        choice,
-        f"Opening proposal: {choice}{_score_note(ctx, choice)} is the best option "
-        f"I can accept for this task.",
-        0.8,
-        rule,
-    )
+    tag = expected_tag(j, judgment, ctx.reject_after)
+    return {
+        "tag": tag.value,
+        "prediction": prediction,
+        "explanation": _explain(ctx, prediction, lead),
+        "confidence": confidence,
+        "judgment": judgment.to_dict() if judgment else None,
+        "metadata": {CLAIMS: claims, "rule": rule},
+    }
 
 
-def _refute(ctx: AgentContext, proposal: str) -> dict[str, Any]:
-    reason = ctx.evidence.objections[proposal]
-    return _decision(REFUTE, proposal, f"{proposal} is unacceptable: {reason}.", 0.85, "object")
-
-
-def _endorse(ctx: AgentContext, proposal: str, note: str) -> dict[str, Any]:
-    return _decision(RATIFY, proposal, note, 0.75, "endorse")
+def _own_reference(ctx: AgentContext) -> tuple[str, dict[str, Any]] | None:
+    if ctx.own is None:
+        return None
+    return ctx.own.prediction, _claims(ctx, ctx.own.prediction)
 
 
 # ---------------------------------------------------------------- forward rules
 
 
-def _analyst(ctx: AgentContext) -> dict[str, Any]:
-    p = ctx.proposal
-    if p is None:
-        return _open(ctx)
-    if p in ctx.evidence.objections:
-        return _refute(ctx, p)
-    top = _ranked(ctx, set())
-    if top and top[0] == p:
-        note = f"{p} is my top-ranked option{_score_note(ctx, p)}."
+def _belief(ctx: AgentContext) -> tuple[str, str, str]:
+    """(prediction, lead sentence, rule name)."""
+    acceptable = _acceptable(ctx)
+    if not acceptable:
+        fallback = ctx.peer.prediction if ctx.peer else ctx.options[0]
+        return fallback, "No option is acceptable under my evidence.", "nothing_acceptable"
+    if ctx.evidence.scores:
+        best = _ranked(ctx, acceptable)[0]
+        return best, f"{best} has the highest benefit among the options I can accept.", "best_score"
+    if ctx.peer is not None and ctx.peer.prediction in acceptable:
+        p = ctx.peer.prediction
+        return p, f"{p} passes all of my checks.", "accept_peer"
+    ruled_out = _ruled_out(ctx.messages, ctx.agent_id)
+    open_options = [o for o in acceptable if o not in ruled_out] or acceptable
+    best = _ranked(ctx, open_options)[0]
+    if ctx.peer is not None:
+        lead = f"{ctx.peer.prediction} fails my checks; {best} passes them."
     else:
-        note = f"{p} is acceptable{_score_note(ctx, p)}; I have no objection to it."
-    return _endorse(ctx, p, note)
+        lead = f"{best} passes all of my checks."
+    return best, lead, "best_open"
 
 
-def _critic(ctx: AgentContext) -> dict[str, Any]:
-    p = ctx.proposal
-    if p is None:
-        return _open(ctx)
-    if p in ctx.evidence.objections:
-        return _refute(ctx, p)
-    return _endorse(ctx, p, f"{p} passes all of my constraint checks.")
-
-
-def _specialist(ctx: AgentContext) -> dict[str, Any]:
-    p, latest = ctx.proposal, ctx.latest
-    if latest is not None and latest.tag in (REFUTE, REJECT):
-        alt = latest.metadata.get(ALTERNATIVE_KEY)
-        if alt and alt != p and alt in ctx.options and alt not in ctx.evidence.objections:
-            return _decision(
-                REVISE,
-                alt,
-                f"{latest.agent_id} showed {p} is flawed and named {alt}; {alt} passes my "
-                f"domain checks, so I revise the proposal to {alt}.",
-                0.8,
-                "adopt_alternative",
-                adopted_from=latest.agent_id,
-            )
-    if p is None:
-        return _open(ctx)
-    if p in ctx.evidence.objections:
-        return _refute(ctx, p)
-    return _endorse(ctx, p, f"{p} raises no issue in my domain checks.")
-
-
-def _generic(ctx: AgentContext) -> dict[str, Any]:
-    """Fallback for unknown roles: endorse what is acceptable, refute what is not."""
-    return _critic(ctx)
-
-
-_ROLE_RULES = {"analyst": _analyst, "critic": _critic, "specialist": _specialist}
+def _act(ctx: AgentContext) -> dict[str, Any]:
+    prediction, lead, rule = _belief(ctx)
+    own = _own_reference(ctx)
+    if ctx.peer is not None and ctx.j > 1:
+        ref_prediction, ref_claims = own or (prediction, _claims(ctx, prediction))
+        if (ctx.peer.prediction == ref_prediction
+                and _agree(_claims_of(ctx.peer), ref_claims)):
+            # Peer agrees with my previous position on both counts: RATIFY aligns with it.
+            prediction = ctx.peer.prediction
+            lead = f"I agree with {ctx.peer.agent_id} on {prediction} and its reasons."
+            rule = "ratify"
+    return _decide(ctx, prediction, lead, 0.8, rule, ctx.j, ctx.peer, own)
 
 
 # ---------------------------------------------------------------- reflection
 
 
-def _no_change(reason: str) -> dict[str, Any]:
-    return {"no_change": True, "explanation": reason}
-
-
 def _reflect(ctx: AgentContext) -> dict[str, Any]:
-    own = ctx.reflect_on
-    assert own is not None
-    refuted = _refuted(ctx.history)
-    ranked = _ranked(ctx, refuted | {own.prediction})
-    alt = ranked[0] if ranked else None
-    refuters = sorted({e.agent_id for e in ctx.history if e.tag == REFUTE
-                       and e.prediction == own.prediction})
-    by = f" by {', '.join(refuters)}" if refuters else ""
-
-    if ctx.role == "analyst":
-        if own.tag in (RATIFY, REVISE) and own.prediction in refuted and alt:
-            return _decision(
-                RATIFY,
-                alt,
-                f"In hindsight: {own.prediction} was refuted{by} later in the run. "
-                f"Opening with {alt}{_score_note(ctx, alt)} avoids that objection.",
-                0.8,
-                "hindsight_reopen",
-            )
-    elif ctx.role == "critic":
-        if own.tag == REFUTE and not own.metadata.get(ALTERNATIVE_KEY) and alt:
-            return _decision(
-                REFUTE,
-                own.prediction,
-                f"{own.explanation} {alt} passes my checks and is an acceptable alternative.",
-                own.confidence if own.confidence is not None else 0.85,
-                "hindsight_name_alternative",
-                **{ALTERNATIVE_KEY: alt},
-            )
-    elif ctx.role == "specialist":
-        if own.tag in (REFUTE, RATIFY) and own.prediction in refuted and alt:
-            return _decision(
-                REVISE,
-                alt,
-                f"In hindsight: {own.prediction} was refuted{by}. Instead of "
-                f"{own.tag} {own.prediction} I propose {alt}, which passes my domain checks "
-                f"and was not refuted.",
-                0.8,
-                "hindsight_propose",
-            )
-    if alt is None:
-        return _no_change("No acceptable option was left unrefuted, so a different message "
-                          "would not have helped.")
-    return _no_change(f"My {own.tag} {own.prediction} at step {own.iteration} is not one "
-                      f"my reflection rules would change.")
+    target = ctx.reflect_on
+    assert target is not None
+    ruled_out = _ruled_out(ctx.hindsight, ctx.agent_id)
+    candidates = [o for o in _acceptable(ctx)
+                  if o not in ruled_out and o != target.prediction]
+    if not candidates:
+        return {"candidates": [], "lesson": ""}
+    alt = _ranked(ctx, candidates)[0]
+    objectors = sorted({ruled_out[target.prediction]} if target.prediction in ruled_out else set())
+    by = f" by {', '.join(objectors)}" if objectors else ""
+    lead = (f"In hindsight: {target.prediction} was ruled out{by} later in the run, "
+            f"and {alt} was not.")
+    candidate = _decide(ctx, alt, lead, 0.8, "hindsight", ctx.j, ctx.peer, _own_reference(ctx))
+    candidate["rationale"] = (f"Replace {target.tag} {target.prediction} at message "
+                              f"{target.iteration} with {candidate['tag']} {alt}.")
+    lesson = ("Options other agents ruled out in this session: "
+              + "; ".join(f"{o} (by {a})" for o, a in sorted(ruled_out.items()))
+              + f". Prefer {alt}, which no one ruled out.")
+    return {"candidates": [candidate], "lesson": lesson}

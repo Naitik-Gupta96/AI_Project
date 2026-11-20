@@ -1,142 +1,109 @@
-import json
-from typing import Any, Dict, Optional
+"""
+Parsing provider output.
 
-from ai_project.protocol.pxp import PXPTag
-from ai_project.agents.models import AgentDecision
+Providers are asked for one JSON object (constrained by the JSON schemas in
+``prompts/schemas`` where the provider supports it). The parser only checks
+shape and types; whether a message is allowed is the PXP grammar's job.
+"""
+
+import json
+from typing import Any
+
+from ai_project.agents.models import AgentOutput, Candidate
 from ai_project.llm.base import LLMProviderError
+from ai_project.protocol.pxp import Judgment, PXPTag
 
 
 class ParseError(LLMProviderError):
-    """Raised when LLM output cannot be parsed into a valid AgentDecision."""
-    pass
+    """Provider output is not a well-formed decision."""
 
 
-class AgentDecisionParser:
-    """Parses and validates structured LLM output into AgentDecision."""
-
-    REQUIRED_FIELDS = ["tag", "prediction", "explanation", "confidence"]
-
-    def parse(self, raw_output: str) -> AgentDecision:
-        """
-        Parse raw LLM output into AgentDecision.
-
-        Args:
-            raw_output: Raw text from LLM (expected JSON)
-
-        Returns:
-            Validated AgentDecision
-
-        Raises:
-            ParseError: If output is invalid or missing required fields
-        """
-        # Try to extract JSON from output
-        json_str = self._extract_json(raw_output)
-        if not json_str:
-            raise ParseError(f"No valid JSON found in output: {raw_output[:200]}")
-
+def extract_json(text: str) -> dict[str, Any]:
+    """The first top-level JSON object in ``text`` (markdown fences and prose are skipped)."""
+    decoder = json.JSONDecoder()
+    start = text.find("{")
+    while start != -1:
         try:
-            data = json.loads(json_str)
-        except json.JSONDecodeError as e:
-            raise ParseError(f"Invalid JSON: {e}")
-        if not isinstance(data, dict):
-            raise ParseError("Expected a JSON object")
+            value, _ = decoder.raw_decode(text, start)
+        except json.JSONDecodeError:
+            start = text.find("{", start + 1)
+            continue
+        if isinstance(value, dict):
+            return value
+        start = text.find("{", start + 1)
+    raise ParseError(f"No JSON object in provider output: {text[:200]!r}")
 
-        return self._validate_and_create(data)
 
-    def parse_reflection(self, raw_output: str) -> Optional[AgentDecision]:
-        """
-        Parse a counterfactual-reflection answer.
+def _text(data: dict[str, Any], key: str) -> str:
+    value = data.get(key)
+    if not isinstance(value, str) or not value.strip():
+        raise ParseError(f"'{key}' must be a non-empty string")
+    return value.strip()
 
-        Returns None if the agent answered ``{"no_change": true, ...}``,
-        otherwise the revised decision.
-        """
-        json_str = self._extract_json(raw_output)
-        if not json_str:
-            raise ParseError(f"No valid JSON found in output: {raw_output[:200]}")
-        try:
-            data = json.loads(json_str)
-        except json.JSONDecodeError as e:
-            raise ParseError(f"Invalid JSON: {e}")
-        if not isinstance(data, dict):
-            raise ParseError("Expected a JSON object")
-        if data.get("no_change") is True:
-            return None
-        return self._validate_and_create(data)
 
-    def _extract_json(self, text: str) -> Optional[str]:
-        """Extract JSON object from text, handling markdown fences."""
-        # Remove markdown code fences if present
-        text = text.strip()
-
-        # Try to find JSON object
-        if text.startswith("```"):
-            # Remove fences
-            lines = text.split("\n")
-            # Find first { and last }
-            start = -1
-            end = -1
-            for i, line in enumerate(lines):
-                if "{" in line and start == -1:
-                    start = i
-                if "}" in line:
-                    end = i
-            if start != -1 and end != -1:
-                text = "\n".join(lines[start:end+1])
-
-        # Direct JSON object
-        if text.startswith("{") and text.endswith("}"):
-            return text
-
-        # Try to find first { and last }
-        start = text.find("{")
-        end = text.rfind("}")
-        if start != -1 and end != -1 and end > start:
-            return text[start:end+1]
-
+def _judgment(data: dict[str, Any]) -> Judgment | None:
+    raw = data.get("judgment")
+    if raw is None:
         return None
-
-    def _validate_and_create(self, data: Dict[str, Any]) -> AgentDecision:
-        """Validate data and create AgentDecision."""
-        # Check required fields
-        for field in self.REQUIRED_FIELDS:
-            if field not in data:
-                raise ParseError(f"Missing required field: {field}")
-
-        # Validate tag
-        tag_str = str(data["tag"]).strip().upper()
-        try:
-            tag = PXPTag.from_string(tag_str)
-        except ValueError as e:
-            raise ParseError(f"Invalid tag: {tag_str}. {e}")
-
-        # Validate prediction
-        prediction = str(data["prediction"]).strip()
-        if not prediction:
-            raise ParseError("prediction must be non-empty")
-
-        # Validate explanation
-        explanation = str(data["explanation"]).strip()
-        if not explanation:
-            raise ParseError("explanation must be non-empty")
-
-        # Validate confidence
-        try:
-            confidence = float(data["confidence"])
-        except (TypeError, ValueError):
-            raise ParseError("confidence must be numeric")
-
-        if not 0.0 <= confidence <= 1.0:
-            raise ParseError(f"confidence must be between 0.0 and 1.0, got {confidence}")
-
-        # Optional metadata
-        metadata = data.get("metadata", {})
-        if not isinstance(metadata, dict):
-            metadata = {}
-
-        return AgentDecision(
-            tag=tag,
-            prediction=prediction,
-            explanation=explanation,
-            confidence=confidence,
-            metadata=metadata,
+    if not isinstance(raw, dict):
+        raise ParseError("'judgment' must be an object or null")
+    try:
+        return Judgment(
+            prediction_matches=_bool(raw, "prediction_matches"),
+            explanation_agrees=_bool(raw, "explanation_agrees"),
+            changed=_bool(raw, "changed"),
         )
+    except KeyError as exc:
+        raise ParseError(f"judgment is missing {exc}") from exc
+
+
+def _bool(data: dict[str, Any], key: str) -> bool:
+    value = data[key]
+    if not isinstance(value, bool):
+        raise ParseError(f"judgment.{key} must be true or false")
+    return value
+
+
+def parse_output(data: dict[str, Any]) -> AgentOutput:
+    try:
+        tag = PXPTag.from_string(data.get("tag", ""))
+    except ValueError as exc:
+        raise ParseError(str(exc)) from exc
+    confidence = data.get("confidence")
+    if confidence is not None:
+        try:
+            confidence = float(confidence)
+        except (TypeError, ValueError) as exc:
+            raise ParseError("'confidence' must be a number") from exc
+    metadata = data.get("metadata") or {}
+    if not isinstance(metadata, dict):
+        raise ParseError("'metadata' must be an object")
+    return AgentOutput(
+        tag=tag,
+        prediction=_text(data, "prediction"),
+        explanation=_text(data, "explanation"),
+        confidence=confidence,
+        judgment=_judgment(data),
+        metadata=metadata,
+    )
+
+
+def parse_act(text: str) -> AgentOutput:
+    return parse_output(extract_json(text))
+
+
+def parse_reflection(text: str) -> tuple[list[Candidate], str]:
+    """Candidates (possibly none) and the lesson."""
+    data = extract_json(text)
+    raw = data.get("candidates", [])
+    if not isinstance(raw, list):
+        raise ParseError("'candidates' must be a list")
+    candidates = []
+    for item in raw:
+        if not isinstance(item, dict):
+            raise ParseError("each candidate must be an object")
+        candidates.append(Candidate(parse_output(item), str(item.get("rationale", "")).strip()))
+    lesson = data.get("lesson", "")
+    if not isinstance(lesson, str):
+        raise ParseError("'lesson' must be a string")
+    return candidates, lesson.strip()

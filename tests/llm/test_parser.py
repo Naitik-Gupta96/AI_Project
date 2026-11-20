@@ -1,109 +1,52 @@
 import pytest
 
-from ai_project.llm import AgentDecisionParser, ParseError
-from ai_project.protocol.pxp import PXPTag
-from ai_project.agents.models import AgentDecision
+from ai_project.llm.parser import ParseError, extract_json, parse_act, parse_reflection
+from ai_project.protocol import Judgment, PXPTag
+from tests.helpers import output
 
 
-class TestAgentDecisionParser:
-    """Tests for AgentDecisionParser."""
+def test_extracts_json_from_fences_and_prose():
+    text = 'Sure!\n```json\n{"tag": "INIT", "x": {"y": 1}}\n```\nDone.'
+    assert extract_json(text) == {"tag": "INIT", "x": {"y": 1}}
 
-    def setup_method(self) -> None:
-        self.parser = AgentDecisionParser()
 
-    def test_valid_json(self) -> None:
-        json_str = '{"tag": "RATIFY", "prediction": "Option A", "explanation": "Good", "confidence": 0.8}'
-        decision = self.parser.parse(json_str)
+def test_skips_non_object_json():
+    assert extract_json('[1, 2] then {"a": 1}') == {"a": 1}
 
-        assert decision.tag == PXPTag.RATIFY
-        assert decision.prediction == "Option A"
-        assert decision.confidence == 0.8
 
-    def test_valid_json_with_metadata(self) -> None:
-        json_str = '{"tag": "REFUTE", "prediction": "Option B", "explanation": "Bad", "confidence": 0.7, "metadata": {"key": "value"}}'
-        decision = self.parser.parse(json_str)
+def test_no_json():
+    with pytest.raises(ParseError):
+        extract_json("nothing")
 
-        assert decision.metadata["key"] == "value"
 
-    def test_markdown_fence_removed(self) -> None:
-        json_str = '```json\n{"tag": "RATIFY", "prediction": "Option A", "explanation": "Good", "confidence": 0.8}\n```'
-        decision = self.parser.parse(json_str)
+def test_parse_act():
+    import json
+    out = parse_act(json.dumps(output("REVISE", "B", (False, True, True))))
+    assert out.tag == PXPTag.REVISE
+    assert out.judgment == Judgment(False, True, True)
 
-        assert decision.tag == PXPTag.RATIFY
 
-    def test_invalid_json_raises(self) -> None:
-        with pytest.raises(ParseError):
-            self.parser.parse("not valid json")
+@pytest.mark.parametrize("broken", [
+    {"tag": "MAYBE", "prediction": "A", "explanation": "e"},
+    {"tag": "INIT", "prediction": "", "explanation": "e"},
+    {"tag": "INIT", "prediction": "A"},
+    {"tag": "INIT", "prediction": "A", "explanation": "e", "confidence": "high"},
+    {"tag": "RATIFY", "prediction": "A", "explanation": "e",
+     "judgment": {"prediction_matches": "yes", "explanation_agrees": True, "changed": False}},
+    {"tag": "RATIFY", "prediction": "A", "explanation": "e", "judgment": {"changed": False}},
+])
+def test_parse_act_rejects_bad_shapes(broken):
+    import json
+    with pytest.raises(ParseError):
+        parse_act(json.dumps(broken))
 
-    def test_missing_tag_raises(self) -> None:
-        json_str = '{"prediction": "Option A", "explanation": "Good", "confidence": 0.8}'
-        with pytest.raises(ParseError):
-            self.parser.parse(json_str)
 
-    def test_missing_prediction_raises(self) -> None:
-        json_str = '{"tag": "RATIFY", "explanation": "Good", "confidence": 0.8}'
-        with pytest.raises(ParseError):
-            self.parser.parse(json_str)
-
-    def test_missing_explanation_raises(self) -> None:
-        json_str = '{"tag": "RATIFY", "prediction": "Option A", "confidence": 0.8}'
-        with pytest.raises(ParseError):
-            self.parser.parse(json_str)
-
-    def test_missing_confidence_raises(self) -> None:
-        json_str = '{"tag": "RATIFY", "prediction": "Option A", "explanation": "Good"}'
-        with pytest.raises(ParseError):
-            self.parser.parse(json_str)
-
-    def test_empty_prediction_raises(self) -> None:
-        json_str = '{"tag": "RATIFY", "prediction": "", "explanation": "Good", "confidence": 0.8}'
-        with pytest.raises(ParseError):
-            self.parser.parse(json_str)
-
-    def test_empty_explanation_raises(self) -> None:
-        json_str = '{"tag": "RATIFY", "prediction": "Option A", "explanation": "", "confidence": 0.8}'
-        with pytest.raises(ParseError):
-            self.parser.parse(json_str)
-
-    def test_confidence_too_high_raises(self) -> None:
-        json_str = '{"tag": "RATIFY", "prediction": "Option A", "explanation": "Good", "confidence": 1.5}'
-        with pytest.raises(ParseError):
-            self.parser.parse(json_str)
-
-    def test_confidence_negative_raises(self) -> None:
-        json_str = '{"tag": "RATIFY", "prediction": "Option A", "explanation": "Good", "confidence": -0.1}'
-        with pytest.raises(ParseError):
-            self.parser.parse(json_str)
-
-    def test_invalid_tag_raises(self) -> None:
-        json_str = '{"tag": "INVALID", "prediction": "Option A", "explanation": "Good", "confidence": 0.8}'
-        with pytest.raises(ParseError):
-            self.parser.parse(json_str)
-
-    def test_invalid_confidence_type_raises(self) -> None:
-        json_str = '{"tag": "RATIFY", "prediction": "Option A", "explanation": "Good", "confidence": "high"}'
-        with pytest.raises(ParseError):
-            self.parser.parse(json_str)
-
-    def test_extra_fields_allowed(self) -> None:
-        json_str = '{"tag": "RATIFY", "prediction": "Option A", "explanation": "Good", "confidence": 0.8, "extra": "field"}'
-        decision = self.parser.parse(json_str)
-        assert decision.tag == PXPTag.RATIFY
-
-class TestReflectionParsing:
-    def setup_method(self) -> None:
-        self.parser = AgentDecisionParser()
-
-    def test_no_change_returns_none(self) -> None:
-        assert self.parser.parse_reflection('{"no_change": true, "explanation": "fine"}') is None
-
-    def test_revision_parsed(self) -> None:
-        raw = ('{"tag": "REFUTE", "prediction": "Option A", "explanation": "x", '
-               '"confidence": 0.8, "metadata": {"alternative": "Option B"}}')
-        decision = self.parser.parse_reflection(raw)
-        assert decision.tag == PXPTag.REFUTE
-        assert decision.metadata["alternative"] == "Option B"
-
-    def test_non_object_rejected(self) -> None:
-        with pytest.raises(ParseError):
-            self.parser.parse_reflection("[1, 2]")
+def test_parse_reflection():
+    import json
+    text = json.dumps({"candidates": [{**output("INIT", "B"), "rationale": "r"}], "lesson": "L"})
+    candidates, lesson = parse_reflection(text)
+    assert candidates[0].output.prediction == "B" and candidates[0].rationale == "r"
+    assert lesson == "L"
+    assert parse_reflection('{"candidates": [], "lesson": ""}') == ([], "")
+    with pytest.raises(ParseError):
+        parse_reflection('{"candidates": {}}')

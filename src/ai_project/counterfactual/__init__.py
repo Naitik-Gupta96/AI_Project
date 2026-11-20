@@ -1,17 +1,25 @@
-from ai_project.counterfactual.engine import (
-    BranchComparison,
-    CounterfactualBranch,
-    CounterfactualEngine,
-    CounterfactualError,
-    CounterfactualOutcome,
+from ai_project.counterfactual.resolver import (
+    APPLY_MODES,
+    CounterfactualConfig,
+    CounterfactualResolver,
     Intervention,
+)
+from ai_project.counterfactual.sandbox import (
+    Branch,
+    CounterfactualError,
+    board_before,
+    events_before,
+    replay,
 )
 
 __all__ = [
-    "BranchComparison",
-    "CounterfactualBranch",
-    "CounterfactualEngine",
+    "APPLY_MODES",
+    "Branch",
+    "CounterfactualConfig",
     "CounterfactualError",
-    "CounterfactualOutcome",
+    "CounterfactualResolver",
     "Intervention",
+    "board_before",
+    "events_before",
+    "replay",
 ]

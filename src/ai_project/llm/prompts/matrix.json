@@ -1,0 +1,10 @@
+{
+  "synthetic": {
+    "description": "Generated decision tasks with role-partitioned evidence",
+    "roles": [
+      {"role": "analyst", "persona": "personas/synthetic/analyst.md", "schema": "pxp_message"},
+      {"role": "critic", "persona": "personas/synthetic/critic.md", "schema": "pxp_message"},
+      {"role": "specialist", "persona": "personas/synthetic/specialist.md", "schema": "pxp_message"}
+    ]
+  }
+}

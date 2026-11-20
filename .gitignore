@@ -47,3 +47,9 @@ experiments/logs/
 
 # Local development
 *.local.py
+# Local caches, benchmark data and run outputs
+.cache/
+data/
+runs/
+web/node_modules/
+web/dist/

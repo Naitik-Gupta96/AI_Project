@@ -1,39 +1,26 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "title": "reflection",
+  "description": "Alternatives to one past message, judged against the board as it was then.",
   "type": "object",
   "additionalProperties": false,
   "required": ["candidates", "lesson"],
   "properties": {
     "candidates": {
       "type": "array",
-      "maxItems": 4,
+      "maxItems": 3,
       "items": {
         "type": "object",
         "additionalProperties": false,
-        "required": ["tag", "prediction", "explanation", "confidence", "judgment", "rationale"],
+        "required": ["prediction", "explanation", "confidence", "explanation_agrees", "prediction_matches", "changed", "rationale"],
         "properties": {
-          "tag": {"type": "string", "enum": ["INIT", "RATIFY", "REVISE", "REFUTE", "REJECT"]},
           "prediction": {"type": "string", "minLength": 1},
           "explanation": {"type": "string", "minLength": 1},
           "confidence": {"type": "number", "minimum": 0, "maximum": 1},
-          "judgment": {
-            "anyOf": [
-              {"type": "null"},
-              {
-                "type": "object",
-                "additionalProperties": false,
-                "required": ["prediction_matches", "explanation_agrees", "changed"],
-                "properties": {
-                  "prediction_matches": {"type": "boolean"},
-                  "explanation_agrees": {"type": "boolean"},
-                  "changed": {"type": "boolean"}
-                }
-              }
-            ]
-          },
-          "rationale": {"type": "string"},
-          "metadata": {"type": "object"}
+          "explanation_agrees": {"type": ["boolean", "null"]},
+          "prediction_matches": {"type": ["boolean", "null"]},
+          "changed": {"type": ["boolean", "null"]},
+          "rationale": {"type": "string"}
         }
       }
     },

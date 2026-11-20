@@ -21,16 +21,19 @@ class LLMRequest:
     Attributes:
         prompt: Rendered user prompt
         context: Structured context the prompt was rendered from
-        schema: Name of the output JSON schema ("pxp_message" or "reflection")
+        schema: Name of the output schema ("turn" or "reflection")
         system: System prompt (persona and lessons)
         phase: "live" or "sandbox", for token accounting
+        json_schema: The schema specialised for this request (options, tools); providers
+            that support constrained decoding enforce it
     """
 
     prompt: str
     context: "AgentContext"
-    schema: str = "pxp_message"
+    schema: str = "turn"
     system: str = ""
     phase: str = "live"
+    json_schema: dict[str, Any] | None = None
 
 
 @dataclass(frozen=True)

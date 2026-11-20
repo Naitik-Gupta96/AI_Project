@@ -1,0 +1,16 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "turn",
+  "description": "One agent turn. The PXP tag is assigned by the agent procedure from these judgments.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["prediction", "explanation", "confidence", "explanation_agrees", "prediction_matches", "changed"],
+  "properties": {
+    "prediction": {"type": "string", "minLength": 1},
+    "explanation": {"type": "string", "minLength": 1},
+    "confidence": {"type": "number", "minimum": 0, "maximum": 1},
+    "explanation_agrees": {"type": ["boolean", "null"]},
+    "prediction_matches": {"type": ["boolean", "null"]},
+    "changed": {"type": ["boolean", "null"]}
+  }
+}

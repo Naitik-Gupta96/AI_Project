@@ -6,7 +6,7 @@ import pytest
 from ai_project.agents import Agent, build_team
 from ai_project.benchmarks import SyntheticBenchmark, Task, architecture_task
 from ai_project.blackboard import Blackboard
-from ai_project.llm.mock import MockLLMProvider
+from ai_project.llm.providers.mock import MockLLMProvider
 
 
 @pytest.fixture

@@ -1,21 +1,21 @@
 """
-Parsing provider output.
+Parsing provider output into turns.
 
-Providers are asked for one JSON object (constrained by the JSON schemas in
-``prompts/schemas`` where the provider supports it). The parser only checks
-shape and types; whether a message is allowed is the PXP grammar's job.
+Providers are asked for one JSON object, constrained by the schema in
+``prompts/schemas`` where the provider supports it. The parser checks shape
+and types only. Whether the resulting message is allowed is decided by the
+agent procedure and the PXP grammar.
 """
 
 import json
 from typing import Any
 
-from ai_project.agents.models import AgentOutput, Candidate
+from ai_project.agents.procedure import Turn
 from ai_project.llm.base import LLMProviderError
-from ai_project.protocol.pxp import Judgment, PXPTag
 
 
 class ParseError(LLMProviderError):
-    """Provider output is not a well-formed decision."""
+    """Provider output is not a well-formed turn."""
 
 
 def extract_json(text: str) -> dict[str, Any]:
@@ -41,69 +41,51 @@ def _text(data: dict[str, Any], key: str) -> str:
     return value.strip()
 
 
-def _judgment(data: dict[str, Any]) -> Judgment | None:
-    raw = data.get("judgment")
-    if raw is None:
-        return None
-    if not isinstance(raw, dict):
-        raise ParseError("'judgment' must be an object or null")
-    try:
-        return Judgment(
-            prediction_matches=_bool(raw, "prediction_matches"),
-            explanation_agrees=_bool(raw, "explanation_agrees"),
-            changed=_bool(raw, "changed"),
-        )
-    except KeyError as exc:
-        raise ParseError(f"judgment is missing {exc}") from exc
+def _flag(data: dict[str, Any], key: str) -> bool | None:
+    value = data.get(key)
+    if value is None or isinstance(value, bool):
+        return value
+    raise ParseError(f"'{key}' must be true, false or null")
 
 
-def _bool(data: dict[str, Any], key: str) -> bool:
-    value = data[key]
-    if not isinstance(value, bool):
-        raise ParseError(f"judgment.{key} must be true or false")
-    return value
-
-
-def parse_output(data: dict[str, Any]) -> AgentOutput:
-    try:
-        tag = PXPTag.from_string(data.get("tag", ""))
-    except ValueError as exc:
-        raise ParseError(str(exc)) from exc
+def parse_turn(data: dict[str, Any]) -> Turn:
     confidence = data.get("confidence")
     if confidence is not None:
         try:
             confidence = float(confidence)
         except (TypeError, ValueError) as exc:
             raise ParseError("'confidence' must be a number") from exc
-    metadata = data.get("metadata") or {}
+        if not 0.0 <= confidence <= 1.0:
+            raise ParseError("'confidence' must be between 0 and 1")
+    metadata = data.get("metadata")
+    if metadata is None:
+        metadata = {}
     if not isinstance(metadata, dict):
         raise ParseError("'metadata' must be an object")
-    return AgentOutput(
-        tag=tag,
+    return Turn(
         prediction=_text(data, "prediction"),
         explanation=_text(data, "explanation"),
         confidence=confidence,
-        judgment=_judgment(data),
+        explanation_agrees=_flag(data, "explanation_agrees"),
+        prediction_matches=_flag(data, "prediction_matches"),
+        changed=_flag(data, "changed"),
+        rationale=str(data.get("rationale") or "").strip(),
         metadata=metadata,
     )
 
 
-def parse_act(text: str) -> AgentOutput:
-    return parse_output(extract_json(text))
-
-
-def parse_reflection(text: str) -> tuple[list[Candidate], str]:
-    """Candidates (possibly none) and the lesson."""
+def parse_reflection(text: str) -> tuple[list[Turn], str]:
+    """Candidate turns (possibly none) and the lesson."""
     data = extract_json(text)
     raw = data.get("candidates", [])
     if not isinstance(raw, list):
         raise ParseError("'candidates' must be a list")
-    candidates = []
+    turns = []
     for item in raw:
         if not isinstance(item, dict):
             raise ParseError("each candidate must be an object")
-        candidates.append(Candidate(parse_output(item), str(item.get("rationale", "")).strip()))
+        turns.append(parse_turn(item))
     lesson = data.get("lesson", "")
     if not isinstance(lesson, str):
         raise ParseError("'lesson' must be a string")
-    return candidates, lesson.strip()
+    return turns, lesson.strip()

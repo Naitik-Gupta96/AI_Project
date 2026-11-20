@@ -8,6 +8,7 @@ templates every agent prompt is rendered from.
     prompts/system.md, act.md, reflect.md   templates ($placeholders)
 """
 
+import copy
 import json
 from dataclasses import dataclass
 from functools import cache, lru_cache
@@ -51,6 +52,35 @@ def roles(domain: str) -> list[RoleSpec]:
 @cache
 def schema(name: str) -> dict[str, Any]:
     return json.loads(_read(f"schemas/{name}.schema.json"))
+
+
+TOOL_CALL_SCHEMA: dict[str, Any] = {
+    "type": "object",
+    "additionalProperties": False,
+    "required": ["tool", "arguments"],
+    "properties": {"tool": {"type": "string"}, "arguments": {"type": "object"}},
+}
+
+
+def output_schema(name: str, options: tuple[str, ...] = (), max_candidates: int = 3,
+                  tools: bool = False) -> dict[str, Any]:
+    """
+    The base schema specialised for one request: with listed options the
+    prediction is an enum of them and ``prediction_matches`` is dropped (the
+    procedure computes MATCH); with tools a tool call is also allowed.
+    """
+    out = copy.deepcopy(schema(name))
+    item = out["properties"]["candidates"]["items"] if name == "reflection" else out
+    if options:
+        item["properties"]["prediction"] = {"type": "string", "enum": list(options)}
+        del item["properties"]["prediction_matches"]
+        item["required"].remove("prediction_matches")
+    if name == "reflection":
+        out["properties"]["candidates"]["maxItems"] = max_candidates
+    if tools:
+        title = out.pop("title", name)
+        out = {"title": title, "anyOf": [out, TOOL_CALL_SCHEMA]}
+    return out
 
 
 @cache
@@ -124,6 +154,38 @@ def render_system(ctx: AgentContext, persona: str, team: tuple[str, ...]) -> str
     ).strip()
 
 
+def _judgments(ctx: AgentContext, subject: str) -> str:
+    """The judgment questions for a turn (``subject``: "your answer" or "each candidate")."""
+    if ctx.j == 1:
+        return ("This is message 1, which opens the session. Set explanation_agrees, "
+                "prediction_matches and changed to null.")
+    lines = [
+        "- explanation_agrees: compare the PEER message's explanation with YOUR PREVIOUS "
+        "position's explanation. true if the peer's reasoning is consistent with yours, false if "
+        "it contradicts it or rests on something you reject.",
+    ]
+    if not ctx.options:
+        lines.append(
+            "- prediction_matches: true if the peer's answer means the same as YOUR PREVIOUS "
+            "answer (wording may differ), else false.")
+    if ctx.own is None:
+        lines.append("- changed: false. This is your first reply, so your previous position is "
+                     f"{subject} itself.")
+    else:
+        lines.append(f"- changed: true if {subject} departs from your previous position "
+                     "(a different answer, or reasoning you would now state differently).")
+    ratify = ("If the peer's answer is the same as your previous answer and you agree with its "
+              "explanation, you are ratifying it: use the peer's answer as your prediction.")
+    return "\n".join(lines) + "\n" + ratify
+
+
+def _tag_rule(ctx: AgentContext) -> str:
+    return (f"The protocol assigns the tag from your judgments (k = {ctx.reject_after}): message 1 "
+            "is INIT; previous answer matches the peer's and you agree with its explanation -> "
+            "RATIFY; exactly one of the two -> REVISE if changed, else REFUTE; neither -> REJECT "
+            f"after message {ctx.reject_after}, before that REVISE if changed, else REFUTE.")
+
+
 def render_act(ctx: AgentContext) -> str:
     peer = (format_message(ctx.peer) if ctx.peer else "(none: you are writing message 1)")
     own = _position(ctx.own, "(none yet: on this first reply, your previous position is your "
@@ -138,7 +200,8 @@ def render_act(ctx: AgentContext) -> str:
         peer=peer,
         own=own,
         tool_block=_tools(ctx),
-        reject_after=ctx.reject_after,
+        judgments=_judgments(ctx, "your answer"),
+        tag_rule=_tag_rule(ctx),
         feedback=_feedback(ctx),
     ).strip()
 
@@ -159,6 +222,7 @@ def render_reflect(ctx: AgentContext, max_candidates: int) -> str:
         peer=peer,
         own=own,
         max_candidates=max_candidates,
-        reject_after=ctx.reject_after,
+        judgments=_judgments(ctx, "the candidate"),
+        tag_rule=_tag_rule(ctx),
         feedback=_feedback(ctx),
     ).strip()

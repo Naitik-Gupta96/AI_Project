@@ -42,7 +42,7 @@ Run the demo task in Python:
 ```python
 from ai_project.agents import build_team
 from ai_project.benchmarks import SyntheticBenchmark, architecture_task
-from ai_project.llm.mock import MockLLMProvider
+from ai_project.llm.providers.mock import MockLLMProvider
 from ai_project.session import run_session
 
 task = architecture_task()

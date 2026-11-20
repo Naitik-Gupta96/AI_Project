@@ -41,17 +41,18 @@ def msg(agent: str, tag: str, prediction: str, explanation: str = "because",
     )
 
 
-def output(tag: str, prediction: str, judgment: tuple[bool, bool, bool] | None = None,
-           explanation: str = "because") -> dict[str, Any]:
-    return {
-        "tag": tag,
+def turn(prediction: str, agrees: bool | None = None, changed: bool | None = None,
+         matches: bool | None = None, explanation: str = "because",
+         rationale: str = "") -> dict[str, Any]:
+    """A provider turn, as a model would return it."""
+    data = {
         "prediction": prediction,
         "explanation": explanation,
         "confidence": 0.7,
-        "judgment": None if judgment is None else {
-            "prediction_matches": judgment[0],
-            "explanation_agrees": judgment[1],
-            "changed": judgment[2],
-        },
-        "metadata": {},
+        "explanation_agrees": agrees,
+        "prediction_matches": matches,
+        "changed": changed,
     }
+    if rationale:
+        data["rationale"] = rationale
+    return data

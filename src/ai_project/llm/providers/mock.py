@@ -5,13 +5,15 @@ Used by the tests, the synthetic benchmark and the offline demo. It reads the
 structured ``AgentContext`` and applies the rules below; the same context
 always gives the same answer, in any process.
 
-Every mock message carries ``metadata["claims"]``: the option it supports and
-the options it rules out (with reasons). Claims are the mock's explanation in
-machine-readable form, and they define its judgments:
+It answers with turns, like a model: a prediction, an explanation and the
+judgments the agent procedure needs. Every mock message carries
+``metadata["claims"]``: the option it supports and the options it rules out
+(with reasons). Claims are the mock's explanation in machine-readable form,
+and they define its judgments:
 
-    MATCH(y1, y2)  = y1 == y2
     AGREE(e1, e2)  = neither explanation supports an option the other rules out
-    changed        = the current prediction differs from the previous position
+    changed        = false (claims are fixed by the evidence, so only the
+                     prediction moves, and the procedure detects that itself)
 
 Beliefs (current output):
 
@@ -23,11 +25,10 @@ Beliefs (current output):
                             acceptable option that nobody has ruled out on the
                             board (option order).
 
-If the peer matches and agrees with the agent's previous position, the agent
-RATIFYs and its message carries the peer's prediction (RATIFY aligns with
-the board). Otherwise the message carries its belief. The tag follows from
-the judgments by Algorithm 1 (``expected_tag``), so mock messages always pass
-the grammar.
+If the peer's prediction equals the agent's previous one and the
+explanations agree, the agent answers with the peer's prediction (it
+ratifies). Otherwise it answers with its belief. The agent procedure assigns
+the tag (Algorithm 1), so mock messages always pass the grammar.
 
 Reflection (counterfactual): for its own past message m, the agent may use
 everything the full run made public. Its candidate is its best acceptable
@@ -43,7 +44,6 @@ from typing import Any
 from ai_project.agents.models import AgentContext
 from ai_project.blackboard.models import MessageRecord
 from ai_project.llm.base import LLMProvider, LLMRequest, LLMResponse
-from ai_project.protocol.pxp import Judgment, expected_tag
 
 CLAIMS = "claims"
 
@@ -106,27 +106,23 @@ def _explain(ctx: AgentContext, prediction: str, lead: str) -> str:
     return " ".join(parts)
 
 
-def _decide(ctx: AgentContext, prediction: str, lead: str, confidence: float,
-            rule: str, j: int, peer: MessageRecord | None,
-            own: tuple[str, dict[str, Any]] | None) -> dict[str, Any]:
-    """Build a message for ``prediction`` judged against ``peer`` and ``own`` at message j."""
+def _turn(ctx: AgentContext, prediction: str, lead: str, confidence: float,
+          rule: str, peer: MessageRecord | None,
+          own: tuple[str, dict[str, Any]] | None) -> dict[str, Any]:
+    """A turn for ``prediction``, with AGREE judged against ``peer`` and ``own``."""
     claims = _claims(ctx, prediction)
-    judgment = None
-    if j > 1:
-        ref_prediction, ref_claims = own if own is not None else (prediction, claims)
+    agrees = None
+    if ctx.j > 1:
+        _, ref_claims = own if own is not None else (prediction, claims)
         peer_claims = _claims_of(peer) if peer is not None else {"supports": None, "objects": {}}
-        judgment = Judgment(
-            prediction_matches=peer is not None and peer.prediction == ref_prediction,
-            explanation_agrees=_agree(peer_claims, ref_claims),
-            changed=own is not None and prediction != ref_prediction,
-        )
-    tag = expected_tag(j, judgment, ctx.reject_after)
+        agrees = _agree(peer_claims, ref_claims)
     return {
-        "tag": tag.value,
         "prediction": prediction,
         "explanation": _explain(ctx, prediction, lead),
         "confidence": confidence,
-        "judgment": judgment.to_dict() if judgment else None,
+        "explanation_agrees": agrees,
+        "prediction_matches": None,  # options only: the procedure computes MATCH
+        "changed": False if ctx.j > 1 else None,  # claims follow the prediction, so only it moves
         "metadata": {CLAIMS: claims, "rule": rule},
     }
 
@@ -173,7 +169,7 @@ def _act(ctx: AgentContext) -> dict[str, Any]:
             prediction = ctx.peer.prediction
             lead = f"I agree with {ctx.peer.agent_id} on {prediction} and its reasons."
             rule = "ratify"
-    return _decide(ctx, prediction, lead, 0.8, rule, ctx.j, ctx.peer, own)
+    return _turn(ctx, prediction, lead, 0.8, rule, ctx.peer, own)
 
 
 # ---------------------------------------------------------------- reflection
@@ -192,9 +188,9 @@ def _reflect(ctx: AgentContext) -> dict[str, Any]:
     by = f" by {', '.join(objectors)}" if objectors else ""
     lead = (f"In hindsight: {target.prediction} was ruled out{by} later in the run, "
             f"and {alt} was not.")
-    candidate = _decide(ctx, alt, lead, 0.8, "hindsight", ctx.j, ctx.peer, _own_reference(ctx))
+    candidate = _turn(ctx, alt, lead, 0.8, "hindsight", ctx.peer, _own_reference(ctx))
     candidate["rationale"] = (f"Replace {target.tag} {target.prediction} at message "
-                              f"{target.iteration} with {candidate['tag']} {alt}.")
+                              f"{target.iteration} with {alt}.")
     lesson = ("Options other agents ruled out in this session: "
               + "; ".join(f"{o} (by {a})" for o, a in sorted(ruled_out.items()))
               + f". Prefer {alt}, which no one ruled out.")

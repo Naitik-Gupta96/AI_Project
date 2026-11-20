@@ -2,6 +2,7 @@
 Command line: ``bb <command>``.
 
     bb run      run one session and print its transcript
+    bb serve    start the API server and the web UI
 """
 
 import argparse
@@ -102,6 +103,18 @@ def cmd_run(args: argparse.Namespace) -> int:
     return 0
 
 
+def cmd_serve(args: argparse.Namespace) -> int:
+    try:
+        import uvicorn
+
+        from ai_project.server.app import create_app
+    except ImportError:
+        raise SystemExit('The server needs: pip install -e ".[server]"') from None
+    print(f"Serving on http://{args.host}:{args.port}  (runs in {args.runs})")
+    uvicorn.run(create_app(args.runs), host=args.host, port=args.port, log_level="warning")
+    return 0
+
+
 def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(prog="bb", description=__doc__.split("\n\n")[0])
     sub = parser.add_subparsers(dest="command", required=True)
@@ -122,6 +135,12 @@ def build_parser() -> argparse.ArgumentParser:
     run.add_argument("--store", default=None, help="directory for the session's event log")
     run.add_argument("--json", action="store_true", help="print the full result as JSON")
     run.set_defaults(func=cmd_run)
+
+    serve = sub.add_parser("serve", help="start the API and web UI server")
+    serve.add_argument("--host", default="127.0.0.1")
+    serve.add_argument("--port", type=int, default=8765)
+    serve.add_argument("--runs", default="runs", help="directory for session logs and caches")
+    serve.set_defaults(func=cmd_serve)
     return parser
 
 

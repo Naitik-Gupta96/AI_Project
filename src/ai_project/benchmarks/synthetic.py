@@ -124,6 +124,17 @@ class SyntheticBenchmark:
             tasks.append(Task(**{**task.__dict__, "reference": best_feasible(task)}))
         return tasks
 
+    def get(self, task_id: str) -> Task:
+        """A task by id: ``architecture`` or ``syn-s<seed>-<index>``."""
+        if task_id == "architecture":
+            return architecture_task()
+        try:
+            seed_part, index_part = task_id.removeprefix("syn-s").rsplit("-", 1)
+            seed, index = int(seed_part), int(index_part)
+        except ValueError:
+            raise KeyError(f"Unknown synthetic task '{task_id}'") from None
+        return self.load(index + 1, seed=seed)[index]
+
     def score(self, task: Task, prediction: str | None) -> Score:
         reference = task.reference
         correct = prediction is not None and prediction == reference

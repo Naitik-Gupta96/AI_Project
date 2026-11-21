@@ -36,7 +36,7 @@ from ai_project.benchmarks.base import Score, Task
 
 ANSWER_FORMAT = (
     'Give a JSON object {"answer": [...], "posts": [...]}. "answer" is the list of values the task '
-    'asks for (e.g. ["S6534835"], [62], or [] if it asks only for actions). Each post is '
+    'asks for (e.g. ["<MRN>"], [<number>], or [] if it asks only for actions). Each post is '
     '{"url": "<FHIR base>/<Resource>", "payload": {...}} for an order or record the task asks '
     "you to create; posts are not sent, they are graded. Omit posts the task does not require."
 )

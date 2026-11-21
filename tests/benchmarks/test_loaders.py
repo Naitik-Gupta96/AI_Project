@@ -1,6 +1,7 @@
 """The three benchmark loaders against small fixtures in their real on-disk layout."""
 
 import json
+import re
 import threading
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 
@@ -9,6 +10,7 @@ import pytest
 from ai_project.agents.tools import FhirGet, ListFiles, PythonSandbox
 from ai_project.benchmarks.kramabench import KramaBenchmark
 from ai_project.benchmarks.medagentbench import (
+    ANSWER_FORMAT,
     MedAgentBenchmark,
     grader_transcript,
     parse_prediction,
@@ -188,6 +190,14 @@ def test_medagentbench_needs_the_official_grader(medagent_dir):
     bench = MedAgentBenchmark(medagent_dir)
     with pytest.raises(FileNotFoundError, match="refsol.py"):
         bench.score(bench.get("medagent|task1_1"), '{"answer": ["S11"]}')
+
+
+def test_medagentbench_instructions_hold_no_real_record():
+    # Task task1_1 asks for the MRN of "Peter Stafford, 1932-12-29", which is S6534835. Those values
+    # used to be the examples here, and the model copied them into other tasks.
+    for text in (ANSWER_FORMAT, FhirGet("http://127.0.0.1:8080/fhir/").description):
+        assert not re.search(r"S\d{7}", text)
+        assert not re.search(r"\d{4}-\d{2}-\d{2}", text)
 
 
 def test_prediction_parsing_and_transcript():

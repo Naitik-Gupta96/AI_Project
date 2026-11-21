@@ -114,7 +114,8 @@ class FhirGet:
                 params = ", ".join((f.get("parameters") or {}).get("properties", {}))
                 listing += f"\n  {f['name'].replace('{api_base}', '')}  params: {params}"
         self.description = (
-            'GET a FHIR resource. Arguments: {"path": "Patient?name=Peter&birthdate=1932-12-29"} '
+            'GET a FHIR resource. Arguments: '
+            '{"path": "Patient?name=<name>&birthdate=<YYYY-MM-DD>"} '
             "(relative to the FHIR base). Available searches:" + listing
         )
 

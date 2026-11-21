@@ -63,11 +63,13 @@ TOOL_CALL_SCHEMA: dict[str, Any] = {
 
 
 def output_schema(name: str, options: tuple[str, ...] = (), max_candidates: int = 3,
-                  tools: bool = False) -> dict[str, Any]:
+                  tools: bool = False, replying: bool = False) -> dict[str, Any]:
     """
     The base schema specialised for one request: with listed options the
     prediction is an enum of them and ``prediction_matches`` is dropped (the
-    procedure computes MATCH); with tools a tool call is also allowed.
+    procedure computes MATCH); when the message answers a peer (``replying``,
+    any message after the first) the judgments the procedure requires cannot
+    be null; with tools a tool call is also allowed.
     """
     out = copy.deepcopy(schema(name))
     item = out["properties"]["candidates"]["items"] if name == "reflection" else out
@@ -75,6 +77,10 @@ def output_schema(name: str, options: tuple[str, ...] = (), max_candidates: int 
         item["properties"]["prediction"] = {"type": "string", "enum": list(options)}
         del item["properties"]["prediction_matches"]
         item["required"].remove("prediction_matches")
+    if replying:
+        for key in ("explanation_agrees", "prediction_matches"):
+            if key in item["properties"]:
+                item["properties"][key] = {"type": "boolean"}
     if name == "reflection":
         out["properties"]["candidates"]["maxItems"] = max_candidates
     if tools:

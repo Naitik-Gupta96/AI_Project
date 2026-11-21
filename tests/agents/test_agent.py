@@ -76,6 +76,24 @@ def test_request_carries_prompts_and_a_constrained_schema_but_never_the_referenc
     assert "prediction_matches" not in request.json_schema["properties"]
 
 
+def test_reply_schema_requires_the_judgments():
+    # The procedure rejects a null explanation_agrees or prediction_matches on a reply, so the
+    # constrained schema must not offer null there; message 1 still takes nulls.
+    free = Task("f", "synthetic", "Explain it", (), domain="synthetic")
+    board = Blackboard()
+    board.initialize_task(free.question, free.board_metadata(), agents=["a", "b"])
+    provider = ScriptedProvider([turn("x"), turn("y", agrees=False, matches=False)])
+    Agent("a", "critic", free, provider, team=("a", "b")).act(board)
+    first = provider.requests[0].json_schema["properties"]
+    assert first["explanation_agrees"]["type"] == ["boolean", "null"]
+    board.commit(msg("a", "INIT", "x"))
+    Agent("b", "critic", free, provider, team=("a", "b")).act(board)
+    reply = provider.requests[1].json_schema["properties"]
+    assert reply["explanation_agrees"] == {"type": "boolean"}
+    assert reply["prediction_matches"] == {"type": "boolean"}
+    assert reply["changed"]["type"] == ["boolean", "null"]
+
+
 def test_usage_is_counted_per_phase():
     board = board_with(msg("a", "INIT", "A"))
     a = Agent("b", "critic", TASK, ScriptedProvider(

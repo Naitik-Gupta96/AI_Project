@@ -240,7 +240,8 @@ class Agent:
         request = LLMRequest(
             prompt=prompt, context=ctx, schema=schema, system=system, phase=self.phase,
             json_schema=prompts.output_schema(schema, ctx.options, max_candidates,
-                                              tools=tools and bool(self.tools)),
+                                              tools=tools and bool(self.tools),
+                                              replying=ctx.j > 1),
         )
         response = self.provider.generate(request)
         self.usage.add(self.phase, response.usage, response.cached)

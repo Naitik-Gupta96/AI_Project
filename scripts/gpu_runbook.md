@@ -1,8 +1,11 @@
 # Running the experiments on the GPU machine
 
-Everything here runs on the machine with the NVIDIA GPU (Linux, or Windows with WSL2 and Docker
-Desktop). A 7B model needs about 16 GB of GPU memory at bf16. On a 12 GB card, add
-`--quantization awq` and use an AWQ checkpoint (`Qwen/Qwen2.5-7B-Instruct-AWQ`).
+This is the NVIDIA path (Linux, or Windows with WSL2 and Docker Desktop). A 7B model needs about
+16 GB of GPU memory at bf16. On a 12 GB card, use the AWQ checkpoint
+(`Qwen/Qwen2.5-7B-Instruct-AWQ`). On machines without an NVIDIA GPU (for example Apple Silicon),
+serve the model with Ollama and use `smoke-ollama.toml` / `ablation-ollama.toml`.
+[../COMPUTE_PROMPT.md](../COMPUTE_PROMPT.md) covers both paths step by step, written as a prompt
+for an AI agent on the compute machine.
 
 ## 1. Install
 
@@ -59,6 +62,7 @@ bb ablate experiments/configs/ablation.toml
 ## 6. Results
 
 ```bash
+bb check  runs/experiments/ablation-qwen2.5-7b    # must print OK (exit code 1 on problems)
 bb report runs/experiments/ablation-qwen2.5-7b
 ```
 

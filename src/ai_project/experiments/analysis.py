@@ -161,6 +161,65 @@ def summarize(trials: list[dict[str, Any]]) -> dict[str, Any]:
     return {"groups": rows, "tests": tests}
 
 
+def health(run_dir: str | Path) -> dict[str, Any]:
+    """
+    Problems that make a run's numbers untrustworthy (``bb check``).
+
+    ``problems`` must be empty before results are reported; ``warnings`` need a look.
+    """
+    run = Path(run_dir)
+    trials = load_trials(run / "trials.jsonl")
+    meta_path = run / "meta.json"
+    meta = json.loads(meta_path.read_text(encoding="utf-8")) if meta_path.is_file() else {}
+    planned = meta.get("trials")
+    provider = (meta.get("config") or {}).get("provider", "")
+    problems: list[str] = []
+    warnings: list[str] = []
+    failed = [r for r in trials if r.get("failed")]
+    ok = [r for r in trials if not r.get("failed")]
+    if planned is not None and len(trials) < planned:
+        warnings.append(f"{len(trials)} of {planned} planned trials are done (rerun to resume)")
+    if failed:
+        problems.append(f"{len(failed)} trial(s) crashed, e.g. {failed[0]['trial_id']}: "
+                        f"{failed[0].get('error')}")
+    per_bench: dict[str, dict[str, Any]] = {}
+    for bench in sorted({r["benchmark"] for r in ok}):
+        rows = [r for r in ok if r["benchmark"] == bench]
+        statuses: dict[str, int] = defaultdict(int)
+        for r in rows:
+            statuses[r["status"]] += 1
+        session_failed = sum(1 for r in rows if r.get("stop_reason") == "failed")
+        format_mean = sum(r.get("format_errors", 0) for r in rows) / len(rows)
+        grader_errors = [r for r in rows if ((r.get("score") or {}).get("detail") or {})
+                         .get("grader_error")]
+        fallback = [r for r in rows if "rouge-1" in str(((r.get("score") or {}).get("detail")
+                                                          or {}).get("judge", ""))]
+        per_bench[bench] = {"trials": len(rows), "statuses": dict(statuses),
+                            "failed_sessions": session_failed,
+                            "format_errors_mean": round(format_mean, 2),
+                            "grader_errors": len(grader_errors),
+                            "judge_fallbacks": len(fallback)}
+        if session_failed / len(rows) > 0.05:
+            problems.append(f"{bench}: {session_failed}/{len(rows)} sessions failed because an "
+                            "agent produced no valid message (see format_error events)")
+        if format_mean > 1.0:
+            warnings.append(f"{bench}: {format_mean:.2f} rejected attempts per session on average")
+        if grader_errors:
+            detail = grader_errors[0]["score"]["detail"]["grader_error"]
+            problems.append(f"{bench}: the grader raised on {len(grader_errors)} trial(s), e.g. "
+                            f"{grader_errors[0]['trial_id']}: {detail}")
+        if fallback:
+            warnings.append(f"{bench}: {len(fallback)} string_approximate answer(s) scored by "
+                            "ROUGE-1 because the judge was unavailable")
+    if provider and provider != "mock":
+        unreported = [r for r in ok
+                      if not ((r.get("usage") or {}).get("total") or {}).get("reported")]
+        if unreported:
+            problems.append(f"{len(unreported)} trial(s) have no token counts from the provider")
+    return {"trials": len(trials), "planned": planned, "provider": provider,
+            "benchmarks": per_bench, "problems": problems, "warnings": warnings}
+
+
 def write_report(run_dir: str | Path) -> dict[str, Any]:
     """Recompute summary.json and groups.csv for a run directory; returns the summary."""
     run = Path(run_dir)

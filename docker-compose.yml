@@ -29,6 +29,7 @@ services:
 
   fhir:
     image: jyxsu6/medagentbench:latest
+    platform: linux/amd64   # the image is x86 only; Apple Silicon runs it under emulation
     ports: ["8080:8080"]
 
   redis:

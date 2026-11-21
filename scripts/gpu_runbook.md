@@ -1,27 +1,61 @@
-# Running the experiments on the GPU machine
+# Running the experiments
 
-This is the NVIDIA path (Linux, or Windows with WSL2 and Docker Desktop). A 7B model needs about
-16 GB of GPU memory at bf16. On a 12 GB card, use the AWQ checkpoint
-(`Qwen/Qwen2.5-7B-Instruct-AWQ`). On machines without an NVIDIA GPU (for example Apple Silicon),
-serve the model with Ollama and use `smoke-ollama.toml` / `ablation-ollama.toml`.
-[../COMPUTE_PROMPT.md](../COMPUTE_PROMPT.md) covers both paths step by step, written as a prompt
-for an AI agent on the compute machine.
+The model is Qwen2.5-7B-Instruct. Pick the path that matches the machine:
 
-## 1. Install
+| Machine | Model server | Configs |
+|---|---|---|
+| NVIDIA GPU, 16 GB+ VRAM (Linux, or Windows with WSL2 + Docker Desktop) | vLLM, `Qwen/Qwen2.5-7B-Instruct` (bf16) | `smoke.toml`, `ablation.toml` |
+| NVIDIA GPU, 12–15 GB | vLLM, `Qwen/Qwen2.5-7B-Instruct-AWQ` | copies of the above with the model name changed |
+| Apple Silicon, 16 GB+ | Ollama, `qwen2.5:7b-instruct` (4-bit) | `smoke-ollama.toml`, `ablation-ollama.toml` |
+
+A CPU-only machine is too slow for 2,000 sessions. Run all four groups of one ablation on the same
+machine and model build.
+
+## 1. Install and check
 
 ```bash
 git clone https://github.com/Naitik-Gupta96/AI_Project.git && cd AI_Project
-python -m venv .venv && source .venv/bin/activate
+python3 -m venv .venv && source .venv/bin/activate       # Windows: .venv\Scripts\activate
 pip install -e ".[dev,bench,plots]"
+python -m pytest && ruff check src tests scripts
+cd web && npm ci && npm test && npm run build && cd ..
+bb run --cf analyst                                     # ends with "status CONSENSUS answer Option B"
 ```
 
-## 2. Start the services
+## 2. Start the model, the FHIR server and the sandbox
+
+On macOS, enable "Use Rosetta for x86/amd64 emulation" in Docker Desktop first. The FHIR image is
+x86 only.
+
+**NVIDIA (vLLM):**
 
 ```bash
-docker compose up -d vllm fhir      # model on :8000, FHIR on :8080 (first start downloads both)
-docker compose build sandbox        # image for KramaBench's python tool
-curl -s localhost:8000/v1/models    # wait until the model is listed
-curl -s localhost:8080/fhir/metadata | head -c 200
+docker run --rm --gpus all nvidia/cuda:12.4.1-base-ubuntu22.04 nvidia-smi   # Docker sees the GPU
+docker compose up -d vllm fhir
+curl -s http://127.0.0.1:8000/v1/models        # repeat until the model is listed
+```
+
+For a 12–15 GB card, start vLLM with
+`MODEL=Qwen/Qwen2.5-7B-Instruct-AWQ docker compose up -d vllm`. Lower `--max-model-len` in
+`docker-compose.yml` if it runs out of memory, and use copies of the configs with the AWQ model name
+(provider and KramaBench `judge`) and a new run `name`.
+
+**Apple Silicon (Ollama):**
+
+```bash
+OLLAMA_NUM_PARALLEL=4 OLLAMA_MAX_LOADED_MODELS=1 ollama serve   # own terminal; quit the Ollama app first
+ollama pull qwen2.5:7b-instruct
+docker compose up -d fhir
+```
+
+With 8 GB of memory, use `OLLAMA_NUM_PARALLEL=1` and set `workers = 1` and `max_in_flight = 1` in
+copies of the Ollama configs.
+
+**Both:**
+
+```bash
+docker compose build sandbox                    # image for KramaBench's python tool
+curl -s http://127.0.0.1:8080/fhir/metadata | head -c 200
 ```
 
 ## 3. Get the data
@@ -32,38 +66,51 @@ bb fetch mscore kramabench medagentbench
 
 MedAgentBench's grader is distributed separately. Download `refsol.py` from the link in the
 [MedAgentBench README](https://github.com/stanfordmlgroup/MedAgentBench) and save it as
-`data/medagentbench/refsol.py`.
+`data/medagentbench/refsol.py`. Do not commit it.
 
 ## 4. Smoke test
 
 ```bash
-bb run --benchmark mscore --provider vllm:Qwen/Qwen2.5-7B-Instruct --cf design production market
-bb ablate experiments/configs/smoke.toml
+bb ablate experiments/configs/smoke.toml        # or smoke-ollama.toml
+bb check  runs/experiments/<smoke-run>          # must print OK
+bb serve --runs runs/experiments/<smoke-run>    # open http://127.0.0.1:8765 and read some sessions
 ```
 
-This runs 10 tasks in two groups across all three benchmarks. Check that:
-- the counts in `runs/experiments/smoke-qwen2.5-7b/trials.jsonl` look sane;
-- the `format_errors` column is not dominating;
-- no trial has `"failed": true`.
+`bb check` flags:
+- crashed trials;
+- sessions that failed because an agent produced no valid message;
+- MedAgentBench grader errors;
+- KramaBench judge fallbacks;
+- missing token counts.
+
+In the UI, check that:
+- MSCoRe answers are in Chinese;
+- KramaBench agents call `list_files` and `python`;
+- MedAgentBench predictions are `{"answer": [...], "posts": [...]}`;
+- deadlocked sessions in the 100% group show an intervention.
+
+The MedAgentBench grading adapter (`benchmarks/medagentbench.py`) follows the official harness but
+has not been run against the real `refsol.py`. If `bb check` reports grader errors, align the
+adapter with `refsol.py` and rerun the smoke with `--restart`.
 
 ## 5. The ablation
 
 ```bash
-bb ablate experiments/configs/ablation.toml
+bb ablate experiments/configs/ablation.toml     # or ablation-ollama.toml
 ```
 
-- **What it runs:** 4 groups × 500 trials (300 MSCoRe, 100 KramaBench, 100 MedAgentBench).
-- **Interruptions:** it can be stopped and restarted at any time; finished trials are kept.
-- **Speed:** `workers` and `max_in_flight` in the config set the throughput. Raise them while the
-  GPU is not saturated (watch `nvidia-smi`).
-- **Cache:** the response cache (`cache.sqlite` in the run directory) means the four groups share
+- **Keep the machine awake.** macOS: prefix with `caffeinate -dims`. Linux: run inside `tmux`
+  under `systemd-inhibit --what=sleep:idle`.
+- **Interruptions.** If it stops, run the same command again: finished trials are kept.
+- **Health.** Run `bb check` every few hours.
+- **Cache.** The response cache (`cache.sqlite` in the run directory) lets the four groups share
   their calls up to the first deadlock.
 
 ## 6. Results
 
 ```bash
-bb check  runs/experiments/ablation-qwen2.5-7b    # must print OK (exit code 1 on problems)
-bb report runs/experiments/ablation-qwen2.5-7b
+bb check  runs/experiments/<run>                # must print OK
+bb report runs/experiments/<run>
 ```
 
 This writes:
@@ -71,8 +118,7 @@ This writes:
 - `figures/convergence.svg`, `figures/intelligibility.svg` and `figures/tokens.svg`;
 - `tables/groups.tex`.
 
-The paper includes the figures and table from there (copy them to `paper/`). For the UI, run
-`bb serve` and open the Analytics tab.
-
-To share results with the team, copy the whole `runs/experiments/<name>/` directory. It holds
-every trial, every session's event log, and the cache.
+Copy `figures/` and `tables/` into `paper/`. Commit `summary.json`, `groups.csv`, the figures, the
+tables and a gzipped `trials.jsonl` under `results/<run>/`. Keep `sessions/` and `cache.sqlite`
+outside git and share them separately. `bb serve --experiments runs/experiments` shows the results
+in the Analytics tab.

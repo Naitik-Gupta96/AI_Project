@@ -8,12 +8,14 @@ from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 import pytest
 
 from ai_project.agents.tools import FhirGet, ListFiles, PythonSandbox
+from ai_project.benchmarks.base import Score
 from ai_project.benchmarks.kramabench import KramaBenchmark
 from ai_project.benchmarks.medagentbench import (
     ANSWER_FORMAT,
     MedAgentBenchmark,
     grader_transcript,
     parse_prediction,
+    send_get_request,
 )
 from ai_project.benchmarks.mscore import MSCoReBenchmark
 from ai_project.llm import prompts
@@ -234,6 +236,51 @@ def test_fhir_get_tool_against_a_local_server():
         assert tool({"path": "http://evil.example/x"}).startswith("error")
     finally:
         server.shutdown()
+
+
+class _FhirJson(_Fhir):
+    def do_GET(self):  # noqa: N802
+        body = json.dumps({"resourceType": "Bundle", "path": self.path}).encode()
+        self.send_response(200)
+        self.send_header("Content-Type", "application/fhir+json;charset=UTF-8")  # as HAPI sends
+        self.end_headers()
+        self.wfile.write(body)
+
+
+def test_official_grader_imports_the_harness_utils(medagent_dir):
+    # The real refsol.py starts with "from .utils import *" and calls send_get_request from it.
+    server = ThreadingHTTPServer(("127.0.0.1", 0), _FhirJson)
+    threading.Thread(target=server.serve_forever, daemon=True).start()
+    base = f"http://127.0.0.1:{server.server_port}/fhir/"
+    (medagent_dir / "refsol.py").write_text(
+        "import json\n"
+        "from .utils import *\n"
+        "def task1(case, results, base):\n"
+        "    res = send_get_request(f\"{base}Patient?identifier={case['eval_MRN']}&_format=json\")\n"
+        "    bundle = json.loads(res['data'])\n"
+        "    return verify_fhir_server(base) and case['eval_MRN'] in bundle['path'] \\\n"
+        "        and json.loads(results.result) == case['sol']\n",
+        encoding="utf-8")
+    try:
+        bench = MedAgentBenchmark(medagent_dir, fhir_base=base)
+        task = bench.get("medagent|task1_2")
+        assert bench.score(task, '{"answer": ["S12"]}') == Score(True, 1.0, {"task_type": "task1"})
+        assert not bench.score(task, '{"answer": ["S99"]}').correct
+    finally:
+        server.shutdown()
+
+
+def test_send_get_request_matches_the_harness():
+    server = ThreadingHTTPServer(("127.0.0.1", 0), _Fhir)
+    threading.Thread(target=server.serve_forever, daemon=True).start()
+    try:
+        out = send_get_request(f"http://127.0.0.1:{server.server_port}/fhir/Patient",
+                               params={"name": "x"})
+        assert out["status_code"] == 200
+        assert out["data"]["path"] == "/fhir/Patient?name=x"  # application/json is parsed
+    finally:
+        server.shutdown()
+    assert "error" in send_get_request(f"http://127.0.0.1:{server.server_port}/fhir/Patient")
 
 
 def test_kramabench_judge_from_a_config_string_and_a_judge_reply(krama_dir):

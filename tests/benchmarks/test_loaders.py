@@ -57,6 +57,24 @@ def test_mscore_scoring(mscore_dir):
     assert bench.score(task, None).value == 0.0
 
 
+def test_mscore_reads_a_file_without_its_closing_bracket(mscore_dir):
+    # One upstream stage file ends with "},\n" and no "]".
+    path = mscore_dir / "Automotive Value Chain" / "Hard" / "Sales"
+    text = path.read_text(encoding="utf-8").rstrip()
+    path.write_text(text.removesuffix("]") + ",\n", encoding="utf-8")
+    bench = MSCoReBenchmark(mscore_dir)
+    tasks = bench.load(8, seed=1)
+    assert len(tasks) == 8
+    assert bench._count(path) == 6
+
+
+def test_mscore_still_rejects_broken_json(mscore_dir):
+    path = mscore_dir / "Automotive Value Chain" / "Hard" / "Sales"
+    path.write_text('[{"instruction": "x", "output": ', encoding="utf-8")
+    with pytest.raises(json.JSONDecodeError):
+        MSCoReBenchmark(mscore_dir).load(8)
+
+
 def test_mscore_missing_data(tmp_path):
     with pytest.raises(FileNotFoundError, match="bb fetch mscore"):
         MSCoReBenchmark(tmp_path / "nothing").load(1)

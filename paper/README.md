@@ -10,5 +10,4 @@
 3. Copy that run's `figures/` and `tables/` into this directory.
 4. Build: `latexmk -pdf main.tex`. Until step 3 is done, missing results show up as a boxed note.
 
-`references.bib` gives the full author list only for Baskar et al. For the other entries, add
-the authors from each paper's arXiv page before submission.
+`references.bib` gives the full author list for every entry, from each paper's arXiv page.

@@ -64,7 +64,57 @@ prompt, the agent's position is revised, and its weight becomes $\max(0.25,\, w(
 
 \section{Experimental setup}
 \label{sec:metrics}
-% Copy from docs/experiments.md: groups, benchmarks and their adaptation, model, metrics.
+\paragraph{Groups.} Each team has three agents. In the control group none is
+counterfactual-capable; in groups A, B and C one, two and all three are (33, 67 and 100\%). In A
+and B the capable agents rotate with the trial index, so each role is capable equally often.
+
+\paragraph{Tasks.} Each group runs 500 tasks sampled with seed~0: 300 from MSCoRe~\citep{mscore},
+stratified by value chain and difficulty; 100 of the 104 KramaBench~\citep{kramabench} tasks; and
+100 from MedAgentBench~\citep{medagentbench}, ten per task type. Every task runs in every group,
+so groups are compared on the same tasks (2{,}000 sessions in all).
+
+\paragraph{Model and sessions.} All agents use Qwen2.5-7B-Instruct at temperature~0 with seed~0
+and JSON output constrained to the turn schema. A session has a budget of 12 messages, allows
+\textsc{reject} from message $k = 3$, reaches consensus at a weighted share of $\tau = 0.75$,
+and allows at most two interventions, each applied as both a prompt lesson and a voting weight.
+Agents may make up to four tool calls per turn. A response cache lets the four groups share every
+model call up to the first deadlock, since nothing differs before it; token costs are still
+counted per group as if each group had run alone.
+% Serving stack, model build, hardware and run dates: added with the results.
+
+\paragraph{Benchmarks.} Table~\ref{tab:benchmarks} lists the teams and the accuracy criteria.
+MSCoRe answers are capped at about 500 characters so that prompts fit the context window, while
+the references are long essays; ROUGE-L is therefore lower than for unconstrained answers, equally
+for every group. The ten KramaBench \texttt{string\_approximate} answers are judged by the same
+Qwen model, whereas KramaBench used a stronger judge. MedAgentBench POST requests are not sent:
+as in the original harness, the official grader reads them from a transcript built from the
+team's agreed prediction.
+
+\begin{table}[h]
+\centering\small
+\begin{tabular}{lll}
+\toprule
+Benchmark & Team & Accurate when \\
+\midrule
+MSCoRe & three stage experts per value chain & ROUGE-L F1 $\geq 0.3$ \\
+KramaBench & data engineer, analyst, verifier & exact match; approximate $\geq 0.9$ \\
+MedAgentBench & retriever, clinician, safety reviewer & the official grader returns true \\
+\bottomrule
+\end{tabular}
+\caption{Benchmarks, teams and accuracy criteria. KramaBench agents have \texttt{list\_files}
+and a sandboxed \texttt{python} tool; MedAgentBench agents have \texttt{fhir\_get}.}
+\label{tab:benchmarks}
+\end{table}
+
+\paragraph{Metrics.} \emph{Convergence success} is consensus within the message budget together
+with an accurate answer, reported with 95\% Wilson intervals; consensus and accuracy are also
+reported separately. A session is \emph{deadlocked} if it deadlocked at least once and
+\emph{recovered} if it still reached consensus. \emph{Intelligibility depth} is the share of
+sessions that are Ultra-Strong, Strong, One-Way or None under Definitions~1--2 of
+\citet{mestha2025}, taking the weakest level over agents for the whole session. \emph{Token cost}
+is the mean of prompt plus completion tokens per instance, on the live board and in the sandbox
+separately, with 95\% bootstrap intervals. Each experimental group is compared with the control
+group by an exact McNemar test on convergence success, per benchmark.
 
 \section{Results}
 \begin{table}[h]

@@ -1,0 +1,38 @@
+# The spec's ablation (4 groups x 500 trials) served by Ollama (machines without an NVIDIA GPU,
+# e.g. Apple Silicon with Metal).
+# Same design as ablation.toml; only the provider and the parallelism differ.
+#   bb ablate experiments/configs/ablation-ollama.toml
+
+name = "ablation-ollama-qwen2.5-7b"
+provider = "ollama:qwen2.5:7b-instruct"
+seed = 0
+workers = 4           # sessions in parallel
+max_in_flight = 4     # match OLLAMA_NUM_PARALLEL
+cache = true          # groups share calls up to the first deadlock; reruns are free
+keep_sessions = true
+
+[groups]
+fractions = [0.0, 0.3333, 0.6667, 1.0]
+
+[[benchmarks]]
+name = "mscore"
+n = 300
+
+[[benchmarks]]
+name = "kramabench"
+n = 100
+options = { sandbox = "docker", judge = "ollama:qwen2.5:7b-instruct" }
+
+[[benchmarks]]
+name = "medagentbench"
+n = 100
+
+[session]
+max_messages = 12
+reject_after = 3
+tau = 0.75
+max_interventions = 2
+messages_per_agent = 3
+max_candidates = 3
+apply = "both"
+max_tool_calls = 4

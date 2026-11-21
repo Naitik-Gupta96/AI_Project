@@ -56,14 +56,17 @@ Without a model, the agents run on a deterministic mock whose rules are document
 
 ## Real runs
 
-On a machine with an NVIDIA GPU, follow [scripts/gpu_runbook.md](scripts/gpu_runbook.md). In
-short:
+[COMPUTE_PROMPT.md](COMPUTE_PROMPT.md) is the hand-off for the compute machine. It is a prompt
+for an AI coding agent, covers both NVIDIA (vLLM) and Apple Silicon (Ollama), and goes all the
+way to committed results. The NVIDIA steps alone are in
+[scripts/gpu_runbook.md](scripts/gpu_runbook.md). In short:
 
 ```bash
 docker compose up -d vllm fhir && docker compose build sandbox
 bb fetch mscore kramabench medagentbench          # plus MedAgentBench's refsol.py, see runbook
 bb ablate experiments/configs/smoke.toml
 bb ablate experiments/configs/ablation.toml       # 2,000 sessions, resumable
+bb check  runs/experiments/ablation-qwen2.5-7b    # health checks: crashes, grader errors, tokens
 bb report runs/experiments/ablation-qwen2.5-7b    # summary, figures, LaTeX table
 ```
 
@@ -95,9 +98,9 @@ src/ai_project/
   experiments/     ablation runner, analysis, plots
   server/          FastAPI app and live sessions
   session.py       one session end to end
-  cli.py           bb run | serve | fetch | ablate | report
+  cli.py           bb run | serve | fetch | ablate | check | report
 web/               React + TypeScript + D3 UI
-experiments/configs/   ablation.toml, smoke.toml, mock-synthetic.toml
+experiments/configs/   ablation(-ollama).toml, smoke(-ollama).toml, mock-synthetic.toml
 docker-compose.yml, docker/   vLLM, FHIR server, Redis, code sandbox image
 scripts/           gpu_runbook.md, export_ui_fixture.py
 tests/             mirrors src/

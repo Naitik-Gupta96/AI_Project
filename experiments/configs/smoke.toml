@@ -18,7 +18,7 @@ n = 4
 [[benchmarks]]
 name = "kramabench"
 n = 3
-options = { sandbox = "docker" }
+options = { sandbox = "docker", judge = "vllm:Qwen/Qwen2.5-7B-Instruct" }
 
 [[benchmarks]]
 name = "medagentbench"

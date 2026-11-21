@@ -53,15 +53,18 @@ class KramaBenchmark:
     Args:
         data_dir: Where ``bb fetch kramabench`` put workloads and data lakes
         sandbox: "docker" (default) or "local" for the python tool
-        judge: Optional provider used as the paraphrase judge for string_approximate
+        judge: Paraphrase judge for string_approximate: a provider, or a provider spec string
     """
 
     name = "kramabench"
 
     def __init__(self, data_dir: str | Path = "data/kramabench", sandbox: str = "docker",
-                 judge: LLMProvider | None = None) -> None:
+                 judge: LLMProvider | str | None = None) -> None:
         self.root = Path(data_dir)
         self.sandbox = sandbox
+        if isinstance(judge, str):  # a provider spec from a TOML config, e.g. "ollama:<model>"
+            from ai_project.llm.factory import make_provider
+            judge = make_provider(judge)
         self.judge = judge
         self._all: list[dict[str, Any]] | None = None
 

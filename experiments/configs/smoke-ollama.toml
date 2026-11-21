@@ -1,0 +1,33 @@
+# A few trials of everything served by Ollama. Run this before the full ablation.
+#   bb ablate experiments/configs/smoke-ollama.toml
+
+name = "smoke-ollama-qwen2.5-7b"
+provider = "ollama:qwen2.5:7b-instruct"
+seed = 0
+workers = 4           # sessions in parallel
+max_in_flight = 4     # match OLLAMA_NUM_PARALLEL
+cache = true
+
+[groups]
+fractions = [0.0, 1.0]
+
+[[benchmarks]]
+name = "mscore"
+n = 4
+
+[[benchmarks]]
+name = "kramabench"
+n = 3
+options = { sandbox = "docker", judge = "ollama:qwen2.5:7b-instruct" }
+
+[[benchmarks]]
+name = "medagentbench"
+n = 3
+
+[session]
+max_messages = 12
+reject_after = 3
+tau = 0.75
+max_interventions = 2
+apply = "both"
+max_tool_calls = 4

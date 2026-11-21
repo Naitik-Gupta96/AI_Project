@@ -111,3 +111,32 @@ def test_statistics():
     assert mcnemar_exact(5, 5) == 1.0
     lo, hi = bootstrap_mean([10.0] * 50)
     assert lo == hi == 10.0
+
+
+def test_ollama_ablation_has_the_same_design_as_the_spec_ablation():
+    spec = ExperimentConfig.load(CONFIGS / "ablation.toml")
+    mac = ExperimentConfig.load(CONFIGS / "ablation-ollama.toml")
+    assert mac.provider.startswith("ollama:")
+    assert mac.fractions == spec.fractions
+    assert [(b.name, b.n) for b in mac.benchmarks] == [(b.name, b.n) for b in spec.benchmarks]
+    assert mac.session_config() == spec.session_config()
+
+
+def test_health_check(tmp_path):
+    from ai_project.experiments.analysis import health
+
+    runner = ExperimentRunner(config(n=4, fractions=(0.0,)), tmp_path)
+    runner.run()
+    report = health(runner.out)
+    assert report["problems"] == [] and report["trials"] == 4
+    assert report["benchmarks"]["synthetic"]["failed_sessions"] == 0
+
+    rows = load_trials(runner.trials_path)
+    rows[0]["failed"], rows[0]["error"] = True, "RuntimeError: boom"
+    rows[1]["score"] = {"correct": False, "value": 0.0, "detail": {"grader_error": "bad answer"}}
+    meta = json.loads((runner.out / "meta.json").read_text())
+    meta["config"]["provider"] = "ollama:qwen2.5:7b-instruct"  # a model run must report tokens
+    (runner.out / "meta.json").write_text(json.dumps(meta))
+    runner.trials_path.write_text("\n".join(json.dumps(r) for r in rows) + "\n", encoding="utf-8")
+    problems = " | ".join(health(runner.out)["problems"])
+    assert "crashed" in problems and "grader raised" in problems and "no token counts" in problems

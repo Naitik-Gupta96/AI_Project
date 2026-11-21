@@ -6,6 +6,7 @@ Command line: ``bb <command>``.
     bb fetch    download benchmark data
     bb ablate   run an ablation experiment from a TOML config
     bb report   summary, figures and LaTeX tables for an experiment run
+    bb check    health checks for an experiment run (exit code 1 on problems)
 """
 
 import argparse
@@ -160,6 +161,26 @@ def cmd_report(args: argparse.Namespace) -> int:
     return 0
 
 
+def cmd_check(args: argparse.Namespace) -> int:
+    from ai_project.experiments.analysis import health
+    report = health(args.run)
+    print(f"{args.run}: {report['trials']} trials"
+          + (f" of {report['planned']}" if report["planned"] else "")
+          + f", provider {report['provider'] or '?'}")
+    for bench, row in report["benchmarks"].items():
+        statuses = ", ".join(f"{k} {v}" for k, v in sorted(row["statuses"].items()))
+        print(f"  {bench:<14} {row['trials']:>4} trials  {statuses}  "
+              f"format errors/session {row['format_errors_mean']}  "
+              f"failed sessions {row['failed_sessions']}  grader errors {row['grader_errors']}  "
+              f"judge fallbacks {row['judge_fallbacks']}")
+    for w in report["warnings"]:
+        print(f"WARNING  {w}")
+    for p in report["problems"]:
+        print(f"PROBLEM  {p}")
+    print("OK" if not report["problems"] else "NOT OK: fix the problems before reporting results")
+    return 1 if report["problems"] else 0
+
+
 def _plots(summary: dict, run_dir) -> None:
     from ai_project.experiments.plots import make_figures
     try:
@@ -230,6 +251,10 @@ def build_parser() -> argparse.ArgumentParser:
     report.add_argument("run", help="run directory, e.g. runs/experiments/ablation-qwen2.5-7b")
     report.add_argument("--no-plots", action="store_true")
     report.set_defaults(func=cmd_report)
+
+    check = sub.add_parser("check", help="health checks for an experiment run")
+    check.add_argument("run", help="run directory")
+    check.set_defaults(func=cmd_check)
     return parser
 
 

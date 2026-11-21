@@ -206,3 +206,18 @@ def test_fhir_get_tool_against_a_local_server():
         assert tool({"path": "http://evil.example/x"}).startswith("error")
     finally:
         server.shutdown()
+
+
+def test_kramabench_judge_from_a_config_string_and_a_judge_reply(krama_dir):
+    from ai_project.llm.base import LLMProvider, LLMResponse
+    from ai_project.llm.broker import Broker
+
+    assert isinstance(KramaBenchmark(krama_dir, judge="ollama:qwen2.5:7b-instruct").judge, Broker)
+
+    class Judge(LLMProvider):
+        def generate(self, request):
+            return LLMResponse(text='{"same": true}')
+
+    bench = KramaBenchmark(krama_dir, sandbox="local", judge=Judge())
+    score = bench.score(bench.get("krama|legal-easy-4"), "the filing was late")
+    assert score.correct and score.detail["judge"] == "llm paraphrase"

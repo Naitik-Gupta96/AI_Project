@@ -4,7 +4,7 @@ version = "0.2.0"
 description = "Intelligible Blackboard Architecture with Counterfactual Agents"
 readme = "README.md"
 authors = [{name = "Naitik Gupta", email = "guptanaitik1234@gmail.com"}]
-license = {text = "MIT"}
+license = {file = "LICENSE"}
 requires-python = ">=3.11"
 classifiers = [
     "Development Status :: 3 - Alpha",

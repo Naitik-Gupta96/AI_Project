@@ -119,6 +119,13 @@ class JsonStore:
     def sessions(self) -> list[str]:
         return sorted(p.name for p in self.root.iterdir() if (p / self.EVENTS).is_file())
 
+    def discard(self, session_id: str) -> None:
+        """Delete a session's log and metadata, so the id can be reused for a new session."""
+        directory = self._dir(session_id)
+        with self._lock:
+            for name in (self.EVENTS, self.META, f".{self.META}.tmp"):
+                (directory / name).unlink(missing_ok=True)
+
     def write_meta(self, session_id: str, meta: dict[str, Any]) -> None:
         directory = self._dir(session_id)
         directory.mkdir(parents=True, exist_ok=True)

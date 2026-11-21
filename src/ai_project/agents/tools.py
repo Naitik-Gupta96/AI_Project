@@ -124,7 +124,9 @@ class FhirGet:
         parsed = urllib.parse.urlsplit(path)
         if parsed.scheme or parsed.netloc or ".." in parsed.path:
             return "error: give a path relative to the FHIR base, e.g. Patient?family=Smith"
-        url = self.base_url + path
+        # Quote what a URL cannot carry (a space in "name=Tracey Stanley", "|" in a token search)
+        # as requests does in the original harness; existing %-escapes are kept.
+        url = self.base_url + urllib.parse.quote(path, safe="!#$%&'()*+,/:;=?@[]~")
         if "_format=" not in url:
             url += ("&" if "?" in url else "?") + "_format=json"
         try:

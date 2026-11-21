@@ -234,6 +234,12 @@ def test_fhir_get_tool_against_a_local_server():
         assert out["path"] == "/fhir/Patient?name=Peter&_format=json"
         assert "Patient" in tool.description
         assert tool({"path": "http://evil.example/x"}).startswith("error")
+        # spaces and "|" are quoted as requests quotes them in the original harness
+        out = json.loads(tool({"path": "Patient?name=Tracey Stanley&code=http://loinc.org|4548-4"}))
+        assert out["path"] == ("/fhir/Patient?name=Tracey%20Stanley&code=http://loinc.org%7C4548-4"
+                               "&_format=json")
+        assert json.loads(tool({"path": "Patient?name=A%20B"}))["path"].startswith(
+            "/fhir/Patient?name=A%20B&")
     finally:
         server.shutdown()
 

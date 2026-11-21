@@ -66,6 +66,23 @@ def test_runner_writes_paired_trials_and_resumes(tmp_path):
     assert len(set(ids)) == 48 and seen[0] == 21
 
 
+def test_a_rerun_trial_gets_a_fresh_session_log(tmp_path):
+    from dataclasses import replace
+
+    from ai_project.blackboard import JsonStore
+
+    cfg = replace(config(n=2, fractions=(1.0,)), keep_sessions=True)
+    runner = ExperimentRunner(cfg, tmp_path)
+    runner.run()
+    store = JsonStore(tmp_path / "t" / "sessions")
+    first = {s: len(store.load(s)) for s in store.sessions()}
+    assert len(first) == 2
+    ExperimentRunner(cfg, tmp_path).run(resume=False)
+    again = {s: store.load(s) for s in store.sessions()}
+    assert {s: len(events) for s, events in again.items()} == first
+    assert all(sum(e.kind == "task" for e in events) == 1 for events in again.values())
+
+
 def test_report_and_mock_effect(tmp_path):
     runner = ExperimentRunner(config(n=60), tmp_path)
     runner.run()

@@ -252,6 +252,10 @@ class ExperimentRunner:
         bench = self.benchmarks[trial.benchmark]
         roles = [r.role for r in prompts.roles(trial.task.domain)]
         cf = capable_agents(roles, trial.fraction, trial.index)
+        if self.store is not None:
+            # A trial that runs again (after --restart, or one cut off by an interruption) starts
+            # a fresh log; appending would replay both sessions as one.
+            self.store.discard(_safe(trial.trial_id))
         try:
             tools = registry.tool_factory(bench)
             team = build_team(trial.task, self.provider, tools=tools,

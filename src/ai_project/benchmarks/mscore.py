@@ -139,7 +139,16 @@ class MSCoReBenchmark:
 
 def _read(path: Path) -> list[dict]:
     with open(path, encoding="utf-8") as f:
-        return json.load(f)
+        text = f.read()
+    try:
+        return json.loads(text)
+    except json.JSONDecodeError:
+        # "Automotive Value Chain/Easy/Supply Chain" on Hugging Face stops after the comma that
+        # follows its last record, without the closing bracket. Every record in it is complete.
+        trimmed = text.rstrip().removesuffix(",")
+        if trimmed.startswith("[") and not trimmed.endswith("]"):
+            return json.loads(trimmed + "]")
+        raise
 
 
 def _level_dir(base: Path, difficulty: str) -> str:

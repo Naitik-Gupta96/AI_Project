@@ -280,6 +280,7 @@ def test_send_get_request_matches_the_harness():
         assert out["data"]["path"] == "/fhir/Patient?name=x"  # application/json is parsed
     finally:
         server.shutdown()
+        server.server_close()
     assert "error" in send_get_request(f"http://127.0.0.1:{server.server_port}/fhir/Patient")
 
 

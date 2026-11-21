@@ -24,7 +24,9 @@ model.
    (300 MSCoRe + 100 KramaBench + 100 MedAgentBench) = 2,000 sessions.
 3. Check the run, produce the report, and commit the results, the figures and the paper's results
    section through a pull request.
-4. Tell the human exactly what happened.
+4. Clean up: delete this prompt file from the repository, and leave the repository looking like
+   the team did the work themselves (Step 8).
+5. Tell the human exactly what happened.
 
 Read these first, in the repository: `README.md`, `docs/experiments.md`,
 `scripts/gpu_runbook.md`, `docs/architecture.md`.
@@ -35,6 +37,15 @@ Read these first, in the repository: `README.md`, `docs/experiments.md`,
   `Co-Authored-By` or other AI attribution lines in commits or PR descriptions. Set it per
   repository with `git config user.name Naitik-Gupta96` and
   `git config user.email guptanaitik1234@gmail.com`.
+- **Write like the team.** This applies to commit messages, PR titles and descriptions, docs,
+  paper text and code comments.
+  - Commits: short conventional subjects (`feat:`, `fix:`, `docs:`, `exp:`, `chore:`), with a
+    plain body explaining why.
+  - PR descriptions: a few factual lines.
+  - Never mention AI assistants, agents running the work, prompts given to you, hand-offs, this
+    file, or "generated with" lines anywhere in the repository or on GitHub.
+  - No emoji, no marketing tone, no filler. Match the style of the existing files and the
+    existing git history (`git log`).
 - **Workflow.** Never commit to `main` directly. Work on a branch (`fix/...`, `exp/...`), open a
   pull request, wait for CI (ruff, pytest on Python 3.11 and 3.13, web tests and build) to pass,
   then merge and delete the branch.
@@ -235,7 +246,36 @@ Repeat step 5 until `bb check` prints OK and the sessions look right. Record wha
    `cache.sqlite` for the human to store outside git. These are the session logs the UI can
    replay, and the cache that makes reruns free.
 
-## Step 8: final message to the human
+## Step 8: clean up
+
+Do this last, after every other PR is merged.
+
+1. On a branch `chore/cleanup`, delete this file:
+   ```bash
+   git rm COMPUTE_PROMPT.md
+   ```
+   Nothing in the repository links to it.
+2. Check that no traces remain:
+   ```bash
+   git grep -n -i -E "COMPUTE_PROMPT|claude|anthropic|chatgpt|copilot|ai agent|ai assistant|coding agent|hand-?off|as an ai"
+   ```
+   This must print nothing. Words like `prompt` in `src/ai_project/llm/prompts/` are the project's
+   own agent prompt library and are fine. Rewrite anything else in the plain team style.
+3. Check that no local files are tracked:
+   ```bash
+   git ls-files | grep -E "^(\.claude|data|runs|\.cache)/|refsol\.py|\.sqlite$"
+   ```
+   This must print nothing. If it lists anything, `git rm --cached` it.
+4. Commit as `chore: remove the experiment run checklist`. Open a PR with a one-line plain
+   description, wait for CI, merge, and delete the branch.
+5. Leave the repository tidy:
+   - only `main`, locally and on GitHub;
+   - `git status` clean;
+   - no stray files from your work. Your notes, logs and scratch files go outside the repository
+     or get deleted.
+6. Your report to the human (Step 9) goes in this chat, not into the repository.
+
+## Step 9: final message to the human
 
 Report:
 - **Setup:**
@@ -248,6 +288,8 @@ Report:
   95% CI, deadlock and recovery rates, Ultra-Strong / Strong share, tokens per instance live vs
   sandbox), and the McNemar results against the control group;
 - **Locations:** where the results, figures and zipped artifacts are;
+- **Cleanup:** confirmation that `COMPUTE_PROMPT.md` is deleted, the trace checks printed nothing,
+  and only `main` remains;
 - **Still open:** anything left, such as the Introduction and Discussion of the paper.
 
 ## Known caveats to keep in mind (already documented in `docs/experiments.md`)

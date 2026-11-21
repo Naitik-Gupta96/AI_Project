@@ -56,10 +56,9 @@ Without a model, the agents run on a deterministic mock whose rules are document
 
 ## Real runs
 
-[COMPUTE_PROMPT.md](COMPUTE_PROMPT.md) is the hand-off for the compute machine. It is a prompt
-for an AI coding agent, covers both NVIDIA (vLLM) and Apple Silicon (Ollama), and goes all the
-way to committed results. The NVIDIA steps alone are in
-[scripts/gpu_runbook.md](scripts/gpu_runbook.md). In short:
+The model is Qwen2.5-7B-Instruct: on an NVIDIA GPU through vLLM, on Apple Silicon through
+Ollama. [scripts/gpu_runbook.md](scripts/gpu_runbook.md) has both paths step by step. In short
+(NVIDIA):
 
 ```bash
 docker compose up -d vllm fhir && docker compose build sandbox

@@ -27,12 +27,17 @@ answer list as JSON text.
 import importlib.util
 import json
 import random
+import sys
+import urllib.parse
+import urllib.request
 from pathlib import Path
 from types import ModuleType, SimpleNamespace
 from typing import Any
 
 from ai_project.agents.tools import FhirGet
 from ai_project.benchmarks.base import Score, Task
+
+GRADER_PACKAGE = "medagentbench_grader"
 
 ANSWER_FORMAT = (
     'Give a JSON object {"answer": [...], "posts": [...]}. "answer" is the list of values the task '
@@ -65,6 +70,50 @@ def parse_prediction(prediction: str) -> tuple[list[Any], list[dict[str, Any]]]:
     posts = data.get("posts") or []
     answer = answer if isinstance(answer, list) else [answer]
     return answer, [p for p in posts if isinstance(p, dict)]
+
+
+def send_get_request(url: str, params: dict[str, Any] | None = None,
+                     headers: dict[str, str] | None = None) -> dict[str, Any]:
+    """
+    ``send_get_request`` from the harness's ``utils.py``, which refsol.py
+    imports, with urllib in place of requests. As there, the body is parsed
+    only when the content type is exactly application/json (HAPI FHIR sends
+    application/fhir+json, so the grader gets text and parses it itself), and
+    any failure, an HTTP error status included, comes back as ``{"error": ...}``.
+    """
+    if params:
+        url += ("&" if "?" in url else "?") + urllib.parse.urlencode(params)
+    try:
+        request = urllib.request.Request(url, headers=headers or {})
+        with urllib.request.urlopen(request, timeout=60) as response:
+            body = response.read().decode("utf-8")
+            json_body = response.headers.get("Content-Type") == "application/json"
+            return {"status_code": response.status, "data": json.loads(body) if json_body else body}
+    except Exception as exc:
+        return {"error": str(exc)}
+
+
+def verify_fhir_server(fhir_api_base: str) -> bool:
+    """``verify_fhir_server`` from the harness's ``utils.py``."""
+    return send_get_request(f"{fhir_api_base}metadata").get("status_code", 0) == 200
+
+
+def _grader_package() -> str:
+    """
+    Register the package refsol.py is loaded into. The grader starts with
+    ``from .utils import *`` (it lives in the harness's task package), so its
+    parent package and a ``utils`` module with the harness's helpers must exist.
+    """
+    if GRADER_PACKAGE not in sys.modules:
+        package = ModuleType(GRADER_PACKAGE)
+        package.__path__ = []
+        utils = ModuleType(f"{GRADER_PACKAGE}.utils")
+        utils.send_get_request = send_get_request  # type: ignore[attr-defined]
+        utils.verify_fhir_server = verify_fhir_server  # type: ignore[attr-defined]
+        utils.__all__ = ["send_get_request", "verify_fhir_server"]  # type: ignore[attr-defined]
+        sys.modules[f"{GRADER_PACKAGE}.utils"] = utils
+        sys.modules[GRADER_PACKAGE] = package
+    return GRADER_PACKAGE
 
 
 def grader_transcript(prediction: str) -> SimpleNamespace:
@@ -160,7 +209,7 @@ class MedAgentBenchmark:
                 raise FileNotFoundError(
                     f"{path} missing. Download refsol.py from the link in the MedAgentBench README "
                     "and save it there; it is the official grader.")
-            spec = importlib.util.spec_from_file_location("medagentbench_refsol", path)
+            spec = importlib.util.spec_from_file_location(f"{_grader_package()}.refsol", path)
             module = importlib.util.module_from_spec(spec)  # type: ignore[arg-type]
             spec.loader.exec_module(module)  # type: ignore[union-attr]
             self._refsol = module

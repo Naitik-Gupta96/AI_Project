@@ -194,6 +194,20 @@ def test_medagentbench_needs_the_official_grader(medagent_dir):
         bench.score(bench.get("medagent|task1_1"), '{"answer": ["S11"]}')
 
 
+def test_medagentbench_answer_format_lists_the_post_functions(medagent_dir):
+    bench = MedAgentBenchmark(medagent_dir)
+    assert bench.get("medagent|task1_1").answer_format == ANSWER_FORMAT  # fixture: GET only
+    funcs = json.loads((medagent_dir / "funcs_v1.json").read_text(encoding="utf-8"))
+    funcs.append({"name": "POST {api_base}/Observation", "description": "Record vitals.",
+                  "parameters": {"properties": {"resourceType": {"description": "Observation"}}}})
+    write(medagent_dir / "funcs_v1.json", funcs)
+    text = MedAgentBenchmark(medagent_dir).get("medagent|task1_1").answer_format
+    assert text.startswith(ANSWER_FORMAT)
+    # the grader compares the url with "<base>Observation", so no double slash
+    assert "- POST http://127.0.0.1:8080/fhir/Observation: Record vitals." in text
+    assert '"resourceType"' in text and "fhir//" not in text and "GET" not in text
+
+
 def test_medagentbench_instructions_hold_no_real_record():
     # Task task1_1 asks for the MRN of "Peter Stafford, 1932-12-29", which is S6534835. Those values
     # used to be the examples here, and the model copied them into other tasks.

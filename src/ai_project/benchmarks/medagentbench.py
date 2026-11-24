@@ -15,7 +15,10 @@ POST requests are never sent: they are part of the answer, and the grader
 reads them from the transcript. The team's prediction is therefore a JSON
 object:
 
-    {"answer": [...], "posts": [{"url": "<FHIR base>/Observation", "payload": {...}}]}
+    {"answer": [...], "posts": [{"url": "<FHIR base>Observation", "payload": {...}}]}
+
+The POST functions of ``funcs_v1.json`` are listed in the answer format, as
+the original agent sees them in its function list.
 
 ``answer`` is what the original agent would put in ``FINISH([...])``. For
 grading, the agreed prediction is turned into the transcript shape the
@@ -42,7 +45,7 @@ GRADER_PACKAGE = "medagentbench_grader"
 ANSWER_FORMAT = (
     'Give a JSON object {"answer": [...], "posts": [...]}. "answer" is the list of values the task '
     'asks for (e.g. ["<MRN>"], [<number>], or [] if it asks only for actions). Each post is '
-    '{"url": "<FHIR base>/<Resource>", "payload": {...}} for an order or record the task asks '
+    '{"url": "<POST url>", "payload": {...}} for an order or record the task asks '
     "you to create; posts are not sent, they are graded. Omit posts the task does not require."
 )
 POST_ACK = ("POST request accepted and executed successfully. Please call FINISH if you have got "
@@ -144,6 +147,7 @@ class MedAgentBenchmark:
         self.fhir_base = fhir_base.rstrip("/") + "/"
         self._cases: list[dict[str, Any]] | None = None
         self._refsol: ModuleType | None = None
+        self._answer_format: str | None = None
 
     def _all(self) -> list[dict[str, Any]]:
         if self._cases is None:
@@ -161,10 +165,34 @@ class MedAgentBenchmark:
         with open(path, encoding="utf-8") as f:
             return json.load(f)
 
+    def answer_format(self) -> str:
+        """
+        ``ANSWER_FORMAT`` followed by the POST functions of ``funcs_v1.json``
+        (url, description, payload fields). The original agent sees the whole
+        function list; the GET searches reach agents through ``fhir_get``.
+        Each url is written out in full: the names read ``{api_base}/Resource``
+        and the base ends with a slash, while the grader compares against
+        ``<base>Resource``.
+        """
+        lines = []
+        for f in self.functions():
+            name = str(f.get("name", ""))
+            if not name.startswith("POST"):
+                continue
+            url = self.fhir_base + name.split("{api_base}", 1)[-1].lstrip("/")
+            fields = json.dumps(f.get("parameters", {}), ensure_ascii=False, separators=(",", ":"))
+            lines.append(f"- POST {url}: {f.get('description', '').strip()}\n  payload: {fields}")
+        if not lines:
+            return ANSWER_FORMAT
+        heading = "\nPOST functions (a post uses one of these urls):\n"
+        return ANSWER_FORMAT + heading + "\n".join(lines)
+
     def _task(self, case: dict[str, Any]) -> Task:
         question = case["instruction"]
         if case.get("context"):
             question += "\n\nContext: " + case["context"]
+        if self._answer_format is None:
+            self._answer_format = self.answer_format()
         return Task(
             task_id=f"medagent|{case['id']}",
             benchmark=self.name,
@@ -173,7 +201,7 @@ class MedAgentBenchmark:
             reference=case.get("sol"),
             context={"FHIR base": self.fhir_base},
             metadata={"case": case, "task_type": case["id"].split("_")[0]},
-            answer_format=ANSWER_FORMAT,
+            answer_format=self._answer_format,
         )
 
     def load(self, n: int | None = None, seed: int = 0) -> list[Task]:

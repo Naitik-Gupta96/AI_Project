@@ -29,7 +29,42 @@ success, intelligibility depth and token cost.
 \end{abstract}
 
 \section{Introduction}
-% Motivation: chains vs a shared structured state; PXP; deadlocks; counterfactual credit.
+Multi-agent systems built from language models usually pass text along a chain: each agent reads
+its predecessor's output and writes the next instruction. Over long tasks such chains lose
+context and compound errors, because no agent sees the whole state and an early mistake is passed
+on as fact. A blackboard architecture~\citep{erman1980} removes the chain. Agents read and write
+one shared, structured state and react to its changes instead of to each other's messages.
+
+A shared board alone does not make the interaction intelligible. We therefore require every
+message on the board to follow the Two-Way Intelligibility Protocol (PXP) of \citet{baskar2023},
+in the multi-turn form of \citet{mestha2025}. A message carries a prediction, an explanation and
+a tag (\textsc{ratify}, \textsc{revise}, \textsc{refute} or \textsc{reject}) that follows from
+the sender's judgments of the message it answers. The tags make the course of a session
+checkable, and the same definitions classify a session as One-Way, Strong or Ultra-Strong
+intelligible.
+
+Agents that disagree can stop making progress. They refute each other in turn, or one rejects
+the others' position outright, and the board deadlocks. Instead of ending the session there, we
+make some agents counterfactual-capable. On a deadlock, such an agent asks whether a different
+message of its own, earlier in the session, would have brought the team closer to consensus. It
+replays the session from each alternative in an isolated sandbox and assigns credit by the gain
+in consensus proximity. It then applies the best alternative to the live board as a lesson in
+its prompt and a lower voting weight.
+
+Our contributions are:
+\begin{itemize}
+\item a thread-safe, event-sourced blackboard whose grammar enforces PXP on every commit, with an
+  event-driven scheduler, a priority arbiter and weighted consensus
+  (Sections~\ref{sec:pxp} and~\ref{sec:architecture});
+\item retrospective counterfactual credit assignment that changes the live board
+  (Section~\ref{sec:cf});
+\item a web interface that streams the board and its counterfactual replays and can step through
+  any session;
+\item an ablation over the share of counterfactual-capable agents (0, 33, 67 and 100\%) on
+  MSCoRe~\citep{mscore}, KramaBench~\citep{kramabench} and MedAgentBench~\citep{medagentbench},
+  measuring convergence success, intelligibility depth and token cost
+  (Sections~\ref{sec:metrics} and~\ref{sec:results}).
+\end{itemize}
 
 \section{PXP on a blackboard}
 \label{sec:pxp}
@@ -49,11 +84,81 @@ Session intelligibility follows Definitions~1--2 of \citet{mestha2025}, taking t
 over agents (Section~\ref{sec:metrics}).
 
 \section{Architecture}
-% Four layers (docs/architecture.md): event-sourced blackboard with optimistic versioning;
-% event-driven scheduler with a priority arbiter and weighted consensus over RATIFY chains;
-% agents and providers (vLLM, constrained decoding); counterfactual layer; UI.
+\label{sec:architecture}
+The system has four layers, each a Python package, which meet only through the blackboard's
+event log.
+
+\paragraph{Communication layer.} Every change to the board is an event: a task, a message, a
+status change, a weight change or a context revision. The board's state is the fold of its event
+log. Live writes and replays use the same fold, so the state at any version can be rebuilt
+exactly; the inspector and the counterfactual sandboxes rely on this. One lock serializes
+writes. A commit first runs the PXP grammar and then checks the version the agent read; if the
+board has moved on, the write fails with a version conflict instead of overwriting. Events are
+persisted before subscribers are notified, in memory, as fsynced JSON lines or as Redis streams.
+The arbiter's rankings, tool calls, rejected attempts, write collisions and interventions are
+recorded as events that leave the state unchanged.
+
+\paragraph{Control layer.} An event-driven scheduler subscribes to the board and runs a round
+whenever the state changes. Each round:
+\begin{enumerate}
+\item checks for consensus and deadlock;
+\item ranks the agents;
+\item lets the top-ranked agents (one by default) draft against the same version;
+\item commits their drafts in rank order.
+\end{enumerate}
+The priority arbiter scores an eligible agent as follows:
+\begin{itemize}
+\item $+10$ for a pending intervention;
+\item $+3$ if it has not spoken;
+\item $+2$ for new messages since its last post;
+\item $+1$ if its latest tag is not \textsc{ratify};
+\item a role bias.
+\end{itemize}
+Ties go to registration order, so replays select the same agents. Consensus holds when at least
+two agents ratify the same anchor message, following \textsc{ratify} chains back to it, and
+together hold at least $\tau$ of the voting weight. Since the last applied intervention, a
+deadlock is any of the following:
+\begin{itemize}
+\item a \textsc{reject};
+\item three \textsc{refute}s in a row;
+\item six messages without a new prediction.
+\end{itemize}
+
+\paragraph{Reasoning layer.} An agent builds its context from the board:
+\begin{itemize}
+\item the task and its private evidence;
+\item the message it answers and its own previous position;
+\item a clipped history;
+\item its lessons and its weight.
+\end{itemize}
+It renders its persona from a prompt matrix that maps domains and roles to personas and JSON
+schemas, and it asks the model for a turn constrained to the schema. Its procedure computes the
+tag, and the grammar checks it on commit. Agents call tools before they post: \texttt{list\_files}
+and a sandboxed \texttt{python} on KramaBench, and \texttt{fhir\_get} on MedAgentBench. Models are
+reached through providers for the following:
+\begin{itemize}
+\item vLLM and other OpenAI-compatible servers;
+\item Ollama;
+\item in-process transformers;
+\item a deterministic mock.
+\end{itemize}
+A broker bounds the requests in flight and retries failed ones, and an SQLite cache makes reruns
+free. The counterfactual resolver (Section~\ref{sec:cf}) also belongs to this layer.
+
+\paragraph{UI layer.} A FastAPI server runs each session in a worker thread. It streams the
+session's events, including the sandbox's progress, over one WebSocket per session. The React
+and D3 interface folds the same event log with a TypeScript port of the fold, which is tested
+against states produced by the Python board. It does the following:
+\begin{itemize}
+\item draws the task as the central node, with messages branching outward by tag;
+\item flashes red on cascading \textsc{reject}s;
+\item opens a split panel with the alternative timelines when an agent starts a counterfactual
+  replay;
+\item steps forward and back through any session.
+\end{itemize}
 
 \section{Counterfactual credit assignment}
+\label{sec:cf}
 On a deadlock, each capable agent reflects on its last three messages, proposes up to three
 grammatical alternatives per message, and replays the session from each in a sandbox rebuilt from
 the event log. The credit of an alternative is the gain in consensus proximity (the weighted
@@ -117,6 +222,7 @@ separately, with 95\% bootstrap intervals. Each experimental group is compared w
 group by an exact McNemar test on convergence success, per benchmark.
 
 \section{Results}
+\label{sec:results}
 \begin{table}[h]
 \centering\small
 \result{tables/groups.tex}{\input{tables/groups.tex}}

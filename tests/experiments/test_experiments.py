@@ -139,6 +139,16 @@ def test_ollama_ablation_has_the_same_design_as_the_spec_ablation():
     assert mac.session_config() == spec.session_config()
 
 
+
+def test_quick_ollama_ablation_is_the_spec_design_at_reduced_scale():
+    spec = ExperimentConfig.load(CONFIGS / "ablation.toml")
+    quick = ExperimentConfig.load(CONFIGS / "ablation-quick-ollama.toml")
+    assert quick.provider.startswith("ollama:")
+    assert quick.fractions == spec.fractions
+    assert [b.name for b in quick.benchmarks] == [b.name for b in spec.benchmarks]
+    assert [b.n for b in quick.benchmarks] == [10, 5, 10]
+    assert quick.session_config() == spec.session_config()
+
 def test_health_check(tmp_path):
     from ai_project.experiments.analysis import health
 

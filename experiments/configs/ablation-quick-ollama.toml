@@ -1,0 +1,39 @@
+# Reduced-scale run of the spec's ablation for limited compute time, served by Ollama on Apple
+# Silicon: 25 tasks per group instead of 500 (100 sessions instead of 2,000). Everything else is
+# as in ablation.toml; only the provider, the parallelism and the sample sizes differ.
+#   OLLAMA_NUM_PARALLEL=4 OLLAMA_MAX_LOADED_MODELS=1 ollama serve
+#   bb ablate experiments/configs/ablation-quick-ollama.toml
+
+name = "ablation-quick-ollama-qwen2.5-7b"
+provider = "ollama:qwen2.5:7b-instruct"
+seed = 0
+workers = 4           # sessions in parallel
+max_in_flight = 4     # match OLLAMA_NUM_PARALLEL
+cache = true          # groups share calls up to the first deadlock; reruns are free
+keep_sessions = true
+
+[groups]
+fractions = [0.0, 0.3333, 0.6667, 1.0]
+
+[[benchmarks]]
+name = "mscore"
+n = 10                # stratified by value chain and difficulty
+
+[[benchmarks]]
+name = "kramabench"
+n = 5
+options = { sandbox = "docker", judge = "ollama:qwen2.5:7b-instruct" }
+
+[[benchmarks]]
+name = "medagentbench"
+n = 10                # one task per task type
+
+[session]
+max_messages = 12
+reject_after = 3
+tau = 0.75
+max_interventions = 2
+messages_per_agent = 3
+max_candidates = 3
+apply = "both"
+max_tool_calls = 4

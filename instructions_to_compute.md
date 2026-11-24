@@ -12,6 +12,15 @@ and finishing the project:
 
 **When every step below is done, this file is deleted** (Step 9).
 
+**Update, 24 Nov 2026 (evening): the reduced-scale run moved to the Mac.** Only the Apple Silicon
+Mac (M5, 16 GB) is available now, so the final run uses Ollama with `qwen2.5:7b-instruct` (4-bit,
+Q4_K_M) and `experiments/configs/ablation-quick-ollama.toml`: 25 tasks per group (10 MSCoRe,
+5 KramaBench, 10 MedAgentBench, one per task type), 100 sessions, into
+`runs/experiments/ablation-quick-ollama-qwen2.5-7b`. Where the steps below name the 5060 Ti, vLLM,
+the AWQ build or `ablation-quick-awq.toml`, read the Mac, Ollama and this config instead, and do
+not run the GPU version as well. The results state the build (Ollama, 4-bit) and the reduced scale
+(Rules). The paper's LaTeX is left for later.
+
 **What changed in this version.** GPU time is limited, so the ablation now runs at reduced scale.
 It keeps the brief's four groups, three benchmarks, model and session settings, with **40 tasks per
 group** (160 sessions, about 15 to 30 minutes) instead of 500 (2,000 sessions, 3 to 8 hours). It

@@ -1,0 +1,5 @@
+runs/experiments/ablation-quick-ollama-qwen2.5-7b: 100 trials of 100, provider ollama:qwen2.5:7b-instruct
+  kramabench       20 trials  CONSENSUS 20  format errors/session 0.0  failed sessions 0  grader errors 0  judge fallbacks 0
+  medagentbench    40 trials  CONSENSUS 40  format errors/session 0.0  failed sessions 0  grader errors 0  judge fallbacks 0
+  mscore           40 trials  CONSENSUS 40  format errors/session 0.0  failed sessions 0  grader errors 0  judge fallbacks 0
+OK

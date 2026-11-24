@@ -69,6 +69,9 @@ bb check  runs/experiments/ablation-qwen2.5-7b    # health checks: crashes, grad
 bb report runs/experiments/ablation-qwen2.5-7b    # summary, figures, LaTeX table
 ```
 
+With limited compute time, `experiments/configs/ablation-quick-ollama.toml` runs the same design
+on a Mac at reduced scale: 25 tasks per group (100 sessions) instead of 500.
+
 ## Documentation
 
 | | |
@@ -99,7 +102,7 @@ src/ai_project/
   session.py       one session end to end
   cli.py           bb run | serve | fetch | ablate | check | report
 web/               React + TypeScript + D3 UI
-experiments/configs/   ablation(-ollama).toml, smoke(-ollama).toml, mock-synthetic.toml
+experiments/configs/   ablation(-ollama|-quick-ollama).toml, smoke(-ollama).toml, mock-synthetic.toml
 docker-compose.yml, docker/   vLLM, FHIR server, Redis, code sandbox image
 scripts/           gpu_runbook.md, export_ui_fixture.py
 tests/             mirrors src/

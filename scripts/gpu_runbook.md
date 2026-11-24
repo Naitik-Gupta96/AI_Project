@@ -51,6 +51,9 @@ docker compose up -d fhir
 With 8 GB of memory, use `OLLAMA_NUM_PARALLEL=1` and set `workers = 1` and `max_in_flight = 1` in
 copies of the Ollama configs.
 
+With limited compute time, `ablation-quick-ollama.toml` runs the same design at 25 tasks per group
+(10 MSCoRe, 5 KramaBench, 10 MedAgentBench, one per task type), 100 sessions instead of 2,000.
+
 **Both:**
 
 ```bash

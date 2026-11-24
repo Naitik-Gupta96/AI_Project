@@ -16,22 +16,35 @@ curl -fsSL https://raw.githubusercontent.com/Naitik-Gupta96/AI_Project/main/inst
   -o ~/instructions_to_compute.md
 ```
 
-Then work through Steps 1 to 10 in order. If someone else is running the steps, give them that
-copy.
+Then tell Claude Code on that machine: *Read ~/instructions_to_compute.md and carry it out.*
+
+**Who does what.** "You" in this file is Claude Code; "the human" is the person at the machine.
+
+- **Claude Code does everything except the full run:**
+  - all installs and downloads (drivers aside);
+  - every code change and PR;
+  - starting the services;
+  - the short smoke run;
+  - preparing the full run.
+- **The human starts the full run** from a terminal (cmd on Windows), because it takes hours and
+  must not depend on a Claude Code session staying open. Step 6 prepares it, writes a one-line
+  start command, and hands it over.
+- **Afterwards,** the human opens a new session, and Claude Code continues from Step 7.
 
 **Read first, in the repository:** `strictly_follow.md` (the project brief; follow it strictly),
 `README.md`, `docs/experiments.md`, `scripts/gpu_runbook.md`, `docs/architecture.md`.
 
 **Keep a log** outside the repository (`~/compute_log.md`). Record start and end times, commands,
-PR links, numbers and problems. Step 10's report is built from it.
+PR links, numbers and problems. Steps 7 to 10 may run in a new session, so they rely on this log.
 
 **Stop points.** Stop, report, and wait for an explicit answer when:
 
 1. The GPU is not an NVIDIA card with at least 16 GB (Step 1).
 2. `refsol.py` cannot be downloaded (Step 2).
-3. **The smoke gate:** the smoke run is done. Report its numbers, deadlock rate and runtime
-   estimate, then wait for a go (Step 5).
-4. A code bug turns up during the full run (Step 6).
+3. **The smoke gate and hand-over:** the full run is prepared. Report the smoke numbers, deadlock
+   rate and runtime estimate, and give the human the start command (Step 6). Never start the full
+   run yourself.
+4. The finished run shows a code bug (Step 7): a fix would put two commits into one run.
 5. Anything would change the experimental design (Rules).
 6. Before drafting any paper section the team owns (Step 8).
 
@@ -137,6 +150,9 @@ them. Only the model name and the run name differ.
        through `/mnt/c`.
      - If the PC has 16 GB of RAM, give WSL more: in `%UserProfile%\.wslconfig`, put `[wsl2]` and
        `memory=12GB`, then run `wsl --shutdown`.
+     - Make Ubuntu the default WSL distribution (`wsl --set-default Ubuntu`), and turn on Docker
+       Desktop's WSL integration for it (Settings → Resources → WSL integration). The human's
+       start command in Step 6 relies on both.
      - Set the power plan so the PC never sleeps.
 4. **Also install:** Python 3.11+, Node 20+, git, `gh`, `tmux`.
 5. **Docker sees the GPU:**
@@ -275,7 +291,9 @@ errors and the grader cannot read reference values, so check it before every run
 
 ## Step 5: smoke run and the gate
 
-1. **Run it on the merged `main`:**
+1. **Run it on the merged `main`.** It takes about 10 to 20 minutes, so run it in the background
+   and check on it. If it looks like taking more than about 30 minutes, hand it to the human the
+   same way as the full run (Step 6).
 
    ```bash
    git switch main && git pull
@@ -306,7 +324,7 @@ errors and the grader cannot read reference values, so check it before every run
    - **Counterfactual:** any deadlocked 100%-group session shows an intervention with sandbox
      branches.
    - **Live UI:** start one live session from the UI's **New session** form with the vLLM provider.
-3. **STOP: the smoke gate.** Report the following, then wait for an explicit go:
+3. **The smoke gate.** Collect the following; they open the hand-over message in Step 6:
    - **Numbers:** the smoke numbers per group and benchmark, copied from `summary.json`.
    - **Deadlocks:** the deadlock rate and the number of interventions in the 100% group. If both
      are 0, say plainly that the groups will probably not differ. This alone does not block the
@@ -317,49 +335,103 @@ errors and the grader cannot read reference values, so check it before every run
      - Compare it with the time budget at the end of this file.
    - **Fixes:** the PR links of any fixes.
 
-## Step 6: the full ablation
+## Step 6: prepare the full run and hand it to the human
 
 The design is 4 groups (0, 33, 67 and 100% counterfactual-capable agents) × 500 tasks (300 MSCoRe
 + 100 KramaBench + 100 MedAgentBench) = 2,000 sessions. It runs from
-`experiments/configs/ablation-awq.toml` into `runs/experiments/ablation-qwen2.5-7b-awq`. Start it
-only after the go.
+`experiments/configs/ablation-awq.toml` into `runs/experiments/ablation-qwen2.5-7b-awq` and takes
+hours. **Do not start it yourself.** Get everything ready so that the human only has to run one
+command, then stop.
 
-1. **Before starting:**
-   - `git rev-parse HEAD` equals the commit from Step 5, and `git status` is clean.
-   - `docker compose ps` shows vLLM and FHIR up.
-   - There is enough disk: about 100 × `du -sh runs/experiments/smoke-qwen2.5-7b-awq`.
-2. **Run it detached and kept awake,** and log the start time:
+**Your part:**
+
+1. **Size the parallelism now.** Nothing may change once the run has started.
+   - Find the KV cache size in `docker compose logs vllm`: the line "GPU KV cache size: … tokens".
+   - The config runs 24 sessions at once, with prompts of up to about 4,000 tokens.
+   - If the cache holds fewer than 100,000 tokens, set `workers = 16` and `max_in_flight = 32` in
+     `ablation-awq.toml` through a PR. This is parallelism, not design.
+2. **Check:**
+   - `git switch main && git pull`, then `git status` is clean.
+   - Record `git rev-parse HEAD` as the commit of the full run. It is the smoke run's commit, plus
+     the parallelism PR if item 1 needed one.
+   - `docker compose ps` shows vLLM and FHIR up, and both `curl` checks from Step 4 answer.
+   - There is enough free disk: about 100 × `du -sh runs/experiments/smoke-qwen2.5-7b-awq`.
+3. **Write the run script** `~/run_ablation.sh`, outside the repository, and `chmod +x` it.
+   - Use the real clone path and the `GPU_MEMORY_UTILIZATION` value from Step 4.
+   - On Linux, prefix the `bb ablate` line with `systemd-inhibit --what=sleep:idle`.
+   - Run `bash -n ~/run_ablation.sh` to check its syntax. Do not run the script itself.
 
    ```bash
-   tmux new -s ablation
+   #!/usr/bin/env bash
+   # Full ablation, 4 groups x 500 tasks. Safe to run again: finished trials are kept.
+   set -euo pipefail
+   cd ~/AI_Project
    source .venv/bin/activate
-   systemd-inhibit --what=sleep:idle bb ablate experiments/configs/ablation-awq.toml 2>&1 | tee -a ~/ablation.log
+   export MODEL=Qwen/Qwen2.5-7B-Instruct-AWQ
+   export GPU_MEMORY_UTILIZATION=0.90        # the value from Step 4
+   docker compose up -d vllm fhir            # starts them if stopped; same settings, so no reload
+   echo "waiting for vLLM and FHIR ..."
+   until curl -sf http://127.0.0.1:8000/v1/models >/dev/null; do sleep 10; done
+   until curl -sf http://127.0.0.1:8080/fhir/metadata >/dev/null; do sleep 10; done
+   echo "start $(date -Is)" | tee -a ~/ablation.log
+   bb ablate experiments/configs/ablation-awq.toml 2>&1 | tee -a ~/ablation.log
+   echo "end $(date -Is)" | tee -a ~/ablation.log
+   bb check runs/experiments/ablation-qwen2.5-7b-awq 2>&1 | tee -a ~/ablation.log
    ```
 
-   On Windows (WSL2), run the same inside `tmux` but without `systemd-inhibit`; the power plan
-   already prevents sleep.
-3. **Freeze the setup until it finishes.** No `docker compose pull`, no driver or OS updates, no
-   `git pull`, and no code changes in this checkout.
-4. **If it stops** (a crash, a reboot or a service going down), bring the services back and run
-   the same command again. Finished trials are kept. Never pass `--restart` unless asked.
-5. **Every few hours,** run `bb check runs/experiments/ablation-qwen2.5-7b-awq` and log the
-   progress line.
-   - Grader errors usually mean FHIR is down. Stop with Ctrl-C, restart FHIR, then resume.
-   - A code bug mid-run is a stop point: a fix would put two commits into one run.
-   - If `docker compose logs vllm` keeps warning about preempted sequences, stop, set
-     `workers = 16` and `max_in_flight = 32` in `ablation-awq.toml` through a PR, and resume.
-     Those settings are parallelism, not design. Note it in the log.
-6. **Find a counterfactual example.** After a few hundred trials, look in the 100% group for a
-   deadlocked session with an applied intervention, and note its trial id for the Results.
-7. **When it finishes,** log the end time and the total runtime, then run `bb check` once more.
+4. **Write the state into `~/compute_log.md`.** Steps 7 to 10 will run in a new session, so record
+   everything they need:
+   - the commit of the full run;
+   - the vLLM version and image digest, the GPU, driver and OS, and `GPU_MEMORY_UTILIZATION`;
+   - the smoke numbers and elapsed time;
+   - every PR link;
+   - anything still open.
+5. **STOP and hand over.** Send one message. It starts with the smoke gate report (Step 5, item
+   3), then gives the human's part below with the real paths filled in. Then end the session.
 
-## Step 7: the results PR
+**The human's part** (copy this into the hand-over message):
+
+- **Start.** If you are happy with the smoke numbers, start the run. Keep the window open; it
+  prints progress and ends with the `bb check` result.
+  - **Windows:** open cmd and run `wsl -e bash -lc "~/run_ablation.sh"`.
+  - **Linux:** open a terminal, run `tmux new -s ablation`, then `~/run_ablation.sh`.
+- **Progress.** In a second window, run the command below (on Linux, the part inside the quotes).
+  It says how many of the 2,000 trials are done.
+
+  ```
+  wsl -e bash -lc "cd ~/AI_Project && .venv/bin/bb check runs/experiments/ablation-qwen2.5-7b-awq"
+  ```
+
+- **If it stops** (the window closed, a reboot or a crash), start Docker Desktop if it is not
+  running and run the same start command again. Finished trials are kept; only the missing ones
+  run.
+- **If the progress check reports grader errors,** the FHIR server is down. Press Ctrl-C in the run
+  window and start the run again; the script restarts FHIR.
+- **Until it finishes:**
+  - do not update Windows, the NVIDIA driver or Docker;
+  - do not run `git pull` in the project;
+  - keep the PC from sleeping.
+- **When it finishes,** open a new Claude Code session on this machine and say: *Read
+  ~/instructions_to_compute.md and ~/compute_log.md, then continue from Step 7.*
+
+## Step 7: after the run, the results PR
 
 One PR, `exp/ablation-qwen2.5-7b-awq`, carries the results, the figures, the docs' Results section,
 the paper's Results text and the README status. Every number in it is copied from
 `summary.json`.
 
-1. **Generate:**
+1. **Confirm the run.** Read `~/compute_log.md` and `~/ablation.log`.
+   - `bb check runs/experiments/ablation-qwen2.5-7b-awq` must report all 2,000 trials and OK.
+   - If trials are missing, ask the human to run the start command again; it resumes. Never pass
+     `--restart`.
+   - If it shows a code bug, stop (stop point 4).
+   - Log the start, the end and the total runtime from `~/ablation.log`. If the run was restarted,
+     note each restart and sum the running time.
+   - `git rev-parse HEAD` still equals the commit of the full run.
+2. **Find a counterfactual example.** In `trials.jsonl`, look for a `cf100` trial with
+   `deadlocked` true and `interventions_applied` of at least 1, and note its trial id for the
+   Results. If there is none, say so.
+3. **Generate:**
 
    ```bash
    R=runs/experiments/ablation-qwen2.5-7b-awq
@@ -367,14 +439,14 @@ the paper's Results text and the README status. Every number in it is copied fro
    bb report $R                             # figures/, tables/, summary.json, groups.csv
    ```
 
-2. **Add the files:**
+4. **Add the files:**
    - **`results/ablation-qwen2.5-7b-awq/`:** `meta.json`, `summary.json`, `groups.csv`,
      `health.txt`, `figures/`, `tables/`, and `trials.jsonl.gz` (`gzip -k trials.jsonl`). Leave out
      the `.gz` if it is over 50 MB, and say so.
    - **`paper/figures/` and `paper/tables/`:** copies of the run's `figures/` and `tables/`.
      `paper/main.tex` already includes `tables/groups.tex`, `figures/convergence.png`,
      `figures/intelligibility.png` and `figures/tokens.png`.
-3. **`docs/experiments.md`:**
+5. **`docs/experiments.md`:**
    - In Design, change the model line to "Qwen2.5-7B-Instruct (official AWQ 4-bit build) served by
      vLLM".
    - Add a `## Results` section before `## Limitations`:
@@ -387,21 +459,21 @@ the paper's Results text and the README status. Every number in it is copied fro
        show. Include the deadlock and recovery rates.
      - **MSCoRe:** accuracy at 0.3 is near 0% in every group. Give the ROUGE-L F1 values and the
        reason: 50 to 250 characters against references of about 1,100.
-     - **Counterfactual example:** the trial id from Step 6, or the statement that none occurred.
-4. **`paper/main.tex`:**
+     - **Counterfactual example:** the trial id from item 2, or the statement that none occurred.
+6. **`paper/main.tex`:**
    - In "Model and sessions", write "Qwen2.5-7B-Instruct (AWQ 4-bit)".
    - Replace the comment `% Serving stack, model build, hardware and run dates: added with the
      results.` with one sentence of those facts.
    - Write the Results text around the existing table and figures, in the style of the
      Experimental setup.
    - Do not touch the Introduction, Architecture or Discussion.
-5. **`README.md` and `docs/team.md`:**
+7. **`README.md` and `docs/team.md`:**
    - In the README, replace the Status section with the run name, the headline numbers and a link
      to `results/ablation-qwen2.5-7b-awq/`.
    - In `docs/team.md`, mark Milestone 4 as done, with a link to the results.
-6. **Commit and merge.** Run `ruff` and `pytest`, commit
+8. **Commit and merge.** Run `ruff` and `pytest`, commit
    `exp: add the ablation-qwen2.5-7b-awq results`, open the PR, wait for CI and squash-merge.
-7. **Zip the large artifacts** (never committed; they stay on this machine):
+9. **Zip the large artifacts** (never committed; they stay on this machine):
 
    ```bash
    cd runs/experiments && zip -r ~/ablation-qwen2.5-7b-awq-artifacts.zip \
@@ -501,7 +573,7 @@ The smoke run in Step 5 gives the real figure.
 | Step 3: the two PRs, including CI | 30–60 min |
 | Step 4: vLLM image and the AWQ model (5.5 GB), FHIR | 20–40 min |
 | Step 5: smoke run (20 sessions) and reading sessions | 30–45 min |
-| Step 6: full ablation (2,000 sessions) | **3–8 h expected; up to about 24 h worst case** |
+| Step 6: full ablation (2,000 sessions), started by the human | **3–8 h expected; up to about 24 h worst case** |
 | Steps 7–10: results, paper, cleanup | 1–3 h |
 
 The full run's length depends almost entirely on how often sessions deadlock:
@@ -525,9 +597,9 @@ Start the full run in the evening and it should be done by the next morning.
 - [ ] Step 2: tests, ruff, web and mock session pass; data and `refsol.py` in place
 - [ ] Step 3: MedAgentBench fix merged; AWQ configs merged
 - [ ] Step 4: services up, build recorded
-- [ ] Step 5: smoke OK, sessions read, go received
-- [ ] Step 6: 2,000 trials finished, `bb check` OK
-- [ ] Step 7: results PR merged, artifacts zipped
+- [ ] Step 5: smoke OK, sessions read
+- [ ] Step 6: run script written, state logged, handed over; the human started the run
+- [ ] Step 7: all 2,000 trials done, `bb check` OK; results PR merged; artifacts zipped
 - [ ] Step 8: paper sections decided, PDF built
 - [ ] Step 9: cleanup PR merged, only `main` left
 - [ ] Step 10: report sent, `~/instructions_to_compute.md` deleted

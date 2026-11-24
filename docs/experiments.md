@@ -21,6 +21,8 @@ tokens?
 - **Rotation.** In groups A and B, which agents are capable rotates with the trial index, so
   each role is capable equally often.
 - **Model.** Qwen2.5-7B-Instruct served by vLLM, temperature 0, seed 0, constrained JSON output.
+- **Reported run.** The results below come from a reduced-scale run of this design (25 tasks
+  per group) on a Mac with Ollama; see [Results](#results).
 - **Session.**
 
   | Setting | Value |
@@ -81,6 +83,61 @@ Offline, `bb ablate experiments/configs/mock-synthetic.toml` runs the same 4 × 
 synthetic tasks with the deterministic mock in about 10 seconds. Its numbers describe the mock's
 rules, not language models, and are only a pipeline check.
 
+## Results
+
+Run `ablation-quick-ollama-qwen2.5-7b`, files in
+[`results/ablation-quick-ollama-qwen2.5-7b/`](../results/ablation-quick-ollama-qwen2.5-7b/).
+
+**Scale.** This is a reduced-scale run: 25 tasks per group (10 MSCoRe, 5 KramaBench and 10
+MedAgentBench, one per task type), 100 sessions in all. The brief specifies 500 tasks per group
+(2,000 sessions). Only a laptop was available for the final run, and the full design would take
+many hours on it. `ablation.toml` (vLLM) and `ablation-ollama.toml` run the full design
+unchanged. At this size the intervals are wide.
+
+| Setup | |
+|---|---|
+| model | Qwen2.5-7B-Instruct, 4-bit (Q4_K_M), served by Ollama 0.40.3 with 4 parallel slots and an 8,192-token context |
+| machine | Apple M5, 16 GB, macOS 27.0.1; FHIR server in Docker 29.7.2 under x86 emulation |
+| config | `experiments/configs/ablation-quick-ollama.toml`, commit `45c0edb` of `main` |
+| run | 24 Nov 2026, 22:45 to 23:23 (37 min) |
+| health | `bb check`: 100 of 100 trials; no failed sessions, format errors, grader errors or judge fallbacks |
+
+**Convergence success** with 95% Wilson intervals. The four groups gave the same result on every
+task:
+
+| Benchmark | n | Control (0%) | A (33%) | B (67%) | C (100%) |
+|---|---|---|---|---|---|
+| MSCoRe | 10 | 0.00 [0.00, 0.28] | 0.00 [0.00, 0.28] | 0.00 [0.00, 0.28] | 0.00 [0.00, 0.28] |
+| KramaBench | 5 | 0.20 [0.04, 0.62] | 0.20 [0.04, 0.62] | 0.20 [0.04, 0.62] | 0.20 [0.04, 0.62] |
+| MedAgentBench | 10 | 0.30 [0.11, 0.60] | 0.30 [0.11, 0.60] | 0.30 [0.11, 0.60] | 0.30 [0.11, 0.60] |
+| All | 25 | 0.16 [0.06, 0.35] | 0.16 [0.06, 0.35] | 0.16 [0.06, 0.35] | 0.16 [0.06, 0.35] |
+
+Every exact McNemar test against the control group, overall and per benchmark, has no discordant
+pairs (b = c = 0, p = 1).
+
+- **Convergence.** Every session in every group reached consensus in 4 messages: an INIT and then
+  a RATIFY from each of the other two agents. Convergence success therefore equals accuracy. No
+  session deadlocked (the deadlock and recovery rates are 0 in every group), so no counterfactual
+  intervention ran, and the final answers were the same in all four groups on all 25 tasks. The
+  run shows no effect of the share of counterfactual-capable agents, because the situation they
+  act on never arose.
+- **Intelligibility depth.** Every session is Strong; none is Ultra-Strong, One-Way or None.
+  Ultra-Strong needs at least one REVISE, and every reply ratified the opening message.
+- **Token cost.** Mean tokens per instance on the live board, over all tasks: 8,869 (0%), 8,758
+  (33%), 8,886 (67%) and 8,867 (100%); per benchmark about 3,593 for MSCoRe, 8,960 for
+  KramaBench and 13,823 to 14,142 for MedAgentBench. Sandbox tokens are zero, since no replay ran.
+  The small MedAgentBench differences come from the FHIR server, which gives every search bundle a
+  new id: later groups saw slightly different tool results and made those model calls again
+  instead of reading them from the cache.
+- **MSCoRe.** Accuracy at the 0.3 ROUGE-L threshold is 0 in every group. The answers are short (49
+  to 91 characters, median 65) against long reference essays: mean ROUGE-L precision is 0.69 but
+  recall 0.04, so F1 averages 0.08 (at most 0.12).
+- **KramaBench and MedAgentBench.** KramaBench solved 1 of 5 tasks (`wildfire-easy-15`).
+  MedAgentBench solved 3 of 10 (task types 4, 5 and 9), with the POST functions listed in the
+  answer format.
+- **Counterfactual example.** None: no session in the 100% group deadlocked. The intervention path
+  is shown by the mock session (`bb run --cf analyst`) and the tests, not by this run.
+
 ## Limitations
 
 - **Model.** One model family at one size. Results may not carry over to larger or
@@ -91,3 +148,12 @@ rules, not language models, and are only a pipeline check.
 - **Data.** The MSCoRe items were generated with GLM-4 and expert-reviewed (see the dataset
   card). The KramaBench and MedAgentBench samples are 100 tasks each, so per-benchmark intervals
   are wide.
+- **Scale of the reported run.** 25 tasks per group (100 sessions) instead of the specified 500
+  (2,000), for lack of compute time. Per-benchmark intervals are up to 58 points wide, and
+  KramaBench has only 5 tasks.
+- **Build of the reported run.** A 4-bit (Q4_K_M) build through Ollama on a laptop, not the bf16
+  vLLM build of the design. Ollama does not guarantee identical outputs across runs at
+  temperature 0.
+- **No deadlocks.** No session deadlocked in the reported run, so it cannot show whether
+  counterfactual agents help. It shows that the pipeline runs end to end, and that without
+  deadlocks the groups behave the same.

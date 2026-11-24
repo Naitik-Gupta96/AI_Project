@@ -1,0 +1,658 @@
+{
+  "name": "ablation-quick-ollama-qwen2.5-7b",
+  "meta": {
+    "config": {
+      "name": "ablation-quick-ollama-qwen2.5-7b",
+      "provider": "ollama:qwen2.5:7b-instruct",
+      "seed": 0,
+      "fractions": [
+        0.0,
+        0.3333,
+        0.6667,
+        1.0
+      ],
+      "workers": 4,
+      "max_in_flight": 4,
+      "cache": true,
+      "benchmarks": [
+        {
+          "name": "mscore",
+          "n": 10,
+          "options": {}
+        },
+        {
+          "name": "kramabench",
+          "n": 5,
+          "options": {
+            "sandbox": "docker",
+            "judge": "ollama:qwen2.5:7b-instruct"
+          }
+        },
+        {
+          "name": "medagentbench",
+          "n": 10,
+          "options": {}
+        }
+      ],
+      "session": {
+        "max_messages": 12,
+        "reject_after": 3,
+        "tau": 0.75,
+        "max_interventions": 2,
+        "messages_per_agent": 3,
+        "max_candidates": 3,
+        "apply": "both",
+        "max_tool_calls": 4
+      }
+    },
+    "provider": {
+      "name": "ollama",
+      "deterministic": false,
+      "model": "qwen2.5:7b-instruct",
+      "host": "http://127.0.0.1:11435",
+      "seed": 0,
+      "temperature": 0.0,
+      "num_ctx": 8192,
+      "constrained": true,
+      "cache": "runs/experiments/ablation-quick-ollama-qwen2.5-7b/cache.sqlite",
+      "max_in_flight": 4,
+      "retries": 3
+    },
+    "trials": 100,
+    "version": "0.2.0",
+    "git_commit": "45c0edb1966d0a9cd935a38cd946e6dfbe4700e6",
+    "started": "2026-11-24T22:45:52"
+  },
+  "groups": [
+    {
+      "group": "cf0",
+      "cf_fraction": 0.0,
+      "benchmark": "kramabench",
+      "trials": 5,
+      "errors": 0,
+      "convergence_success": 0.2,
+      "convergence_ci": [
+        0.03622316096978745,
+        0.6244717358814613
+      ],
+      "consensus": 1.0,
+      "accuracy": 0.2,
+      "score_mean": 0.2,
+      "deadlock": 0.0,
+      "recovered": 0.0,
+      "messages_mean": 4.0,
+      "tokens_mean": 8958.6,
+      "tokens_ci": [
+        6075.2,
+        14022.8
+      ],
+      "live_tokens_mean": 8958.6,
+      "sandbox_tokens_mean": null,
+      "calls_mean": 8.0,
+      "ultra_strong": 0.0,
+      "strong": 1.0,
+      "one_way": 0.0,
+      "none": 0.0
+    },
+    {
+      "group": "cf0",
+      "cf_fraction": 0.0,
+      "benchmark": "medagentbench",
+      "trials": 10,
+      "errors": 0,
+      "convergence_success": 0.3,
+      "convergence_ci": [
+        0.10778928748621183,
+        0.6032267800204347
+      ],
+      "consensus": 1.0,
+      "accuracy": 0.3,
+      "score_mean": 0.3,
+      "deadlock": 0.0,
+      "recovered": 0.0,
+      "messages_mean": 4.0,
+      "tokens_mean": 14101.1,
+      "tokens_ci": [
+        12956.0,
+        15434.4
+      ],
+      "live_tokens_mean": 14101.1,
+      "sandbox_tokens_mean": null,
+      "calls_mean": 6.3,
+      "ultra_strong": 0.0,
+      "strong": 1.0,
+      "one_way": 0.0,
+      "none": 0.0
+    },
+    {
+      "group": "cf0",
+      "cf_fraction": 0.0,
+      "benchmark": "mscore",
+      "trials": 10,
+      "errors": 0,
+      "convergence_success": 0.0,
+      "convergence_ci": [
+        0.0,
+        0.2775401687666166
+      ],
+      "consensus": 1.0,
+      "accuracy": 0.0,
+      "score_mean": 0.08284,
+      "deadlock": 0.0,
+      "recovered": 0.0,
+      "messages_mean": 4.0,
+      "tokens_mean": 3592.6,
+      "tokens_ci": [
+        3472.9,
+        3707.5
+      ],
+      "live_tokens_mean": 3592.6,
+      "sandbox_tokens_mean": null,
+      "calls_mean": 4.0,
+      "ultra_strong": 0.0,
+      "strong": 1.0,
+      "one_way": 0.0,
+      "none": 0.0,
+      "success_at_0.2": 0.0,
+      "success_at_0.3": 0.0,
+      "success_at_0.4": 0.0
+    },
+    {
+      "group": "cf0",
+      "cf_fraction": 0.0,
+      "benchmark": "all",
+      "trials": 25,
+      "errors": 0,
+      "convergence_success": 0.16,
+      "convergence_ci": [
+        0.06403347608577989,
+        0.34654013980238163
+      ],
+      "consensus": 1.0,
+      "accuracy": 0.16,
+      "score_mean": 0.193136,
+      "deadlock": 0.0,
+      "recovered": 0.0,
+      "messages_mean": 4.0,
+      "tokens_mean": 8869.2,
+      "tokens_ci": [
+        6787.76,
+        10993.92
+      ],
+      "live_tokens_mean": 8869.2,
+      "sandbox_tokens_mean": null,
+      "calls_mean": 5.72,
+      "ultra_strong": 0.0,
+      "strong": 1.0,
+      "one_way": 0.0,
+      "none": 0.0
+    },
+    {
+      "group": "cf33",
+      "cf_fraction": 0.3333,
+      "benchmark": "kramabench",
+      "trials": 5,
+      "errors": 0,
+      "convergence_success": 0.2,
+      "convergence_ci": [
+        0.03622316096978745,
+        0.6244717358814613
+      ],
+      "consensus": 1.0,
+      "accuracy": 0.2,
+      "score_mean": 0.2,
+      "deadlock": 0.0,
+      "recovered": 0.0,
+      "messages_mean": 4.0,
+      "tokens_mean": 8960.0,
+      "tokens_ci": [
+        6090.2,
+        14027.0
+      ],
+      "live_tokens_mean": 8960.0,
+      "sandbox_tokens_mean": null,
+      "calls_mean": 8.0,
+      "ultra_strong": 0.0,
+      "strong": 1.0,
+      "one_way": 0.0,
+      "none": 0.0
+    },
+    {
+      "group": "cf33",
+      "cf_fraction": 0.3333,
+      "benchmark": "medagentbench",
+      "trials": 10,
+      "errors": 0,
+      "convergence_success": 0.3,
+      "convergence_ci": [
+        0.10778928748621183,
+        0.6032267800204347
+      ],
+      "consensus": 1.0,
+      "accuracy": 0.3,
+      "score_mean": 0.3,
+      "deadlock": 0.0,
+      "recovered": 0.0,
+      "messages_mean": 4.0,
+      "tokens_mean": 13822.7,
+      "tokens_ci": [
+        12700.1,
+        15128.2
+      ],
+      "live_tokens_mean": 13822.7,
+      "sandbox_tokens_mean": null,
+      "calls_mean": 6.2,
+      "ultra_strong": 0.0,
+      "strong": 1.0,
+      "one_way": 0.0,
+      "none": 0.0
+    },
+    {
+      "group": "cf33",
+      "cf_fraction": 0.3333,
+      "benchmark": "mscore",
+      "trials": 10,
+      "errors": 0,
+      "convergence_success": 0.0,
+      "convergence_ci": [
+        0.0,
+        0.2775401687666166
+      ],
+      "consensus": 1.0,
+      "accuracy": 0.0,
+      "score_mean": 0.08284,
+      "deadlock": 0.0,
+      "recovered": 0.0,
+      "messages_mean": 4.0,
+      "tokens_mean": 3592.6,
+      "tokens_ci": [
+        3469.3,
+        3713.7
+      ],
+      "live_tokens_mean": 3592.6,
+      "sandbox_tokens_mean": null,
+      "calls_mean": 4.0,
+      "ultra_strong": 0.0,
+      "strong": 1.0,
+      "one_way": 0.0,
+      "none": 0.0,
+      "success_at_0.2": 0.0,
+      "success_at_0.3": 0.0,
+      "success_at_0.4": 0.0
+    },
+    {
+      "group": "cf33",
+      "cf_fraction": 0.3333,
+      "benchmark": "all",
+      "trials": 25,
+      "errors": 0,
+      "convergence_success": 0.16,
+      "convergence_ci": [
+        0.06403347608577989,
+        0.34654013980238163
+      ],
+      "consensus": 1.0,
+      "accuracy": 0.16,
+      "score_mean": 0.193136,
+      "deadlock": 0.0,
+      "recovered": 0.0,
+      "messages_mean": 4.0,
+      "tokens_mean": 8758.12,
+      "tokens_ci": [
+        6763.36,
+        10839.92
+      ],
+      "live_tokens_mean": 8758.12,
+      "sandbox_tokens_mean": null,
+      "calls_mean": 5.68,
+      "ultra_strong": 0.0,
+      "strong": 1.0,
+      "one_way": 0.0,
+      "none": 0.0
+    },
+    {
+      "group": "cf67",
+      "cf_fraction": 0.6667,
+      "benchmark": "kramabench",
+      "trials": 5,
+      "errors": 0,
+      "convergence_success": 0.2,
+      "convergence_ci": [
+        0.03622316096978745,
+        0.6244717358814613
+      ],
+      "consensus": 1.0,
+      "accuracy": 0.2,
+      "score_mean": 0.2,
+      "deadlock": 0.0,
+      "recovered": 0.0,
+      "messages_mean": 4.0,
+      "tokens_mean": 8960.0,
+      "tokens_ci": [
+        6090.2,
+        14012.0
+      ],
+      "live_tokens_mean": 8960.0,
+      "sandbox_tokens_mean": null,
+      "calls_mean": 8.0,
+      "ultra_strong": 0.0,
+      "strong": 1.0,
+      "one_way": 0.0,
+      "none": 0.0
+    },
+    {
+      "group": "cf67",
+      "cf_fraction": 0.6667,
+      "benchmark": "medagentbench",
+      "trials": 10,
+      "errors": 0,
+      "convergence_success": 0.3,
+      "convergence_ci": [
+        0.10778928748621183,
+        0.6032267800204347
+      ],
+      "consensus": 1.0,
+      "accuracy": 0.3,
+      "score_mean": 0.3,
+      "deadlock": 0.0,
+      "recovered": 0.0,
+      "messages_mean": 4.0,
+      "tokens_mean": 14142.4,
+      "tokens_ci": [
+        12991.4,
+        15458.7
+      ],
+      "live_tokens_mean": 14142.4,
+      "sandbox_tokens_mean": null,
+      "calls_mean": 6.3,
+      "ultra_strong": 0.0,
+      "strong": 1.0,
+      "one_way": 0.0,
+      "none": 0.0
+    },
+    {
+      "group": "cf67",
+      "cf_fraction": 0.6667,
+      "benchmark": "mscore",
+      "trials": 10,
+      "errors": 0,
+      "convergence_success": 0.0,
+      "convergence_ci": [
+        0.0,
+        0.2775401687666166
+      ],
+      "consensus": 1.0,
+      "accuracy": 0.0,
+      "score_mean": 0.08284,
+      "deadlock": 0.0,
+      "recovered": 0.0,
+      "messages_mean": 4.0,
+      "tokens_mean": 3592.6,
+      "tokens_ci": [
+        3470.6,
+        3715.0
+      ],
+      "live_tokens_mean": 3592.6,
+      "sandbox_tokens_mean": null,
+      "calls_mean": 4.0,
+      "ultra_strong": 0.0,
+      "strong": 1.0,
+      "one_way": 0.0,
+      "none": 0.0,
+      "success_at_0.2": 0.0,
+      "success_at_0.3": 0.0,
+      "success_at_0.4": 0.0
+    },
+    {
+      "group": "cf67",
+      "cf_fraction": 0.6667,
+      "benchmark": "all",
+      "trials": 25,
+      "errors": 0,
+      "convergence_success": 0.16,
+      "convergence_ci": [
+        0.06403347608577989,
+        0.34654013980238163
+      ],
+      "consensus": 1.0,
+      "accuracy": 0.16,
+      "score_mean": 0.193136,
+      "deadlock": 0.0,
+      "recovered": 0.0,
+      "messages_mean": 4.0,
+      "tokens_mean": 8886.0,
+      "tokens_ci": [
+        6826.36,
+        10930.24
+      ],
+      "live_tokens_mean": 8886.0,
+      "sandbox_tokens_mean": null,
+      "calls_mean": 5.72,
+      "ultra_strong": 0.0,
+      "strong": 1.0,
+      "one_way": 0.0,
+      "none": 0.0
+    },
+    {
+      "group": "cf100",
+      "cf_fraction": 1.0,
+      "benchmark": "kramabench",
+      "trials": 5,
+      "errors": 0,
+      "convergence_success": 0.2,
+      "convergence_ci": [
+        0.03622316096978745,
+        0.6244717358814613
+      ],
+      "consensus": 1.0,
+      "accuracy": 0.2,
+      "score_mean": 0.2,
+      "deadlock": 0.0,
+      "recovered": 0.0,
+      "messages_mean": 4.0,
+      "tokens_mean": 8960.0,
+      "tokens_ci": [
+        6075.2,
+        14027.0
+      ],
+      "live_tokens_mean": 8960.0,
+      "sandbox_tokens_mean": null,
+      "calls_mean": 8.0,
+      "ultra_strong": 0.0,
+      "strong": 1.0,
+      "one_way": 0.0,
+      "none": 0.0
+    },
+    {
+      "group": "cf100",
+      "cf_fraction": 1.0,
+      "benchmark": "medagentbench",
+      "trials": 10,
+      "errors": 0,
+      "convergence_success": 0.3,
+      "convergence_ci": [
+        0.10778928748621183,
+        0.6032267800204347
+      ],
+      "consensus": 1.0,
+      "accuracy": 0.3,
+      "score_mean": 0.3,
+      "deadlock": 0.0,
+      "recovered": 0.0,
+      "messages_mean": 4.0,
+      "tokens_mean": 14096.0,
+      "tokens_ci": [
+        12848.5,
+        15414.0
+      ],
+      "live_tokens_mean": 14096.0,
+      "sandbox_tokens_mean": null,
+      "calls_mean": 6.3,
+      "ultra_strong": 0.0,
+      "strong": 1.0,
+      "one_way": 0.0,
+      "none": 0.0
+    },
+    {
+      "group": "cf100",
+      "cf_fraction": 1.0,
+      "benchmark": "mscore",
+      "trials": 10,
+      "errors": 0,
+      "convergence_success": 0.0,
+      "convergence_ci": [
+        0.0,
+        0.2775401687666166
+      ],
+      "consensus": 1.0,
+      "accuracy": 0.0,
+      "score_mean": 0.08284,
+      "deadlock": 0.0,
+      "recovered": 0.0,
+      "messages_mean": 4.0,
+      "tokens_mean": 3592.6,
+      "tokens_ci": [
+        3470.6,
+        3715.0
+      ],
+      "live_tokens_mean": 3592.6,
+      "sandbox_tokens_mean": null,
+      "calls_mean": 4.0,
+      "ultra_strong": 0.0,
+      "strong": 1.0,
+      "one_way": 0.0,
+      "none": 0.0,
+      "success_at_0.2": 0.0,
+      "success_at_0.3": 0.0,
+      "success_at_0.4": 0.0
+    },
+    {
+      "group": "cf100",
+      "cf_fraction": 1.0,
+      "benchmark": "all",
+      "trials": 25,
+      "errors": 0,
+      "convergence_success": 0.16,
+      "convergence_ci": [
+        0.06403347608577989,
+        0.34654013980238163
+      ],
+      "consensus": 1.0,
+      "accuracy": 0.16,
+      "score_mean": 0.193136,
+      "deadlock": 0.0,
+      "recovered": 0.0,
+      "messages_mean": 4.0,
+      "tokens_mean": 8867.44,
+      "tokens_ci": [
+        6853.84,
+        11138.56
+      ],
+      "live_tokens_mean": 8867.44,
+      "sandbox_tokens_mean": null,
+      "calls_mean": 5.72,
+      "ultra_strong": 0.0,
+      "strong": 1.0,
+      "one_way": 0.0,
+      "none": 0.0
+    }
+  ],
+  "tests": [
+    {
+      "comparison": "cf33 vs cf0",
+      "benchmark": "kramabench",
+      "pairs": 5,
+      "b": 0,
+      "c": 0,
+      "p_value": 1.0
+    },
+    {
+      "comparison": "cf67 vs cf0",
+      "benchmark": "kramabench",
+      "pairs": 5,
+      "b": 0,
+      "c": 0,
+      "p_value": 1.0
+    },
+    {
+      "comparison": "cf100 vs cf0",
+      "benchmark": "kramabench",
+      "pairs": 5,
+      "b": 0,
+      "c": 0,
+      "p_value": 1.0
+    },
+    {
+      "comparison": "cf33 vs cf0",
+      "benchmark": "medagentbench",
+      "pairs": 10,
+      "b": 0,
+      "c": 0,
+      "p_value": 1.0
+    },
+    {
+      "comparison": "cf67 vs cf0",
+      "benchmark": "medagentbench",
+      "pairs": 10,
+      "b": 0,
+      "c": 0,
+      "p_value": 1.0
+    },
+    {
+      "comparison": "cf100 vs cf0",
+      "benchmark": "medagentbench",
+      "pairs": 10,
+      "b": 0,
+      "c": 0,
+      "p_value": 1.0
+    },
+    {
+      "comparison": "cf33 vs cf0",
+      "benchmark": "mscore",
+      "pairs": 10,
+      "b": 0,
+      "c": 0,
+      "p_value": 1.0
+    },
+    {
+      "comparison": "cf67 vs cf0",
+      "benchmark": "mscore",
+      "pairs": 10,
+      "b": 0,
+      "c": 0,
+      "p_value": 1.0
+    },
+    {
+      "comparison": "cf100 vs cf0",
+      "benchmark": "mscore",
+      "pairs": 10,
+      "b": 0,
+      "c": 0,
+      "p_value": 1.0
+    },
+    {
+      "comparison": "cf33 vs cf0",
+      "benchmark": "all",
+      "pairs": 25,
+      "b": 0,
+      "c": 0,
+      "p_value": 1.0
+    },
+    {
+      "comparison": "cf67 vs cf0",
+      "benchmark": "all",
+      "pairs": 25,
+      "b": 0,
+      "c": 0,
+      "p_value": 1.0
+    },
+    {
+      "comparison": "cf100 vs cf0",
+      "benchmark": "all",
+      "pairs": 25,
+      "b": 0,
+      "c": 0,
+      "p_value": 1.0
+    }
+  ]
+}

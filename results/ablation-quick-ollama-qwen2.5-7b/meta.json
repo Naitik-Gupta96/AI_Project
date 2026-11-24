@@ -1,0 +1,63 @@
+{
+  "config": {
+    "name": "ablation-quick-ollama-qwen2.5-7b",
+    "provider": "ollama:qwen2.5:7b-instruct",
+    "seed": 0,
+    "fractions": [
+      0.0,
+      0.3333,
+      0.6667,
+      1.0
+    ],
+    "workers": 4,
+    "max_in_flight": 4,
+    "cache": true,
+    "benchmarks": [
+      {
+        "name": "mscore",
+        "n": 10,
+        "options": {}
+      },
+      {
+        "name": "kramabench",
+        "n": 5,
+        "options": {
+          "sandbox": "docker",
+          "judge": "ollama:qwen2.5:7b-instruct"
+        }
+      },
+      {
+        "name": "medagentbench",
+        "n": 10,
+        "options": {}
+      }
+    ],
+    "session": {
+      "max_messages": 12,
+      "reject_after": 3,
+      "tau": 0.75,
+      "max_interventions": 2,
+      "messages_per_agent": 3,
+      "max_candidates": 3,
+      "apply": "both",
+      "max_tool_calls": 4
+    }
+  },
+  "provider": {
+    "name": "ollama",
+    "deterministic": false,
+    "model": "qwen2.5:7b-instruct",
+    "host": "http://127.0.0.1:11435",
+    "seed": 0,
+    "temperature": 0.0,
+    "num_ctx": 8192,
+    "constrained": true,
+    "cache": "runs/experiments/ablation-quick-ollama-qwen2.5-7b/cache.sqlite",
+    "max_in_flight": 4,
+    "retries": 3
+  },
+  "trials": 100,
+  "version": "0.2.0",
+  "git_commit": "45c0edb1966d0a9cd935a38cd946e6dfbe4700e6",
+  "started": "2026-11-24T22:45:52"
+}

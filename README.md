@@ -111,5 +111,13 @@ tests/             mirrors src/
 ## Status
 
 The code for all four deliverables is complete and tested, and CI runs on every pull request.
-No language-model results are reported yet: the ablation runs on the GPU machine, and its output
-goes into `paper/`. The state at the flash talk is tagged `v0.1-flash-talk`.
+
+**Results.** `ablation-quick-ollama-qwen2.5-7b` is a reduced-scale run of the ablation: 25 tasks
+per group, 100 sessions (the brief specifies 500 per group), with Qwen2.5-7B-Instruct 4-bit through
+Ollama on a Mac. Every session reached consensus without a deadlock, so no counterfactual
+intervention ran and the four groups scored the same: convergence success 0.16 overall
+(MedAgentBench 0.30, KramaBench 0.20, MSCoRe 0.00). Details are in
+[docs/experiments.md](docs/experiments.md#results) and
+[results/ablation-quick-ollama-qwen2.5-7b/](results/ablation-quick-ollama-qwen2.5-7b/). The full
+design (`ablation.toml`, 2,000 sessions) is ready to run when compute allows. The state at the
+flash talk is tagged `v0.1-flash-talk`.

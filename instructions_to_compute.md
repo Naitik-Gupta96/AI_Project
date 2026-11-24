@@ -19,8 +19,8 @@ curl -fsSL https://raw.githubusercontent.com/Naitik-Gupta96/AI_Project/main/inst
 Then work through Steps 1 to 10 in order. If someone else is running the steps, give them that
 copy.
 
-**Read first, in the repository:** `README.md`, `docs/experiments.md`, `scripts/gpu_runbook.md`,
-`docs/architecture.md`.
+**Read first, in the repository:** `strictly_follow.md` (the project brief; follow it strictly),
+`README.md`, `docs/experiments.md`, `scripts/gpu_runbook.md`, `docs/architecture.md`.
 
 **Keep a log** outside the repository (`~/compute_log.md`). Record start and end times, commands,
 PR links, numbers and problems. Step 10's report is built from it.

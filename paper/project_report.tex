@@ -1,0 +1,360 @@
+% CS F407 Artificial Intelligence: final project report template.
+% Limit: 2 pages, including everything except references.
+% Do not change the font size, margins or spacing.
+\documentclass[11pt,a4paper,twocolumn]{article}
+
+\usepackage[margin=2cm,columnsep=0.8cm]{geometry}
+\usepackage[T1]{fontenc}
+\usepackage{lmodern}
+\usepackage{microtype}
+\usepackage{amsmath,amssymb}
+\usepackage{graphicx}
+\usepackage{booktabs}
+\usepackage{tabularx}
+\usepackage{enumitem}
+\usepackage{titlesec}
+\usepackage[hidelinks]{hyperref}
+
+\titleformat{\section}{\normalsize\bfseries}{\thesection}{0.6em}{}
+\titlespacing*{\section}{0pt}{1.2ex plus 0.3ex}{0.6ex}
+\setlist{nosep,leftmargin=*}
+\setlength{\parskip}{0.3ex}
+
+\newcommand{\coursename}{CS F407 Artificial Intelligence, AY 2026--27 Semester I}
+\newcommand{\teamno}{Team 404byArcticDonkeys}
+\newcommand{\githuburl}{https://github.com/Naitik-Gupta96/AI_Project}
+
+\begin{document}
+
+\twocolumn[{%
+\begin{center}
+  {\large\bfseries Intelligible Blackboard Architecture with Counterfactual Agents}\\[1ex]
+  \teamno\\
+  Naitik Gupta (2024A7PS0603G), Malay Neema (2024A1PS0286G), Mayank Sharma (2024A7PS0627G),
+  Yash Singh (2024A7PS0617G)\\[0.5ex]
+  {\small \coursename, BITS Pilani, K.K. Birla Goa Campus}\\[1.5ex]
+  \begin{minipage}{0.85\textwidth}
+    \small
+    \centerline{\bfseries Abstract}\vspace{0.5ex}
+    Language-model agents that pass text along a chain lose context and compound each other's
+    errors. We built a system in which three agents coordinate only through a shared blackboard,
+    and every message follows the Two-Way Intelligibility Protocol (PXP). When the board
+    deadlocks, counterfactual-capable agents replay the session in a sandbox with alternatives
+    to their own past messages, credit each alternative by how much closer it brings the team to
+    consensus, and apply the best one to the live board. The system comprises an event-sourced
+    blackboard, an event-driven scheduler, Qwen2.5-7B-Instruct agents, a live web interface and
+    loaders for MSCoRe, KramaBench and MedAgentBench. In a reduced-scale ablation (4 groups
+    $\times$ 25 tasks), every session reached consensus without a deadlock, so all groups scored
+    the same (convergence success 0.16). With scripted agents on synthetic tasks that do
+    deadlock, convergence success rises from 0.490 to 0.544 as the share of counterfactual
+    agents grows from 0 to 100\%.
+  \end{minipage}
+\end{center}
+\vspace{1.5ex}
+}]
+
+\section{Introduction}
+Multi-agent systems built from language models usually pass instructions along a chain. Over
+long tasks such chains lose context, and an early mistake is passed on as fact. A blackboard
+architecture removes the chain: agents read and write one shared, structured state and react to
+its changes. A shared board alone, however, does not make the interaction intelligible, and
+agents that disagree can stop making progress.
+
+We address both problems. The \emph{input} is a task: a question with optional answer options,
+public context, private evidence for each role, and tools (a Python sandbox over a data lake, or
+a FHIR server of patient records). The \emph{output} is the team's agreed answer, the complete
+log of PXP messages with its intelligibility class, and the token cost. We contribute:
+\begin{itemize}
+\item a thread-safe, event-sourced blackboard that enforces PXP on every write, with an
+  event-driven scheduler;
+\item retrospective counterfactual credit assignment that changes the live board through the
+  agent's prompt and its voting weight;
+\item a web interface that streams the board and its counterfactual replays;
+\item an ablation over the share of counterfactual-capable agents on three public benchmarks.
+\end{itemize}
+
+\section{Background and related work}
+\textbf{Blackboards.} Hearsay-II~\cite{erman1980} coordinated independent knowledge sources
+through a shared data structure and a control component that decides who acts next.
+
+\textbf{PXP.} The Two-Way Intelligibility Protocol~\cite{baskar2023} governs agents that
+predict and explain. Mestha et al.~\cite{mestha2025} give it a multi-turn form (their
+Algorithm~1). Each message carries a prediction, an explanation and a tag: \textsc{ratify},
+\textsc{revise}, \textsc{refute} or \textsc{reject}. An interaction is classified as One-Way,
+Strong or Ultra-Strong intelligible (their Definitions~1--2).
+
+\textbf{LLM teams and counterfactual credit.} Multi-agent debate improves the reasoning of
+language models~\cite{du2024debate}, but it has no shared state and no protocol that can be
+checked. In cooperative multi-agent reinforcement learning, COMA~\cite{foerster2018coma} assigns
+credit by comparing an agent's action with a baseline over its alternatives. We do not learn a
+critic; we replay the recorded session from each alternative message.
+
+\textbf{Benchmarks.} We use MSCoRe~\cite{mscore} (multi-stage reasoning, in Chinese),
+KramaBench~\cite{kramabench} (data-to-insight pipelines over data lakes) and
+MedAgentBench~\cite{medagentbench} (clinical tasks against a FHIR server).
+
+\section{Method}
+\textbf{PXP messages.} Message $i$ carries a prediction $y$ and an explanation $e$. Its sender
+compares the peer message it answers, $(y',e')$, with its own previous position $(y'',e'')$:
+\begin{gather*}
+m=\mathrm{MATCH}(y',y''),\qquad a=\mathrm{AGREE}(e',e''),\\
+c=\neg\mathrm{MATCH}(y,y'')\lor\neg\mathrm{AGREE}(e,e'').
+\end{gather*}
+The tag follows from these judgments:
+\begin{itemize}
+\item message~1 is \textsc{init};
+\item $m\land a$ gives \textsc{ratify};
+\item exactly one of $m$, $a$ gives \textsc{revise} if $c$, and \textsc{refute} otherwise;
+\item neither gives \textsc{reject} when $i>k$ ($k=3$), and \textsc{revise}/\textsc{refute} before.
+\end{itemize}
+The model supplies the judgments that need understanding: AGREE, whether its reasoning changed,
+and MATCH for free-form answers. Code computes MATCH over listed options, then the tag. A
+grammar checks every message on commit and rejects (never repairs) an invalid one.
+
+\textbf{Blackboard and scheduler.} Every change is an event, and the state is the fold of the
+event log, so live writes, the step-back inspector and the counterfactual sandboxes see
+identical states. Writes are serialized and versioned: a write based on a stale version raises a
+conflict instead of overwriting. Logs persist as fsynced JSON lines or Redis streams. The
+scheduler wakes on each state change, checks for consensus and deadlock, and ranks the eligible
+agents: $+10$ for a pending intervention, $+3$ if the agent has not spoken, $+2$ for news since
+its last post, $+1$ if its last tag was not \textsc{ratify}, with ties broken by registration
+order so that replays are deterministic. Consensus holds when at least two agents ratify the
+same anchor message and hold at least $\tau=0.75$ of the voting weight. A deadlock is a
+\textsc{reject}, three \textsc{refute}s in a row, or six messages without a new prediction.
+
+\textbf{Agents.} Each benchmark has a team of three personas: one expert per value-chain stage
+for MSCoRe; a data engineer, an analyst and a verifier for KramaBench; a retriever, a clinician
+and a safety reviewer for MedAgentBench. An agent sees the task, its private evidence, the
+message it answers, its previous position, a clipped history, its lessons and its weight. The
+model returns JSON with the fields \texttt{prediction}, \texttt{explanation},
+\texttt{explanation\_agrees}, \texttt{changed} and, for free-form answers,
+\texttt{prediction\_matches}, with decoding constrained to that schema. Before posting, an agent
+may make up to four tool calls: \texttt{list\_files} and a sandboxed \texttt{python} on
+KramaBench, \texttt{fhir\_get} on MedAgentBench.
+
+\textbf{Counterfactual credit assignment.} On a deadlock, each capable agent reflects on its last
+three messages and proposes, for each, up to three alternatives (another prediction, another
+wording of its explanation, or both) and a lesson. Each alternative replaces the original
+message in a sandbox rebuilt from the event log, and clones of all agents play the session to
+the end. With proximity $P$ the weighted share of the largest group ratifying one thesis,
+\[
+\mathrm{credit}=P_{\text{sandbox end}}-P_{\text{live, at deadlock}}.
+\]
+The alternative with the highest positive credit is applied to the live board. Its lesson joins
+the agent's system prompt, the agent's position is revised, and its weight becomes
+$w\leftarrow\max(0.25,\,w(1-0.5\cdot\mathrm{credit}))$. The board then returns from
+\textsc{deadlock} to \textsc{running}; at most two interventions are allowed per session.
+
+For example, on a synthetic task the analyst opens with Option~A, which the critic and the
+specialist each know to be infeasible, and the board deadlocks. In the sandbox, replacing the
+opening with Option~B ends in consensus (credit $+0.67$). The analyst's weight drops to 0.67, and
+the live session then agrees on B.
+
+\textbf{Interface.} A FastAPI server streams each session over a WebSocket to a React/D3 view.
+The task is the central node, and messages branch out from it by tag. Cascading
+\textsc{reject}s flash red, a split panel shows the counterfactual timelines beside the live
+one, and an inspector steps forward and back through any session.
+
+\section{Experimental setup}
+\textbf{Design.} The brief's ablation has four groups, in which 0\% (control), 33\%, 67\% and
+100\% of the three agents are counterfactual-capable; capable agents rotate with the task index.
+Every task runs in every group, so the groups are paired.
+
+\textbf{Scale.} The brief specifies 500 tasks per group. With limited compute we ran a
+reduced-scale version: 25 tasks per group, sampled with seed~0, 100 sessions in all. These are
+10 MSCoRe tasks stratified by value chain and difficulty (accurate when ROUGE-L F1~$\ge0.3$),
+5 KramaBench tasks (the benchmark's per-type metrics) and 10 MedAgentBench tasks, one per task
+type (the official grader). The repository's full-scale configuration runs the specified design
+unchanged.
+
+\textbf{Model and hardware.} We used Qwen2.5-7B-Instruct~\cite{qwen25} in a 4-bit build
+(Q4\_K\_M) through Ollama 0.40.3, at temperature~0 and seed~0 with an 8,192-token context. A
+vLLM~\cite{kwon2023vllm} path is also implemented. Sessions allow 12 messages and at most two
+interventions. The run took 37 minutes on 24~Nov~2026 on an Apple M5 laptop with 16 GB, with
+the MedAgentBench FHIR server in Docker.
+
+\textbf{Metrics.} \emph{Convergence success} is consensus within the budget together with an
+accurate answer, with 95\% Wilson intervals. We also report deadlock and recovery rates, and
+\emph{intelligibility depth} (the share of Ultra-Strong, Strong, One-Way and None sessions).
+\emph{Token cost} is the mean of prompt plus completion tokens per instance, on the live board
+and in the sandbox. Each group is compared with the control by an exact McNemar test.
+
+\textbf{Pipeline check.} To test the counterfactual layer where deadlocks do occur, we also ran
+the full $4\times500$ design on synthetic decision tasks, in which each role holds private
+evidence that rules options out. These agents are deterministic and rule-based, not language
+models, so the numbers describe the mechanism, not LLM behaviour.
+
+\section{Results}
+\begin{table}[t]
+\centering
+\small
+\begin{tabular}{@{}lrcr@{}}
+\toprule
+Benchmark & $n$ & Success [95\% CI] & Tokens \\
+\midrule
+MSCoRe & 10 & 0.00 [0.00, 0.28] & 3.6k \\
+KramaBench & 5 & 0.20 [0.04, 0.62] & 9.0k \\
+MedAgentBench & 10 & 0.30 [0.11, 0.60] & 14.1k \\
+All & 25 & 0.16 [0.06, 0.35] & 8.9k \\
+\bottomrule
+\end{tabular}
+\caption{Qwen2.5-7B run, 25 tasks per group. Convergence success (higher is better) is identical
+in all four groups. Tokens: mean per instance in the control group (lower is better); the other groups differ by at most 2\%.}
+\label{tab:results}
+\end{table}
+
+\begin{table}[t]
+\centering
+\small
+\begin{tabular}{@{}lccccc@{}}
+\toprule
+Group & Dead. & Recov. & Conv. & Calls & $p$ \\
+\midrule
+0\% & 0.51 & 0.000 & 0.490 & 4.27 & -- \\
+33\% & 0.51 & 0.024 & 0.502 & 6.67 & 0.031 \\
+67\% & 0.51 & 0.075 & 0.528 & 9.10 & $4\cdot10^{-6}$ \\
+100\% & 0.51 & 0.106 & 0.544 & 11.85 & $2\cdot10^{-8}$ \\
+\bottomrule
+\end{tabular}
+\caption{Pipeline check with scripted agents, 500 synthetic tasks per group. Dead.: share of
+sessions that deadlocked. Recov.: share of those that still reached consensus. Conv.:
+convergence success (higher is better). Calls: model calls per session (lower is better).
+$p$: McNemar test against the control.}
+\label{tab:mock}
+\end{table}
+
+\textbf{Language-model run} (Table~\ref{tab:results}). Every session in every group reached
+consensus in four messages: an \textsc{init}, then a \textsc{ratify} from each of the other two
+agents. No session deadlocked, so no intervention ran. The four groups gave the same answer on
+all 25 tasks, every McNemar test has $b=c=0$ ($p=1$), and sandbox tokens are zero. Every session
+is Strong and none is Ultra-Strong, since no agent ever revised. MSCoRe answers of 49 to 91
+characters against long reference essays give ROUGE-L precision 0.69 but recall 0.04 (F1 0.08),
+so none passes the 0.3 threshold. KramaBench solved 1 of 5 tasks, and MedAgentBench 3 of 10
+(task types 4, 5 and 9).
+
+\textbf{Pipeline check} (Table~\ref{tab:mock}). Half of the synthetic sessions deadlock; in 134
+of the 255 deadlocked tasks no option is feasible, so deadlock is the correct outcome. As the
+share of capable agents grows, more deadlocks are recovered and convergence success rises from
+0.490 to 0.544. No capable group did worse than the control on any task, and the McNemar tests
+reject equality at every level. The replays are not free: model calls per session rise from
+4.27 to 11.85.
+
+\section{Discussion and limitations}
+The language-model run does not answer the research question, because the situation that
+counterfactual agents act on never arose. The 7B model ratified the opening message in every
+session, even when that answer was wrong, so the teams agreed too easily rather than
+deadlocking. The personas gave the agents different viewpoints but no conflicting information,
+whereas in the synthetic tasks each role privately knows something the others do not, and
+deadlocks follow. The pipeline check shows that, when deadlocks occur, the mechanism works and
+helps. It also shows that which agent is capable matters: a deadlock is resolved only when the
+agent whose message caused it can reconsider that message. Replays add calls and tokens, so on
+this evidence counterfactual reasoning buys convergence at a cost rather than saving tokens.
+
+\textbf{Limitations.} We ran 25 tasks per group instead of 500, so the intervals are up to 58
+points wide. We used one 4-bit 7B model on a laptop instead of the bf16 build served by vLLM.
+MSCoRe's accuracy criterion penalizes our short answers, and KramaBench's paraphrase judge is
+the same model as the agents.
+
+\textbf{Next steps.} Run the full design on a GPU (the configuration is ready), build benchmark
+variants that partition evidence and tools between roles so that agents genuinely disagree, and
+test larger models.
+
+\section{Conclusion}
+We built every part of the brief: a PXP-governed blackboard, an event-driven scheduler,
+counterfactual credit assignment applied to the live board, a live interface and three benchmark
+pipelines. On real benchmarks a 7B model never deadlocked, so counterfactual agents had no
+effect. On tasks built to deadlock, they recover deadlocks and raise convergence success, at
+about 2.8 times the model calls.
+
+\section*{Individual member contributions}
+{\small
+\begin{tabularx}{\linewidth}{@{}l X@{}}
+\toprule
+Name & Contribution \\
+\midrule
+Naitik Gupta & Blackboard core, PXP grammar and intelligibility; agent and provider pipeline;
+repository organisation and CI; Sections 1 and 3. \\
+Malay Neema & Evaluation design, metrics and statistical analysis; benchmark ingest and scoring;
+Sections 4 and 5. \\
+Mayank Sharma & Scheduler, consensus, deadlock detection and the counterfactual engine; compute
+setup, benchmark fixes and the experiment runs; Section 6. \\
+Yash Singh & Web interface (graph, counterfactual panel, inspector); prompt library and personas;
+Section 2 and the video. \\
+\bottomrule
+\end{tabularx}}
+
+\smallskip
+\noindent All members have read this report and agree with the statement above.
+
+\section*{Generative AI disclosure}
+We used Claude Code (Anthropic, Claude Opus 5.5) as a coding assistant throughout the project:
+to write and debug much of the code, tests and documentation (in particular the system rebuilt
+after the midsemester review), to set up and run the experiments, and to draft and edit this
+report. We directed the work, reviewed all output, ran the test suite (355 tests) and checked
+every reported number against the result files, and we take responsibility for all of it.
+Qwen2.5-7B-Instruct is part of the method (Section~3).
+
+\section*{Code availability}
+\noindent Code and data:\\
+\url{\githuburl}\\
+The README gives the setup, and the result files are in \texttt{results/}. To reproduce the
+runs, use \texttt{bb ablate} with
+\url{experiments/configs/ablation-quick-ollama.toml} (language-model run) or
+\url{experiments/configs/mock-synthetic.toml} (pipeline check).
+
+\begin{thebibliography}{99}
+\small
+\bibitem{erman1980}
+L.~D. Erman, F.~Hayes-Roth, V.~R. Lesser and D.~R. Reddy.
+\newblock The Hearsay-II speech-understanding system: integrating knowledge to resolve
+uncertainty.
+\newblock \emph{ACM Computing Surveys}, 12(2):213--253, 1980.
+
+\bibitem{baskar2023}
+A.~Baskar, A.~Srinivasan, M.~Bain and E.~Coiera.
+\newblock A model for intelligible interaction between agents that predict and explain.
+\newblock arXiv:2301.01819, 2023.
+
+\bibitem{mestha2025}
+H.~Mestha, K.~Bania, S.~V. Sathyanarayana, S.~Liu and A.~Srinivasan.
+\newblock Multi-turn human--LLM interaction through the lens of a two-way intelligibility
+protocol.
+\newblock arXiv:2410.20600, 2025.
+
+\bibitem{du2024debate}
+Y.~Du, S.~Li, A.~Torralba, J.~B. Tenenbaum and I.~Mordatch.
+\newblock Improving factuality and reasoning in language models through multiagent debate.
+\newblock In \emph{ICML}, 2024.
+
+\bibitem{foerster2018coma}
+J.~Foerster, G.~Farquhar, T.~Afouras, N.~Nardelli and S.~Whiteson.
+\newblock Counterfactual multi-agent policy gradients.
+\newblock In \emph{AAAI}, 2018.
+
+\bibitem{mscore}
+Y.~Lei, H.~Xie, J.~Zhao, S.~Liu and X.~Song.
+\newblock MSCoRe: a benchmark for multi-stage collaborative reasoning in LLM agents.
+\newblock arXiv:2509.17628, 2025.
+
+\bibitem{kramabench}
+E.~Lai, G.~Vitagliano, Z.~Zhang et~al.
+\newblock KramaBench: a benchmark for AI systems on data-to-insight pipelines over data lakes.
+\newblock In \emph{ICLR}, 2026.
+
+\bibitem{medagentbench}
+Y.~Jiang, K.~C. Black, G.~Geng, D.~Park, J.~Zou, A.~Y. Ng and J.~H. Chen.
+\newblock MedAgentBench: a realistic virtual EHR environment to benchmark medical LLM agents.
+\newblock arXiv:2501.14654, 2025.
+
+\bibitem{qwen25}
+Qwen Team.
+\newblock Qwen2.5 technical report.
+\newblock arXiv:2412.15115, 2024.
+
+\bibitem{kwon2023vllm}
+W.~Kwon, Z.~Li, S.~Zhuang et~al.
+\newblock Efficient memory management for large language model serving with PagedAttention.
+\newblock In \emph{SOSP}, 2023.
+\end{thebibliography}
+
+\end{document}

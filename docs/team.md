@@ -45,7 +45,7 @@ Docs: [experiments.md](experiments.md), [api.md](api.md), [../web/README.md](../
 | 1. Blackboard and scheduler processing RATIFY / REJECT state changes | done |
 | 2. Local 7B models connected, prompt library, WebSocket link to the UI | done |
 | 3. Counterfactual module verified on a synthetic deadlock; graph view of the simulation | done (`architecture` task; see [counterfactual.md](counterfactual.md)) |
-| 4. Benchmark batches, token-efficiency charts, paper | batches done at reduced scale (25 tasks per group, [results](../results/ablation-quick-ollama-qwen2.5-7b/), [experiments.md](experiments.md#results)); the paper's results text is still to be written ([paper/](../paper/)) |
+| 4. Benchmark batches, token-efficiency charts, paper | batches done at reduced scale (25 tasks per group, [results](../results/ablation-quick-ollama-qwen2.5-7b/), [experiments.md](experiments.md#results)); report written ([paper/](../paper/)) |
 
 ## How we work
 

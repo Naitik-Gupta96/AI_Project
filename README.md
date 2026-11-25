@@ -83,7 +83,7 @@ on a Mac at reduced scale: 25 tasks per group (100 sessions) instead of 500.
 | [docs/api.md](docs/api.md) | REST and WebSocket messages |
 | [docs/team.md](docs/team.md) | the three roles, what each owns, milestones, workflow |
 | [web/README.md](web/README.md) | the UI |
-| [paper/](paper/) | report skeleton fed by `bb report` |
+| [paper/](paper/) | the project report (course template) and its PDF |
 
 ## Layout
 

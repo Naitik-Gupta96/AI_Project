@@ -8,6 +8,7 @@ import {
   messages,
   objectionStreak,
   reasoningGraph,
+  storySteps,
 } from "./board";
 import type { BoardEvent, BoardState } from "./types";
 
@@ -49,6 +50,25 @@ describe("derived views", () => {
     const rounds = activationHistory(events);
     expect(rounds.length).toBe(messages(events).length);
     expect(rounds.every((r) => r.selected.includes(r.agent ?? ""))).toBe(true);
+  });
+
+  it("tells the session as a story that follows the scrubber", () => {
+    const opts = { cfAgents: ["analyst"], sandboxRunning: false, finished: true };
+    const end = storySteps(events, events.length, opts);
+    expect(end.map((s) => s.key)).toEqual(["opening", "discussion", "deadlock", "sandbox", "fix", "outcome"]);
+    expect(end.every((s) => s.state === "done")).toBe(true);
+    expect(end.find((s) => s.key === "deadlock")?.tone).toBe("critical");
+    expect(end.find((s) => s.key === "fix")?.detail).toContain("analyst");
+    expect(end.find((s) => s.key === "outcome")?.tone).toBe("good");
+
+    const atDeadlock = events.findIndex((e) => e.kind === "status" && e.data.status === "DEADLOCK") + 1;
+    const mid = storySteps(events, atDeadlock, { ...opts, finished: false });
+    expect(mid.find((s) => s.key === "deadlock")?.state).toBe("done");
+    expect(mid.find((s) => s.key === "fix")?.state).toBe("pending");
+    expect(mid.find((s) => s.key === "outcome")?.state).toBe("pending");
+
+    const noCf = storySteps(events, atDeadlock, { cfAgents: [], sandboxRunning: false, finished: false });
+    expect(noCf.find((s) => s.key === "sandbox")?.state).toBe("skipped");
   });
 
   it("measures the objection streak at the end of the log", () => {

@@ -161,6 +161,109 @@ export function reasoningGraph(msgs: MessageRecord[]): { nodes: GraphNode[]; lin
 
 export const TAGS: Tag[] = ["INIT", "RATIFY", "REVISE", "REFUTE", "REJECT"];
 
+export type StepState = "done" | "current" | "pending" | "skipped";
+export type StepTone = "neutral" | "critical" | "good";
+
+export interface StoryStep {
+  key: "opening" | "discussion" | "deadlock" | "sandbox" | "fix" | "outcome";
+  title: string;
+  state: StepState;
+  tone: StepTone;
+  detail: string;
+}
+
+const plural = (n: number, word: string) => `${n} ${word}${n === 1 ? "" : "s"}`;
+
+/**
+ * The session as a short story, for the strip above the graph: opening message, discussion,
+ * deadlock, sandbox replay, the fix applied to the live board, and the outcome. Built from the
+ * events up to `upto`, so it follows the scrubber. `sandboxRunning` is true while counterfactual
+ * branches are still streaming; `finished` means the view is at the end of a finished session.
+ */
+export function storySteps(
+  events: BoardEvent[],
+  upto: number,
+  opts: { cfAgents: string[]; sandboxRunning: boolean; finished: boolean },
+): StoryStep[] {
+  const shown = events.slice(0, upto);
+  const msgs = messages(shown);
+  const deadlocks = shown.filter((e) => e.kind === "status" && e.data.status === "DEADLOCK");
+  const ivs = interventions(shown);
+  const applied = ivs.find((i) => i.applied) ?? null;
+  const lastStatus = [...shown].reverse().find((e) => e.kind === "status")?.data.status as string | undefined;
+  const consensus = lastStatus === "CONSENSUS";
+  const stuck = opts.finished && lastStatus === "DEADLOCK";
+  const settled = consensus || stuck;
+
+  const first = msgs[0];
+  const opening: StoryStep = first
+    ? { key: "opening", title: "Opening", state: "done", tone: "neutral",
+        detail: `${first.agent_id} proposes ${first.prediction}` }
+    : { key: "opening", title: "Opening", state: "current", tone: "neutral", detail: "waiting for the first message" };
+
+  const replies = msgs.slice(1);
+  const objections = replies.filter((m) => m.tag === "REFUTE" || m.tag === "REJECT").length;
+  const agreements = replies.filter((m) => m.tag === "RATIFY").length;
+  const revisions = replies.filter((m) => m.tag === "REVISE").length;
+  const counts = [
+    objections && plural(objections, "objection"),
+    agreements && plural(agreements, "agreement"),
+    revisions && plural(revisions, "revision"),
+  ].filter(Boolean).join(" · ");
+  const discussion: StoryStep = {
+    key: "discussion", title: "Discussion", tone: "neutral",
+    state: !replies.length ? (first ? "current" : "pending") : deadlocks.length || settled ? "done" : "current",
+    detail: replies.length ? counts : "agents reply with PXP tags",
+  };
+
+  const firstDeadlock = deadlocks[0];
+  const deadlock: StoryStep = firstDeadlock
+    ? { key: "deadlock", title: "Deadlock", state: "done", tone: "critical",
+        detail: String(firstDeadlock.data.reason ?? "the board is stuck").split(":")[0] }
+    : { key: "deadlock", title: "Deadlock", tone: "neutral", state: settled ? "skipped" : "pending",
+        detail: settled ? "not reached" : "REJECT, a REFUTE loop, or no progress" };
+
+  let sandbox: StoryStep;
+  if (ivs.length) {
+    const branches = ivs.reduce((n, i) => n + i.branches.length, 0);
+    sandbox = { key: "sandbox", title: "Sandbox replay", state: "done", tone: "neutral",
+                detail: `${plural(branches, "alternative")} replayed` };
+  } else if (firstDeadlock && opts.sandboxRunning) {
+    sandbox = { key: "sandbox", title: "Sandbox replay", state: "current", tone: "neutral",
+                detail: "replaying alternatives to past messages" };
+  } else if (firstDeadlock && !opts.cfAgents.length) {
+    sandbox = { key: "sandbox", title: "Sandbox replay", state: "skipped", tone: "neutral",
+                detail: "no counterfactual-capable agent" };
+  } else {
+    sandbox = { key: "sandbox", title: "Sandbox replay", tone: "neutral",
+                state: settled && !firstDeadlock ? "skipped" : "pending",
+                detail: opts.cfAgents.length ? `${opts.cfAgents.join(", ")} can replay` : "no counterfactual-capable agent" };
+  }
+
+  let fix: StoryStep;
+  if (applied) {
+    const chosen = applied.branches.find((b) => b.branch_id === applied.chosen_branch);
+    const change = chosen ? ` #${chosen.target.iteration} → ${chosen.candidate.prediction}` : "";
+    fix = { key: "fix", title: "Fix applied", state: "done", tone: "neutral",
+            detail: `${applied.agent_id}${change}, credit +${applied.credit.toFixed(2)}` };
+  } else if (ivs.length) {
+    fix = { key: "fix", title: "Fix applied", state: "done", tone: "critical",
+            detail: "no alternative raised consensus" };
+  } else {
+    fix = { key: "fix", title: "Fix applied", tone: "neutral",
+            state: sandbox.state === "skipped" ? "skipped" : "pending", detail: "lesson, position and weight" };
+  }
+
+  const answer = msgs[msgs.length - 1]?.prediction;
+  const outcome: StoryStep = consensus
+    ? { key: "outcome", title: "Consensus", state: "done", tone: "good", detail: `agreed on ${answer}` }
+    : stuck
+      ? { key: "outcome", title: "Still deadlocked", state: "done", tone: "critical", detail: "the session ended stuck" }
+      : { key: "outcome", title: "Outcome", state: "pending", tone: "neutral", detail: "consensus or deadlock" };
+
+  return [opening, discussion, deadlock, sandbox, fix, outcome];
+}
+
 /** Message number at the last applied intervention (0 if none), as in scheduler.epoch_start. */
 export function epochStart(events: BoardEvent[], upto = events.length): number {
   let iteration = 0;

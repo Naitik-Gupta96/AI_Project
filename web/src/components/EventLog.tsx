@@ -24,7 +24,7 @@ export function EventLog({
     <section className="panel">
       <header>
         <h2>Board log</h2>
-        <span className="hint">{events.length} events</span>
+        <span className="hint">every event on the blackboard · {events.length} so far</span>
       </header>
       <div className="panel-body log" aria-live="polite" ref={box}>
         {events.map((e) => (
@@ -46,7 +46,7 @@ function LogEntry({ event, selected, onSelect }: {
       const m = d.message as MessageRecord;
       const j = m.judgment;
       return (
-        <div className={`log-item${selected === m.message_id ? " selected" : ""}`}
+        <div className={`log-item message${selected === m.message_id ? " selected" : ""}`}
              onClick={() => onSelect(m.message_id)} id={`msg-${m.message_id}`}>
           <span className="num">#{m.iteration}</span>
           <div>

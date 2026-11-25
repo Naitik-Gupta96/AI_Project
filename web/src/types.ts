@@ -141,12 +141,18 @@ export interface SessionSummary {
   messages?: number;
 }
 
+export interface Evidence {
+  scores: Record<string, number>;
+  objections: Record<string, string>;
+}
+
 export interface CatalogTask {
   task_id: string;
   question: string;
   options: string[];
   domain: string;
   roles: string[];
+  evidence?: Record<string, Evidence>;
 }
 
 export interface Catalog {

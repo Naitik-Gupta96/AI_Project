@@ -7,7 +7,7 @@
 | Method | Path | Body / query | Returns |
 |---|---|---|---|
 | GET | `/api/health` | | `{"status": "ok"}` |
-| GET | `/api/catalog` | | benchmarks, each with `available` and its first tasks (id, question, options, domain, roles) |
+| GET | `/api/catalog` | | benchmarks, each with `available` and its first tasks (id, question, options, domain, roles, and each role's private `evidence` where the task has any) |
 | GET | `/api/providers` | | providers reachable now: `mock`, plus models found on Ollama and vLLM |
 | POST | `/api/sessions` | `benchmark`, `task_id`, `provider`, `cf_agents`, `pace`, `max_messages`, `reject_after`, `max_concurrent_agents`, `apply`, `start_paused` | session summary (`id`, `state`, `paused`, `status`, …) |
 | GET | `/api/sessions` | | live sessions, then stored ones |

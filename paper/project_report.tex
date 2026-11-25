@@ -162,9 +162,8 @@ Every task runs in every group, so the groups are paired.
 
 \textbf{Compute and scale.} The brief specifies 500 tasks per group, and we built the system to
 serve Qwen2.5-7B-Instruct in bf16 through vLLM on a GPU. The bf16 weights alone take 15.2 GB,
-which needs a 24 GB card. The 16 GB GPU we could access (an RTX 5060 Ti) would have required the
-4-bit AWQ build and, by our estimate, 3--8 hours for the 2,000 sessions, and we could not get
-that much time on it. We moved to a laptop, where a 20-session smoke run first exposed several
+which needs a 24 GB GPU. We could not get one, so we ran on the best machine we had, an Apple M5
+laptop, with a 4-bit build of the same model. A 20-session smoke run there first exposed several
 bugs in the benchmark adapters, which we fixed. At the laptop's speed the full design would take
 about 12 hours. We therefore kept the design and reduced only its size: 25 tasks per group,
 sampled with seed~0, 100 sessions in all. These are 10 MSCoRe tasks stratified by value chain

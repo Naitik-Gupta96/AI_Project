@@ -121,7 +121,7 @@ This writes:
 - `figures/convergence.svg`, `figures/intelligibility.svg` and `figures/tokens.svg`;
 - `tables/groups.tex`.
 
-Copy `figures/` and `tables/` into `paper/`. Commit `summary.json`, `groups.csv`, the figures, the
+Update the result tables in `paper/project_report.tex` from `summary.json`. Commit `summary.json`, `groups.csv`, the figures, the
 tables and a gzipped `trials.jsonl` under `results/<run>/`. Keep `sessions/` and `cache.sqlite`
 outside git and share them separately. `bb serve --experiments runs/experiments` shows the results
 in the Analytics tab.

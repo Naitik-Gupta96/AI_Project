@@ -160,12 +160,17 @@ one, and an inspector steps forward and back through any session.
 100\% of the three agents are counterfactual-capable; capable agents rotate with the task index.
 Every task runs in every group, so the groups are paired.
 
-\textbf{Scale.} The brief specifies 500 tasks per group. With limited compute we ran a
-reduced-scale version: 25 tasks per group, sampled with seed~0, 100 sessions in all. These are
-10 MSCoRe tasks stratified by value chain and difficulty (accurate when ROUGE-L F1~$\ge0.3$),
-5 KramaBench tasks (the benchmark's per-type metrics) and 10 MedAgentBench tasks, one per task
-type (the official grader). The repository's full-scale configuration runs the specified design
-unchanged.
+\textbf{Compute and scale.} The brief specifies 500 tasks per group, and we built the system to
+serve Qwen2.5-7B-Instruct in bf16 through vLLM on a GPU. The bf16 weights alone take 15.2 GB,
+which needs a 24 GB card. The 16 GB GPU we could access (an RTX 5060 Ti) would have required the
+4-bit AWQ build and, by our estimate, 3--8 hours for the 2,000 sessions, and we could not get
+that much time on it. We moved to a laptop, where a 20-session smoke run first exposed several
+bugs in the benchmark adapters, which we fixed. At the laptop's speed the full design would take
+about 12 hours. We therefore kept the design and reduced only its size: 25 tasks per group,
+sampled with seed~0, 100 sessions in all. These are 10 MSCoRe tasks stratified by value chain
+and difficulty (accurate when ROUGE-L F1~$\ge0.3$), 5 KramaBench tasks (the benchmark's
+per-type metrics) and 10 MedAgentBench tasks, one per task type (the official grader). The
+repository's full-scale configuration runs the specified design unchanged.
 
 \textbf{Model and hardware.} We used Qwen2.5-7B-Instruct~\cite{qwen25} in a 4-bit build
 (Q4\_K\_M) through Ollama 0.40.3, at temperature~0 and seed~0 with an 8,192-token context. A
@@ -250,10 +255,9 @@ helps. It also shows that which agent is capable matters: a deadlock is resolved
 agent whose message caused it can reconsider that message. Replays add calls and tokens, so on
 this evidence counterfactual reasoning buys convergence at a cost rather than saving tokens.
 
-\textbf{Limitations.} We ran 25 tasks per group instead of 500, so the intervals are up to 58
-points wide. We used one 4-bit 7B model on a laptop instead of the bf16 build served by vLLM.
-MSCoRe's accuracy criterion penalizes our short answers, and KramaBench's paraphrase judge is
-the same model as the agents.
+\textbf{Limitations.} With 25 tasks per group the intervals are up to 58 points wide, and one
+4-bit 7B model ran on a laptop. MSCoRe's criterion penalizes our short answers, and KramaBench's
+paraphrase judge is the same model as the agents.
 
 \textbf{Next steps.} Run the full design on a GPU (the configuration is ready), build benchmark
 variants that partition evidence and tools between roles so that agents genuinely disagree, and
@@ -272,14 +276,10 @@ about 2.8 times the model calls.
 \toprule
 Name & Contribution \\
 \midrule
-Naitik Gupta & Blackboard core, PXP grammar and intelligibility; agent and provider pipeline;
-repository organisation and CI; Sections 1 and 3. \\
-Malay Neema & Evaluation design, metrics and statistical analysis; benchmark ingest and scoring;
-Sections 4 and 5. \\
-Mayank Sharma & Scheduler, consensus, deadlock detection and the counterfactual engine; compute
-setup, benchmark fixes and the experiment runs; Section 6. \\
-Yash Singh & Web interface (graph, counterfactual panel, inspector); prompt library and personas;
-Section 2 and the video. \\
+Naitik Gupta & Blackboard, PXP grammar and intelligibility; agent and provider pipeline; CI; Sections 1, 3. \\
+Malay Neema & Evaluation design, metrics and statistics; benchmark ingest and scoring; Sections 4, 5. \\
+Mayank Sharma & Scheduler, deadlock detection and counterfactual engine; compute setup and experiment runs; Section 6. \\
+Yash Singh & Web interface; prompt library and personas; Section 2 and the video. \\
 \bottomrule
 \end{tabularx}}
 
@@ -287,20 +287,25 @@ Section 2 and the video. \\
 \noindent All members have read this report and agree with the statement above.
 
 \section*{Generative AI disclosure}
-We used Claude Code (Anthropic, Claude Opus 5.5) as a coding assistant throughout the project:
-to write and debug much of the code, tests and documentation (in particular the system rebuilt
-after the midsemester review), to set up and run the experiments, and to draft and edit this
-report. We directed the work, reviewed all output, ran the test suite (355 tests) and checked
-every reported number against the result files, and we take responsibility for all of it.
-Qwen2.5-7B-Instruct is part of the method (Section~3).
+We used Claude Code (Anthropic, Claude Opus 5.5) as an assistant. Working from our
+instructions, it drafted much of the code, tests and documentation (in particular for the
+system rebuilt after the midsemester review), helped set up and run the experiments, and
+produced a first draft of this report. The decisions were ours: the reading of the brief and
+the PXP rules, the experimental design, the model and hardware, and the reduced scale.
+
+We did not accept its output unchecked. Every change went through a pull request and was merged
+only after the test suite (355 tests) and CI passed, and we rejected or redirected proposals that
+did not fit the brief or our constraints. Our smoke runs on real data exposed defects in the
+drafted code, each of which was traced and fixed with a test: a malformed MSCoRe file, a schema
+that allowed empty judgments, example values that leaked into the prompts, and FHIR path
+quoting. We checked every number in this report against the result files and revised the text,
+and we take responsibility for all code and text. Qwen2.5-7B-Instruct is part of the method
+(Section~3).
 
 \section*{Code availability}
 \noindent Code and data:\\
 \url{\githuburl}\\
-The README gives the setup, and the result files are in \texttt{results/}. To reproduce the
-runs, use \texttt{bb ablate} with
-\url{experiments/configs/ablation-quick-ollama.toml} (language-model run) or
-\url{experiments/configs/mock-synthetic.toml} (pipeline check).
+Setup is in the README and results are in \texttt{results/}. To reproduce, run \texttt{bb ablate} on \texttt{ablation-quick-ollama.toml} (language-model run) or \texttt{mock-synthetic.toml} (pipeline check) in \texttt{experiments/configs/}.
 
 \begin{thebibliography}{99}
 \small

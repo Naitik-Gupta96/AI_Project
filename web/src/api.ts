@@ -132,6 +132,7 @@ export interface GroupRow {
   live_tokens_mean: number | null;
   sandbox_tokens_mean: number | null;
   messages_mean: number;
+  calls_mean?: number;
 }
 
 export interface ExperimentDetail {

@@ -123,7 +123,9 @@ def create_app(runs_dir: str | Path = "runs", catalog_size: int = 20,
                 "name": name, "available": True,
                 "tasks": [{"task_id": t.task_id, "question": t.question,
                            "options": list(t.options), "domain": t.domain,
-                           "roles": [r.role for r in prompts.roles(t.domain)]}
+                           "roles": [r.role for r in prompts.roles(t.domain)],
+                           "evidence": {role: e.to_dict() for role, e in t.evidence.items()
+                                        if not e.empty}}
                           for t in tasks],
             })
         return {"benchmarks": benchmarks}

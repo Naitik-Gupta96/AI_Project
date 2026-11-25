@@ -1,6 +1,7 @@
 import * as d3 from "d3";
-import { useEffect, useMemo, useState } from "react";
+import { type ReactNode, useEffect, useMemo, useState } from "react";
 import { api, type ExperimentDetail, type ExperimentSummary, type GroupRow } from "../api";
+import { useWidth } from "../useWidth";
 
 const SERIES: Record<string, string> = {
   mscore: "var(--tag-revise)",
@@ -24,8 +25,27 @@ const LEVELS = [
 ] as const;
 const pct = (v: number) => `${Math.round(v * 100)}%`;
 const share = (r: GroupRow) => `${Math.round(r.cf_fraction * 100)}%`;
+const compact = (v: number) => (v >= 1000 ? `${(v / 1000).toFixed(1)}k` : v.toFixed(1));
 
-/** Ablation results: convergence, intelligibility depth and token cost by share of CF agents. */
+/** What a run is, in words, from its meta.json. */
+function describe(meta: Record<string, any>, perGroup: number) {
+  const provider = String(meta.config?.provider ?? "");
+  if (provider === "mock") {
+    return {
+      title: "Pipeline check with scripted agents",
+      text: `Deterministic rule-based agents on synthetic tasks built to deadlock; no language model. ${perGroup} tasks per group.`,
+    };
+  }
+  const model = meta.provider?.model ?? provider;
+  const via = meta.provider?.name === "ollama" ? "Ollama, 4-bit" : meta.provider?.name ?? "";
+  return {
+    title: `Language-model run: ${model}`,
+    text: `${model}${via ? ` (${via})` : ""} on MSCoRe, KramaBench and MedAgentBench. ${perGroup} tasks per group${
+      perGroup < 500 ? " (reduced scale; the brief specifies 500)" : ""}.`,
+  };
+}
+
+/** Ablation results: convergence, intelligibility depth and cost by share of CF agents. */
 export function Analytics() {
   const [list, setList] = useState<ExperimentSummary[] | null>(null);
   const [name, setName] = useState<string | null>(null);
@@ -57,8 +77,8 @@ export function Analytics() {
       <section className="panel">
         <header><h2>Experiments</h2></header>
         <div className="empty">
-          No experiment results yet. Run <code>bb ablate experiments/configs/ablation.toml</code> (or the
-          mock config for a quick check); results appear here.
+          No experiment results yet. Run <code>bb ablate experiments/configs/mock-synthetic.toml</code> for a quick
+          check; results appear here.
         </div>
       </section>
     );
@@ -66,103 +86,146 @@ export function Analytics() {
 
   const current = rows(selected);
   const meta = detail?.meta ?? {};
+  const perGroup = rows(benchmarks.includes("all") ? "all" : selected)[0]?.trials ?? 0;
+  const about = describe(meta, perGroup);
+  const first = current[0];
+  const last = current[current.length - 1];
+  const hasTokens = first?.tokens_mean != null;
+
   return (
     <>
-      <section className="panel">
-        <div className="panel-body" style={{ display: "flex", gap: 16, flexWrap: "wrap", alignItems: "end" }}>
-          <label className="field">
-            Experiment
-            <select value={name ?? ""} onChange={(e) => setName(e.target.value)}>
-              {list.map((e) => <option key={e.name} value={e.name}>{e.name}</option>)}
-            </select>
-          </label>
-          <div className="tabs" role="tablist" aria-label="Benchmark">
-            {benchmarks.map((b) => (
-              <button key={b} className="tab" role="tab" aria-selected={b === selected} onClick={() => setBench(b)}>
-                {NAMES[b] ?? b}
+      <div className="run-head">
+        <div className="desc">
+          <h2>{about.title}</h2>
+          <p>
+            {about.text}
+            {meta.git_commit ? <span className="muted"> · commit {String(meta.git_commit).slice(0, 7)}</span> : null}
+          </p>
+        </div>
+        {list.length > 1 && (
+          <div className="seg" aria-label="Experiment">
+            {list.map((e) => (
+              <button key={e.name} aria-pressed={e.name === name} onClick={() => setName(e.name)}>
+                {e.provider === "mock" ? "Scripted agents" : "Language model"}
               </button>
             ))}
           </div>
-          <span className="spacer" />
-          <span style={{ color: "var(--ink-2)", fontSize: 13 }}>
-            {meta.provider?.model ?? meta.config?.provider ?? ""} · {current[0]?.trials ?? 0} trials per group
-            {meta.git_commit ? ` · commit ${String(meta.git_commit).slice(0, 7)}` : ""}
-          </span>
-        </div>
-      </section>
+        )}
+      </div>
 
-      <div className="session-grid" style={{ gridTemplateAreas: '"graph side" "stream side" "cf cf"' }}>
-        <section className="panel area-graph">
+      {benchmarks.length > 1 && (
+        <div className="seg" aria-label="Benchmark" style={{ justifySelf: "start" }}>
+          {benchmarks.map((b) => (
+            <button key={b} aria-pressed={b === selected} onClick={() => setBench(b)}>{NAMES[b] ?? b}</button>
+          ))}
+        </div>
+      )}
+
+      {first && last && (
+        <div className="tiles">
+          <Tile k="Convergence success, 0% → 100% CF" v={<>{pct(first.convergence_success)}<span className="arrow">→</span>{pct(last.convergence_success)}</>}
+                s={`consensus on an accurate answer · ${first.trials} tasks per group`} />
+          <Tile k="Sessions that deadlocked" v={pct(first.deadlock)}
+                s={first.deadlock === 0 ? "no deadlock, so counterfactual agents never act" : "the same in every group before any replay"} />
+          <Tile k="Deadlocks recovered, 0% → 100% CF" v={<>{pct(first.recovered)}<span className="arrow">→</span>{pct(last.recovered)}</>}
+                s="share of deadlocked sessions that still reached consensus" />
+          {hasTokens ? (
+            <Tile k="Tokens per instance, 0% → 100% CF"
+                  v={<>{compact(first.tokens_mean ?? 0)}<span className="arrow">→</span>{compact(last.tokens_mean ?? 0)}</>}
+                  s="prompt + completion, live board and sandbox" />
+          ) : (
+            <Tile k="Model calls per session, 0% → 100% CF"
+                  v={<>{(first.calls_mean ?? first.messages_mean).toFixed(1)}<span className="arrow">→</span>{(last.calls_mean ?? last.messages_mean).toFixed(1)}</>}
+                  s="sandbox replays add calls; the mock reports no tokens" />
+          )}
+        </div>
+      )}
+
+      <div className="chart-row">
+        <section className="panel chart">
           <header>
             <h2>Convergence success</h2>
-            <span className="hint">consensus within the budget on an accurate answer · 95% Wilson interval</span>
+            <span className="hint">by share of counterfactual-capable agents · 95% Wilson interval</span>
           </header>
           <ConvergenceChart series={selected === "all" ? benchmarks : [selected]} rows={rows} />
         </section>
-        <div className="area-side">
-          <section className="panel">
+        <div className="chart-col">
+          <section className="panel chart">
             <header>
               <h2>Intelligibility depth</h2>
               <span className="hint">whole session, Mestha et al. Def. 2</span>
             </header>
             <IntelligibilityBars rows={current} />
           </section>
-          <section className="panel">
+          <section className="panel chart">
             <header>
-              <h2>Token cost per instance</h2>
-              <span className="hint">mean · live board + sandbox</span>
+              <h2>{hasTokens ? "Tokens per instance" : "Model calls per session"}</h2>
+              <span className="hint">{hasTokens ? "mean · live board and sandbox" : "mean · scripted agents report no tokens"}</span>
             </header>
-            <TokenBars rows={current} />
+            <CostBars rows={current} tokens={hasTokens} />
           </section>
         </div>
-        <section className="panel area-cf">
-          <header><h2>Table</h2><span className="hint">{NAMES[selected] ?? selected}</span></header>
-          <div className="panel-body" style={{ overflowX: "auto" }}>
-            <GroupTable rows={current} />
-            <h3 style={{ fontSize: 13, margin: "14px 0 6px" }}>Paired tests against the control group (exact McNemar)</h3>
-            <table className="data">
-              <thead>
-                <tr><th>Comparison</th><th className="num">Pairs</th><th className="num">Control only</th>
-                  <th className="num">Group only</th><th className="num">p</th></tr>
-              </thead>
-              <tbody>
-                {(detail?.tests ?? []).filter((t) => t.benchmark === selected).map((t) => (
-                  <tr key={t.comparison}>
-                    <td>{t.comparison}</td><td className="num">{t.pairs}</td>
-                    <td className="num">{t.b}</td><td className="num">{t.c}</td>
-                    <td className="num">{t.p_value < 0.001 ? t.p_value.toExponential(1) : t.p_value.toFixed(3)}</td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        </section>
       </div>
+
+      <section className="panel">
+        <header><h2>All numbers</h2><span className="hint">{NAMES[selected] ?? selected}</span></header>
+        <div className="panel-body" style={{ overflowX: "auto" }}>
+          <GroupTable rows={current} />
+          <h3 style={{ margin: "16px 0 6px" }}>Paired tests against the control group (exact McNemar)</h3>
+          <table className="data">
+            <thead>
+              <tr><th>Comparison</th><th className="num">Pairs</th><th className="num">Solved only by control</th>
+                <th className="num">Solved only by group</th><th className="num">p</th></tr>
+            </thead>
+            <tbody>
+              {(detail?.tests ?? []).filter((t) => t.benchmark === selected).map((t) => (
+                <tr key={t.comparison}>
+                  <td>{t.comparison}</td><td className="num">{t.pairs}</td>
+                  <td className="num">{t.b}</td><td className="num">{t.c}</td>
+                  <td className="num">{t.p_value < 0.001 ? t.p_value.toExponential(1) : t.p_value.toFixed(3)}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      </section>
     </>
   );
 }
 
+function Tile({ k, v, s }: { k: string; v: ReactNode; s: string }) {
+  return (
+    <div className="panel tile">
+      <span className="k">{k}</span>
+      <span className="v">{v}</span>
+      <span className="s">{s}</span>
+    </div>
+  );
+}
+
 function ConvergenceChart({ series, rows }: { series: string[]; rows: (b: string) => GroupRow[] }) {
+  const [ref, W] = useWidth<HTMLDivElement>(640, 320);
   const [hover, setHover] = useState<{ b: string; r: GroupRow; x: number; y: number } | null>(null);
-  const W = 640, H = 340, M = { top: 16, right: 130, bottom: 44, left: 52 };
+  const labels = series.length > 1;
+  const H = 330, M = { top: 18, right: labels ? 128 : 24, bottom: 48, left: 48 };
   const x = d3.scaleLinear([0, 1], [M.left, W - M.right]);
   const y = d3.scaleLinear([0, 1], [H - M.bottom, M.top]);
   const ends = series.map((b) => ({ b, y: rows(b).at(-1)?.convergence_success ?? 0 })).sort((a, c) => a.y - c.y);
-  for (let i = 1; i < ends.length; i++) ends[i].y = Math.max(ends[i].y, ends[i - 1].y + 0.055);
+  for (let i = 1; i < ends.length; i++) ends[i].y = Math.max(ends[i].y, ends[i - 1].y + 0.06);
   return (
-    <div className="panel-body" style={{ position: "relative" }}>
-      <svg viewBox={`0 0 ${W} ${H}`} width="100%" role="img" aria-label="Convergence success by share of counterfactual-capable agents">
+    <div className="panel-body" style={{ position: "relative" }} ref={ref}>
+      <svg width={W} height={H} role="img" aria-label="Convergence success by share of counterfactual-capable agents">
         {y.ticks(5).map((t) => (
           <g key={t}>
             <line x1={M.left} x2={W - M.right} y1={y(t)} y2={y(t)} stroke="var(--grid)" />
-            <text x={M.left - 8} y={y(t) + 4} textAnchor="end" fontSize={11} fill="var(--muted)">{pct(t)}</text>
+            <text x={M.left - 8} y={y(t) + 4} textAnchor="end" fontSize={12} fill="var(--muted)">{pct(t)}</text>
           </g>
         ))}
         {[0, 1 / 3, 2 / 3, 1].map((t) => (
-          <text key={t} x={x(t)} y={H - M.bottom + 18} textAnchor="middle" fontSize={11} fill="var(--muted)">{pct(t)}</text>
+          <text key={t} x={x(t)} y={H - M.bottom + 20} textAnchor="middle" fontSize={12} fill="var(--muted)">{pct(t)}</text>
         ))}
-        <text x={(M.left + W - M.right) / 2} y={H - 6} textAnchor="middle" fontSize={12} fill="var(--ink-2)">
-          Counterfactual-capable agents
+        <text x={(M.left + W - M.right) / 2} y={H - 8} textAnchor="middle" fontSize={12.5} fill="var(--ink-2)">
+          Share of counterfactual-capable agents
         </text>
         {series.map((b) => {
           const rs = rows(b);
@@ -171,19 +234,26 @@ function ConvergenceChart({ series, rows }: { series: string[]; rows: (b: string
             <g key={b}>
               {rs.map((r) => (
                 <line key={`ci${r.group}`} x1={x(r.cf_fraction)} x2={x(r.cf_fraction)} y1={y(r.convergence_ci[0])}
-                      y2={y(r.convergence_ci[1])} stroke={SERIES[b]} strokeWidth={1} opacity={0.7} />
+                      y2={y(r.convergence_ci[1])} stroke={SERIES[b]} strokeWidth={2} strokeLinecap="round" opacity={0.35} />
               ))}
-              <path d={line} fill="none" stroke={SERIES[b]} strokeWidth={b === "all" ? 2.5 : 2} />
+              <path d={line} fill="none" stroke={SERIES[b]} strokeWidth={2} />
               {rs.map((r) => (
-                <circle key={r.group} cx={x(r.cf_fraction)} cy={y(r.convergence_success)} r={4.5} fill={SERIES[b]}
-                        stroke="var(--surface)" strokeWidth={2}
-                        onMouseEnter={(e) => setHover({ b, r, x: e.clientX, y: e.clientY })}
-                        onMouseLeave={() => setHover(null)} />
+                <g key={r.group}>
+                  <circle cx={x(r.cf_fraction)} cy={y(r.convergence_success)} r={14} fill="transparent"
+                          onMouseEnter={(e) => setHover({ b, r, x: e.clientX, y: e.clientY })}
+                          onMouseLeave={() => setHover(null)} />
+                  <circle cx={x(r.cf_fraction)} cy={y(r.convergence_success)} r={5} fill={SERIES[b]}
+                          stroke="var(--surface)" strokeWidth={2} pointerEvents="none" />
+                  {!labels && (
+                    <text x={x(r.cf_fraction)} y={y(r.convergence_success) - 12} textAnchor="middle" fontSize={12}
+                          fill="var(--ink)" fontWeight={600}>{pct(r.convergence_success)}</text>
+                  )}
+                </g>
               ))}
             </g>
           );
         })}
-        {ends.map((e) => (
+        {labels && ends.map((e) => (
           <text key={e.b} x={x(1) + 12} y={y(e.y) + 4} fontSize={12} fill="var(--ink-2)">{NAMES[e.b] ?? e.b}</text>
         ))}
       </svg>
@@ -199,17 +269,18 @@ function ConvergenceChart({ series, rows }: { series: string[]; rows: (b: string
 }
 
 function IntelligibilityBars({ rows }: { rows: GroupRow[] }) {
-  const W = 420, row = 30, M = { left: 44, right: 8, top: 6 };
-  const H = M.top + rows.length * row + 30;
+  const [ref, W] = useWidth<HTMLDivElement>(420, 260);
+  const row = 32, M = { left: 48, right: 4, top: 4 };
+  const H = M.top + rows.length * row;
   const x = d3.scaleLinear([0, 1], [M.left, W - M.right]);
   return (
-    <div className="panel-body">
-      <svg viewBox={`0 0 ${W} ${H}`} width="100%" role="img" aria-label="Share of sessions per intelligibility level">
+    <div className="panel-body" ref={ref}>
+      <svg width={W} height={H} role="img" aria-label="Share of sessions per intelligibility level">
         {rows.map((r, i) => {
           let left = 0;
           return (
             <g key={r.group} transform={`translate(0,${M.top + i * row})`}>
-              <text x={M.left - 6} y={row / 2} textAnchor="end" fontSize={11} fill="var(--muted)">{share(r)}</text>
+              <text x={M.left - 8} y={row / 2 + 3} textAnchor="end" fontSize={12} fill="var(--muted)">{share(r)}</text>
               {LEVELS.map((l) => {
                 const v = (r as any)[l.key] as number;
                 const start = left;
@@ -217,11 +288,11 @@ function IntelligibilityBars({ rows }: { rows: GroupRow[] }) {
                 return v > 0 ? (
                   <g key={l.key}>
                     <rect x={x(start)} y={4} width={Math.max(0, x(start + v) - x(start) - 2)} height={row - 10}
-                          fill={l.color} rx={2}>
+                          fill={l.color} rx={3}>
                       <title>{`${l.name}: ${pct(v)}`}</title>
                     </rect>
                     {v >= 0.1 && (
-                      <text x={x(start + v / 2)} y={row / 2 + 4} textAnchor="middle" fontSize={10.5}
+                      <text x={x(start + v / 2)} y={row / 2 + 4} textAnchor="middle" fontSize={11.5}
                             fill={l.key === "strong" || l.key === "ultra_strong" ? "#fff" : "#0b0b0b"}>{pct(v)}</text>
                     )}
                   </g>
@@ -231,65 +302,63 @@ function IntelligibilityBars({ rows }: { rows: GroupRow[] }) {
           );
         })}
       </svg>
-      <div className="legend" style={{ padding: 0 }}>
+      <div className="legend" style={{ marginTop: 8 }}>
         {LEVELS.map((l) => (
-          <span key={l.key} style={{ display: "inline-flex", gap: 5, alignItems: "center", fontSize: 12.5 }}>
-            <span style={{ width: 10, height: 10, background: l.color, borderRadius: 2 }} />{l.name}
-          </span>
+          <span key={l.key} className="legend-item"><span className="swatch" style={{ background: l.color }} />{l.name}</span>
         ))}
       </div>
     </div>
   );
 }
 
-function TokenBars({ rows }: { rows: GroupRow[] }) {
-  if (!rows.length || rows[0].tokens_mean == null) {
-    return <div className="empty">No token counts (the deterministic mock reports none).</div>;
-  }
-  const W = 420, H = 200, M = { top: 22, bottom: 24, left: 44, right: 8 };
-  const max = d3.max(rows, (r) => (r.tokens_ci?.[1] ?? r.tokens_mean ?? 0)) ?? 1;
-  const y = d3.scaleLinear([0, max * 1.1], [H - M.bottom, M.top]).nice();
-  const x = d3.scaleBand(rows.map(share), [M.left, W - M.right]).padding(0.35);
+function CostBars({ rows, tokens }: { rows: GroupRow[]; tokens: boolean }) {
+  const [ref, W] = useWidth<HTMLDivElement>(420, 260);
+  if (!rows.length) return <div className="empty">No rows.</div>;
+  const H = 210, M = { top: 24, bottom: 26, left: 48, right: 4 };
+  const live = (r: GroupRow) => (tokens ? r.live_tokens_mean ?? 0 : r.calls_mean ?? r.messages_mean);
+  const sandbox = (r: GroupRow) => (tokens ? r.sandbox_tokens_mean ?? 0 : 0);
+  const max = d3.max(rows, (r) => live(r) + sandbox(r)) ?? 1;
+  const y = d3.scaleLinear([0, max * 1.12], [H - M.bottom, M.top]).nice();
+  const x = d3.scaleBand(rows.map(share), [M.left, W - M.right]).padding(0.38);
+  const fmt = (v: number) => (tokens ? Math.round(v).toLocaleString() : v.toFixed(1));
   return (
-    <div className="panel-body">
-      <svg viewBox={`0 0 ${W} ${H}`} width="100%" role="img" aria-label="Mean tokens per instance by group">
+    <div className="panel-body" ref={ref}>
+      <svg width={W} height={H} role="img" aria-label={tokens ? "Mean tokens per instance by group" : "Mean model calls per session by group"}>
         {y.ticks(4).map((t) => (
           <g key={t}>
             <line x1={M.left} x2={W - M.right} y1={y(t)} y2={y(t)} stroke="var(--grid)" />
-            <text x={M.left - 6} y={y(t) + 4} textAnchor="end" fontSize={10.5} fill="var(--muted)">{d3.format("~s")(t)}</text>
+            <text x={M.left - 8} y={y(t) + 4} textAnchor="end" fontSize={11.5} fill="var(--muted)">{d3.format("~s")(t)}</text>
           </g>
         ))}
         {rows.map((r) => {
-          const live = r.live_tokens_mean ?? 0;
-          const sb = r.sandbox_tokens_mean ?? 0;
+          const l = live(r);
+          const s = sandbox(r);
           const bx = x(share(r))!;
           return (
             <g key={r.group}>
-              <rect x={bx} y={y(live)} width={x.bandwidth()} height={y(0) - y(live)} fill="var(--tag-revise)" rx={2}>
-                <title>{`Live board: ${Math.round(live).toLocaleString()} tokens`}</title>
+              <rect x={bx} y={y(l)} width={x.bandwidth()} height={y(0) - y(l)} fill="var(--tag-revise)" rx={3}>
+                <title>{`${tokens ? "Live board" : "Calls"}: ${fmt(l)}`}</title>
               </rect>
-              {sb > 0 && (
-                <rect x={bx} y={y(live + sb)} width={x.bandwidth()} height={Math.max(0, y(live) - y(live + sb) - 2)}
-                      fill="var(--tag-objection)" rx={2}>
-                  <title>{`Sandbox: ${Math.round(sb).toLocaleString()} tokens`}</title>
+              {s > 0 && (
+                <rect x={bx} y={y(l + s)} width={x.bandwidth()} height={Math.max(0, y(l) - y(l + s) - 2)}
+                      fill="var(--tag-objection)" rx={3}>
+                  <title>{`Sandbox: ${fmt(s)} tokens`}</title>
                 </rect>
               )}
-              <text x={bx + x.bandwidth() / 2} y={y(live + sb) - 6} textAnchor="middle" fontSize={10.5} fill="var(--ink-2)">
-                {Math.round(r.tokens_mean ?? 0).toLocaleString()}
+              <text x={bx + x.bandwidth() / 2} y={y(l + s) - 7} textAnchor="middle" fontSize={12} fill="var(--ink)">
+                {fmt(l + s)}
               </text>
-              <text x={bx + x.bandwidth() / 2} y={H - 6} textAnchor="middle" fontSize={11} fill="var(--muted)">{share(r)}</text>
+              <text x={bx + x.bandwidth() / 2} y={H - 6} textAnchor="middle" fontSize={12} fill="var(--muted)">{share(r)}</text>
             </g>
           );
         })}
       </svg>
-      <div className="legend" style={{ padding: 0 }}>
-        <span style={{ display: "inline-flex", gap: 5, alignItems: "center", fontSize: 12.5 }}>
-          <span style={{ width: 10, height: 10, background: "var(--tag-revise)", borderRadius: 2 }} />Live board
-        </span>
-        <span style={{ display: "inline-flex", gap: 5, alignItems: "center", fontSize: 12.5 }}>
-          <span style={{ width: 10, height: 10, background: "var(--tag-objection)", borderRadius: 2 }} />Counterfactual sandbox
-        </span>
-      </div>
+      {tokens && (
+        <div className="legend" style={{ marginTop: 8 }}>
+          <span className="legend-item"><span className="swatch" style={{ background: "var(--tag-revise)" }} />Live board</span>
+          <span className="legend-item"><span className="swatch" style={{ background: "var(--tag-objection)" }} />Counterfactual sandbox</span>
+        </div>
+      )}
     </div>
   );
 }
@@ -314,7 +383,7 @@ function GroupTable({ rows }: { rows: GroupRow[] }) {
             <td className="num">{pct(r.deadlock)}</td><td className="num">{pct(r.recovered)}</td>
             <td className="num">{pct(r.ultra_strong)}</td><td className="num">{pct(r.strong)}</td>
             <td className="num">{r.messages_mean.toFixed(1)}</td>
-            <td className="num">{r.tokens_mean == null ? "—" : Math.round(r.tokens_mean).toLocaleString()}</td>
+            <td className="num">{r.tokens_mean == null ? "–" : Math.round(r.tokens_mean).toLocaleString()}</td>
           </tr>
         ))}
       </tbody>

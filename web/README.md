@@ -19,28 +19,48 @@ http://127.0.0.1:8765.
 
 ## Views
 
-**Sessions** starts a session (task, provider, which agents are counterfactual-capable, pace) and
-shows it live:
+**Sessions** starts a session and shows it live. The start page shows the task, what each agent
+privately knows, and which agents are counterfactual-capable (click an agent to toggle it), plus a
+key to the PXP tags. A running session shows, top to bottom:
 
-- **Reasoning graph.** The task is the root at the centre. Each agent owns a sector, and each
-  message sits one ring further out per message number. Curved edges join each message to the one
-  it answered. Marks are coloured by PXP tag: REFUTE hollow, REJECT solid. When several objections
-  come in a row, those marks pulse red and an alert appears.
-- **Agents.** Voting weight, current position and latest tag for each agent, plus the arbiter's
-  activation queue for the current round. The selected agent is outlined.
-- **Reasoning stream.** One lane per agent and one column per message. Dashed lines mark
-  counterfactual interventions.
-- **Board log.** Every event: messages with their judgments, status changes, interventions,
-  weight changes, rejected drafts and collisions.
-- **Counterfactual simulation.** A split panel with the live run up to the deadlock on the left
-  and each sandbox branch on the right. Each branch shows its proximity before and after, its
-  credit, and the lesson. While the sandbox runs, branches fill in live.
-- **Scrubber.** Step through the event log one event or one message at a time (← → keys, Home,
-  End), or replay it. All views show the board at that point. "Follow live" returns to the head.
+- **Story strip.** Six steps: opening, discussion, deadlock, sandbox replay, fix applied and
+  outcome. Each fills in as the session reaches it. A deadlock is marked red and consensus green.
+- **Agents.** For each agent: its counterfactual capability, current position, latest tag and
+  voting weight. The agent the arbiter selected last is outlined.
+- **Reasoning graph and counterfactual replay, side by side.**
+  - **Graph.** The task is the root at the centre. Each agent owns a sector, and each message sits
+    one ring further out per message number. Its mark carries the number and is coloured by PXP
+    tag (REFUTE hollow, REJECT solid). Edges, in the reply's tag colour, join each message to the
+    one it answered. When several objections come in a row, those marks pulse red and an alert
+    appears.
+  - **Counterfactual replay.** Before a deadlock it explains what a capable agent will do. Once a
+    deadlock occurs it shows:
+    - the number of alternatives replayed, the best credit and what was applied;
+    - the lesson added to the prompt and the weight change;
+    - the live board up to the deadlock next to every sandbox branch, best first, each with its
+      outcome, its consensus proximity before and after, and its credit. While the sandbox runs,
+      branches fill in live.
+- **Scrubber,** under the graph. Step through the event log one event or one message at a time
+  (← → keys, Home, End), or replay it. Every view, including the story strip, shows the board at
+  that point. "Follow live" returns to the head.
+- **Reasoning stream, scheduler and board log.**
+  - **Reasoning stream:** one lane per agent and one column per message. Dashed lines mark
+    interventions.
+  - **Scheduler:** the arbiter's latest ranking and the reasons for it.
+  - **Board log:** every event (messages with their judgments, status changes, interventions,
+    weight changes, rejected drafts and collisions).
 
-Pause, step and stop control the running session on the server.
+Pause, step and stop control the running session on the server. The top bar switches between light
+and dark mode.
 
-**Analytics** shows the ablation results written by `bb ablate`.
+**Analytics** shows the ablation results written by `bb ablate`:
+
+- one sentence on what each run is;
+- headline numbers from the 0% group to the 100% group;
+- convergence success with 95% intervals;
+- intelligibility depth;
+- cost per instance: tokens, or model calls for the scripted agents;
+- the full table and the McNemar tests.
 
 ## Code
 
